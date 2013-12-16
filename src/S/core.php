@@ -5,7 +5,7 @@
 
 
 require 'config.php';
-date_default_timezone_set('Asia/Chongqing');///更正时间
+date_default_timezone_set('PRC');
 
 class uri
 {
@@ -158,8 +158,12 @@ class M
 	static $link;///单例模式
 	public $debug=false;///调试模式
 
-	public  $select=array();
-
+	public  $type; //何种操作,select ,update ,delete,insert
+	public  $from;//存放表名字
+	public  $where;
+	public  $result;
+	public  $sql;
+	public  $auto=true;
 
 
 	function __construct()
@@ -180,6 +184,7 @@ class M
 
 	function query($sql)
 	{
+		$this-> auto=false;
 		if ($this-> debug)
 		{
 			exit('调试模式:'.$sql);
@@ -195,7 +200,7 @@ class M
 					
 				}
 				else
-				{
+				{	
 					return self::$link->exec($sql);
 				}
 			}
@@ -208,10 +213,15 @@ class M
 
 	}
 
-	function select()
+	function select($select)
 	{
-		echo 'select';
+			
+		is_string($select)||exit('select 的参数不正确');
+		$this-> type='SELECT '.$select;
+
+
 		return $this;
+		
 	}
 	function select_max()
 	{
@@ -253,14 +263,24 @@ class M
 	}
 	function from($table)
 	{
-
+		$this-> from=' FROM '.$table;
 		return $this;
 
 	}
-	function where()
+	function where($where)
 	{
-		echo 'where';
+		foreach ($where as $key => $value) 
+		{
+			
+			$k[]='(`'.$key.'`="'.$value.'")';
+			
 
+		}
+
+		
+   		$strk.=implode("and",$k);
+
+		$this-> where=' WHERE '."({$strk})";
 		return $this;
 	}
 	function order_by()
@@ -284,7 +304,7 @@ class M
 		echo 'insert';
 		return $this;
 	}
-	function debug($debug)
+	function debug($debug=true)
 	{
 
 		if ($debug)
@@ -296,6 +316,38 @@ class M
 			$this-> debug=false;
 		}
 		return $this;
+	}
+
+	private function combine_sql()
+	{
+		$this-> sql=$this-> type.$this-> from.$this-> where;
+	}
+	function fetchall()
+	{
+		$this->combine_sql();
+		return $this->query($this-> sql)->fetchall(PDO::FETCH_ASSOC);
+		
+	}
+	function fetchs($i=0)
+	{
+		$this->combine_sql();
+		
+		$this-> result=$this->query($this-> sql);
+		return $this-> result;
+		
+	}
+	function __destruct()
+	{
+		if($this-> auto)
+		{
+
+			$this-> combine_sql();
+			$this-> result=$this->query($this-> sql);
+			return $this-> result;
+		
+		}
+		
+
 	}
 }
 
@@ -316,4 +368,131 @@ function base_url($path)
 {
 	return('http://'.$_SERVER['SERVER_NAME'].'/'.$path);
 
+}
+
+
+
+
+
+
+
+function sendmail($mail_to, $mail_subject, $mail_message) {
+	global $mail;
+	$mail_subject = '=?'.$mail['charset'].'?B?'.base64_encode($mail_subject).'?=';
+	$mail_message = chunk_split(base64_encode(preg_replace("/(^|(\r\n))(\.)/", "\1.\3", $mail_message)));
+
+	$headers .= "";
+	$headers .= "MIME-Version:1.0\r\n";
+	$headers .= "Content-type:text/html\r\n";
+	$headers .= "Content-Transfer-Encoding: base64\r\n";
+	$headers .= "From: ".$mail['sitename']."<".$mail['mailfrom'].">\r\n";
+	$headers .= "Date: ".date("r")."\r\n";
+	list($msec, $sec) = explode(" ", microtime());
+	$headers .= "Message-ID: <".date("YmdHis", $sec).".".($msec * 1000000).".".$mail['mailfrom'].">\r\n";
+
+	if(!$fp = fsockopen($mail['server'], $mail['port'], $errno, $errstr, 30)) {
+		exit("CONNECT - Unable to connect to the SMTP server");
+	}
+
+	stream_set_blocking($fp, true);
+
+	$lastmessage = fgets($fp, 512);
+	if(substr($lastmessage, 0, 3) != '220') {
+		exit("CONNECT - ".$lastmessage);
+	}
+
+	fputs($fp, ($mail['auth'] ? 'EHLO' : 'HELO')." befen\r\n");
+	$lastmessage = fgets($fp, 512);
+	if(substr($lastmessage, 0, 3) != 220 && substr($lastmessage, 0, 3) != 250) {
+		exit("HELO/EHLO - ".$lastmessage);
+	}
+
+	while(1) {
+		if(substr($lastmessage, 3, 1) != '-' || empty($lastmessage)) {
+ 			break;
+ 		}
+ 		$lastmessage = fgets($fp, 512);
+	}
+
+	if($mail['auth']) {
+		fputs($fp, "AUTH LOGIN\r\n");
+		$lastmessage = fgets($fp, 512);
+		if(substr($lastmessage, 0, 3) != 334) {
+			exit($lastmessage);
+		}
+
+		fputs($fp, base64_encode($mail['username'])."\r\n");
+		$lastmessage = fgets($fp, 512);
+		if(substr($lastmessage, 0, 3) != 334) {
+			exit("AUTH LOGIN - ".$lastmessage);
+		}
+
+		fputs($fp, base64_encode($mail['password'])."\r\n");
+		$lastmessage = fgets($fp, 512);
+		if(substr($lastmessage, 0, 3) != 235) {
+			exit("AUTH LOGIN - ".$lastmessage);
+		}
+
+		$email_from = $mail['mailfrom'];
+	}
+
+	fputs($fp, "MAIL FROM: <".preg_replace("/.*\<(.+?)\>.*/", "\\1", $email_from).">\r\n");
+	$lastmessage = fgets($fp, 512);
+	if(substr($lastmessage, 0, 3) != 250) {
+		fputs($fp, "MAIL FROM: <".preg_replace("/.*\<(.+?)\>.*/", "\\1", $email_from).">\r\n");
+		$lastmessage = fgets($fp, 512);
+		if(substr($lastmessage, 0, 3) != 250) {
+			exit("MAIL FROM - ".$lastmessage);
+		}
+	}
+
+	foreach(explode(',', $mail_to) as $touser) {
+		$touser = trim($touser);
+		if($touser) {
+			fputs($fp, "RCPT TO: <".preg_replace("/.*\<(.+?)\>.*/", "\\1", $touser).">\r\n");
+			$lastmessage = fgets($fp, 512);
+			if(substr($lastmessage, 0, 3) != 250) {
+				fputs($fp, "RCPT TO: <".preg_replace("/.*\<(.+?)\>.*/", "\\1", $touser).">\r\n");
+				$lastmessage = fgets($fp, 512);
+				exit("RCPT TO - ".$lastmessage);
+			}
+		}
+	}
+
+	fputs($fp, "DATA\r\n");
+	$lastmessage = fgets($fp, 512);
+	if(substr($lastmessage, 0, 3) != 354) {
+		exit("DATA - ".$lastmessage);
+	}
+
+	fputs($fp, $headers);
+	fputs($fp, "To: ".$mail_to."\r\n");
+	fputs($fp, "Subject: $mail_subject\r\n");
+	fputs($fp, "\r\n\r\n");
+	fputs($fp, "$mail_message\r\n.\r\n");
+	$lastmessage = fgets($fp, 512);
+	if(substr($lastmessage, 0, 3) != 250) {
+		exit("END - ".$lastmessage);
+	}
+
+	fputs($fp, "QUIT\r\n");
+
+}
+
+function sendsms($to,$msg)//成功返回true
+{
+	global $sms;
+    $user=$sms['user'];
+    $pass=$sms['pass'];
+    $url="http://quanapi.sinaapp.com/fetion.php?u={$user}&p={$pass}&to={$to}&m={$msg}";
+    $ret=file_get_contents($url);
+    $res=json_decode($ret,true);
+    if ($res->result==0)///结果为零时成功
+    {
+       return true;
+    }
+    else
+    {
+        return false;
+    }
 }

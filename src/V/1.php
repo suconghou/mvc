@@ -40,5 +40,9 @@
 <li>redirect($url,$seconds=0) 延时$seconds后重定向,$seconds不指定则立即重定向</li>
 <li></li>
 </ul>
+
+<?
+
+?>
 </body>
 </html>

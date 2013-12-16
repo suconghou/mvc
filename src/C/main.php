@@ -9,7 +9,9 @@ class main extends C
 	function index()
 	{
 		$this->model('user');
-		$s=$this->user->inser();
+
+		$s=$this->user->insert();
+		//$this->user->sql2();
 		//var_dump($s);
 	}
 

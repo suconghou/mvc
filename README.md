@@ -37,7 +37,8 @@
 <ul>
 <li>base_url($filepath) 自动计算出文件的绝对地址并返回</li>
 <li>redirect($url,$seconds=0) 延时$seconds后重定向,$seconds不指定则立即重定向</li>
-<li></li>
+<li>sendmail($to,$subject,$html) 使用smtp发送邮件,需在config中配置smtp信息</li>
+<li>sendsms($to,$msg),使用飞信方式发送短信,要在config中配置手机号和飞信密码,可以发给自己活自己好友,发送多人,可以用,号隔开</li>
 </ul>
 </body>
 </html>
