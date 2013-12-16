@@ -22,12 +22,12 @@ $mail = Array (
 	'port' => 25,
 	'auth' => 1,
 	'username' => 'suconghou@126.com',
-	'password' => '11260sch45770',
+	'password' => '12330',
 	'charset' => 'utf-8',
 	'mailfrom' => 'suconghou@126.com'
 	);
 
 ///发送短信配置,飞信方式
 $sms=array('user'=>'18749667085',
-			'pass'=>'11260sch45770'
+			'pass'=>'123456'
 			);
