@@ -1,7 +1,6 @@
 
 <html>
 <head>
-
 	<h1>最简单实用的MVC框架</h1>
 </head>
 <body>
