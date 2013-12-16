@@ -1,7 +1,7 @@
-<!DOCTYPE html>
+
 <html>
 <head>
-	<title>mini MVC</title>
+
 	<h1>最简单实用的MVC框架</h1>
 </head>
 <body>
