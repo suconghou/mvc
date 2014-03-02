@@ -39,6 +39,11 @@
 <li>redirect($url,$seconds=0) 延时$seconds后重定向,$seconds不指定则立即重定向</li>
 <li>sendmail($to,$subject,$html) 使用smtp发送邮件,需在config中配置smtp信息</li>
 <li>sendsms($to,$msg),使用飞信方式发送短信,要在config中配置手机号和飞信密码,可以发给自己活自己好友,发送多人,可以用,号隔开</li>
+<li>getip()获取访客的ip地址</li>
+<li>ip2data($ip=null)传入IP得出此IP的相关信息,利用的是淘宝的IP地址库</li>
+<li>getuser_info()获取访客的浏览器系统等信息</li>
+<li>xss_clean()过滤xss危险标签</li>
+<li>pass_time()</li>
 </ul>
 </body>
 </html>

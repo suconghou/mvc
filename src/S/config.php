@@ -1,18 +1,23 @@
 <?
 
-//uri路由设置
+
+date_default_timezone_set('PRC');//设置时区
+set_error_handler('show_errorpage');
 
 
 
+//数据库配置,有mysql和sqlite两种数据库,如果配置了sqlite,则优先使用sqlite
+//$db['sqlite']="/db/data.db";
 
-//数据库配置
 
-$config['db_host']='localhost';
-$config['db_port']=3306;
-$config['db_name']='data';
-$config['db_user']='root';
-$config['db_pass']='123456';
+$db['db_host']='10.0.62.24';
+$db['db_port']=3306;
+$db['db_name']='d4529ded14db5447abec0d19416451043';
+$db['db_user']='usHkUZwfH2iw0';
+$db['db_pass']='pei2nLF8nqAxz';
 
+//////////系统设置
+$config['debug']=1;
 
 //smtp配置
 

@@ -1,33 +1,27 @@
 <?
-
+//date 20140218
 //mvc 入口文件
+$t=microtime(true);//计时开始
+require 's/core.php';//载入核心
+$uri=uri_init();//获得路由信息
+$hash='v/cache/'.implode('-',$uri).'.html';///缓存hash
 
-$t1=microtime(true);//计时开始
-require 'S/core.php';//载入核心
-
-$arr_uri=(new uri())->init();
-
-$hash='V/cache/'.implode('-',$arr_uri).'.html';
 if (is_file($hash))//存在缓存文件
 {
-	
-	if(time()<file_get_contents($hash,null,null,4,10)) ///未过期
-	{
 
-		echo file_get_contents($hash);
+	if(time()<filemtime($hash)) ///未过期
+	{		
+		 exit(file_get_contents($hash));
 	}
 	else ///已过期
 	{
 		unlink($hash);  ///删除过期文件
-		new process($arr_uri);
-
+		process($uri);
 	}
-
-
 }
 else
 {
-	new process($arr_uri);
+	process($uri);
 }
 
-//var_dump($arr_uri);
+//end of file index.php
