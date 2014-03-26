@@ -1,27 +1,41 @@
 <?
-//date 20140218
+//update 20140324
 //mvc 入口文件
-$t=microtime(true);//计时开始
-require 's/core.php';//载入核心
-$uri=uri_init();//获得路由信息
-$hash='v/cache/'.implode('-',$uri).'.html';///缓存hash
+define('APP_START_TIME',microtime(true));//计时开始
+define('APP_START_MEMORY',memory_get_usage());//初始内存大小
+
+require 'app/s/core.php';//载入核心
+
+$router=process();//获得路由信息
+$hash='static/cache/'.implode('-',$router).'.html';///缓存hash
 
 if (is_file($hash))//存在缓存文件
 {
-
-	if(time()<filemtime($hash)) ///未过期
-	{		
-		 exit(file_get_contents($hash));
+	$expires_time=filemtime($hash);
+	if(time()<$expires_time) ///缓存未过期
+	{		 
+		
+		if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']))
+		{
+			http_response_code(304);
+			exit();  
+		}
+		else
+		{	
+			header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT');   
+			exit(file_get_contents($hash));
+		}
+		
 	}
 	else ///已过期
 	{
 		unlink($hash);  ///删除过期文件
-		process($uri);
+		run($router);
 	}
 }
 else
 {
-	process($uri);
+	run($router);
 }
 
 //end of file index.php
