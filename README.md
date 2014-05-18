@@ -1,17 +1,5 @@
-<!doctype html> 
-<html> 
-<head> 
-    <meta charset="utf-8"> 
-    <title></title> 
-    <style>
-    body{font: 16px Monaco,Bitstream Vera Sans Mono, Microsoft YaHei, Arial, sans-serif;} 
-    #wrapper{width: 80%; margin: 2% auto; box-shadow: 0 0 4px #999; line-height:30px; padding: 4%; } 
-    ::-webkit-scrollbar-track-piece {width:6px; background-color: #fdfdfd; } 
-    ::-webkit-scrollbar-thumb {height: 50px; background-color: rgba(0,0,0,.7); 
-    -webkit-border-radius: 2px; } ::-webkit-scrollbar {width:6px; height: 6px; } 
-    ::selection {background: #FFF200; text-shadow: none; } 
-    </style> </head> <body>
-    <div id='wrapper'>
+
+    <div>
         <h2>便捷快速的MVC开发框架</h2><span>update 20140407</span>
         <ul>
         	<li>只有两个核心文件入口文件index.php核心文件core.php,快速便捷,适用于各种项目</li>
@@ -88,9 +76,5 @@
             <li>在c中创建base_controller,提供一些基础的操作,以便可以使用run方法调用他</li>
         </ul>
        
-        <p align="center">执行时间 <?=APP_TIME_SPEND?>秒</p>
-        <p align="center">消耗内存 <?=APP_MEMORY_SPEND?></p>
+    
     </div>
-
-</body>
-</html>
