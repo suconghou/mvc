@@ -6,17 +6,18 @@
 //php post数据
 function post_data($url,$post_string)
 {
-	$ch=curl_init();
-	curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$post_string));
-	$result=curl_exec($ch);
-	curl_close($ch);
-	return $result;
+    $ch=curl_init();
+    curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$post_string));
+    $result=curl_exec($ch);
+    curl_close($ch);
+    return $result;
 }
 //curl 模拟上传文件
 function sendFile($url,$post_data)
 {
 	$curl = curl_init($url);
 	curl_setopt($curl, CURLOPT_POST, 1 );
+	curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0 );
 	curl_setopt($curl, CURLOPT_POSTFIELDS, $post_data);
 	curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 	$result = curl_exec($curl);
@@ -91,3 +92,38 @@ function is_tel($tel)
 	return (preg_match("/^1[3458][0-9]{9}$/",$tel));
 }
 
+
+function pass_time($time)
+{
+  $rtime = date("m-d H:i",$time);
+  $htime = date("H:i",$time);
+  $time = time() - $time;
+  if ($time < 60)
+    {
+        $str = '刚刚';
+    }
+    elseif ($time < 60 * 60)
+    {
+        $min = floor($time/60);
+        $str = $min.'分钟前';
+    }
+    elseif ($time < 60 * 60 * 24)
+    {
+        $h = floor($time/(60*60));
+        $str = $h.'小时前 '.$htime;
+    }
+    elseif ($time < 60 * 60 * 24 * 3)
+    {
+        $d = floor($time/(60*60*24));
+        if($d==1)
+            $str = '昨天 '.$rtime;
+        else
+            $str = '前天 '.$rtime;
+    }
+    else
+    {
+        $str = $rtime;
+    }
+    return $str;
+
+}
