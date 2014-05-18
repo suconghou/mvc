@@ -91,6 +91,24 @@ function is_tel($tel)
 {
 	return (preg_match("/^1[3458][0-9]{9}$/",$tel));
 }
+function getip()
+{
+    if ($_SERVER["HTTP_X_FORWARDED_FOR"])
+    $ip = $_SERVER["HTTP_X_FORWARDED_FOR"];
+    else if ($_SERVER["HTTP_CLIENT_IP"])
+    $ip = $_SERVER["HTTP_CLIENT_IP"];
+    else if ($_SERVER["REMOTE_ADDR"])
+    $ip = $_SERVER["REMOTE_ADDR"];
+    else if (getenv("HTTP_X_FORWARDED_FOR"))
+    $ip = getenv("HTTP_X_FORWARDED_FOR");
+    else if (getenv("HTTP_CLIENT_IP"))
+    $ip = getenv("HTTP_CLIENT_IP");
+    else if (getenv("REMOTE_ADDR"))
+    $ip = getenv("REMOTE_ADDR");
+    else
+    $ip = "Unknown";
+    return $ip;
+}
 
 
 function pass_time($time)
