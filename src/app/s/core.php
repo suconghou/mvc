@@ -191,7 +191,7 @@ function process()
 
 	$router[0]=empty($router[0])?DEFAULT_CONTROLLER:$router[0];
 	$router[1]=empty($router[1])?DEFAULT_ACTION:$router[1];
-	var_dump($router);
+
 	//控制器名包含问号,截取问号前的作为控制器名
 	$offset=strpos($router[0],'?');
 	if($offset!==false)
@@ -297,7 +297,6 @@ function S($lib,$param=null)
 	}
 	else
 	{
-
 		$file='./app/s/'.$lib.'.php';
 		$class_file='./app/s/'.$lib.'.class.php';
 		if(is_file($class_file))///是类库文件
@@ -489,17 +488,29 @@ function clean($data)
 //来访信息
 function userInfo()
 {
-
+	if ($_SERVER["HTTP_X_FORWARDED_FOR"])
+	$ip = $_SERVER["HTTP_X_FORWARDED_FOR"];
+	else if ($_SERVER["HTTP_CLIENT_IP"])
+	$ip = $_SERVER["HTTP_CLIENT_IP"];
+	else if ($_SERVER["REMOTE_ADDR"])
+	$ip = $_SERVER["REMOTE_ADDR"];
+	else if (getenv("HTTP_X_FORWARDED_FOR"))
+	$ip = getenv("HTTP_X_FORWARDED_FOR");
+	else if (getenv("HTTP_CLIENT_IP"))
+	$ip = getenv("HTTP_CLIENT_IP");
+	else if (getenv("REMOTE_ADDR"))
+	$ip = getenv("REMOTE_ADDR");
+	else
+	$ip = "Unknown";
+	return $ip;
 
 
 }
 /**
  * 异步(非阻塞)运行一个路由
  * $curl 强制使用curl方式,但此方式至少阻塞1秒
- * $lose 如果可以,断开客户端连接
+ * $lose 如果可以,断开客户端连接,脚本后台运行,以后输出不能发送到浏览器
  */
-
-
 function async($router,$curl=false,$lose=false)
 {
 	if(is_array($router))
@@ -518,7 +529,7 @@ function async($router,$curl=false,$lose=false)
 			return file_get_contents($url);			
 		}
 		$ch = curl_init(); 
-		$curl_opt = array(CURLOPT_URL=>$url,CURLOPT_TIMEOUT=>1,CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
+		$curl_opt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>1,CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
 		curl_setopt_array($ch, $curl_opt);
 		curl_exec($ch);
 		curl_close($ch);
@@ -526,7 +537,6 @@ function async($router,$curl=false,$lose=false)
 	}
 	else
 	{ 
-
 		if(function_exists('fastcgi_finish_request')&&$lose)
 		{
 			fastcgi_finish_request();
@@ -682,8 +692,6 @@ class model
 	}
 }//end class model
 
-
-
 /////////some functions blow
 function byte_format($size,$dec=2)
 {
@@ -691,7 +699,8 @@ function byte_format($size,$dec=2)
     return round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i];
 }
 
-//外部重定向//内部重定向run(array);
+//外部重定向,会立即结束脚本以发送header
+//内部重定向run(array);
 function redirect($url,$seconds=0)
 {
 	header("Refresh: {$seconds}; url={$url}");
@@ -709,7 +718,6 @@ function base_url($path=null)
 	return('http://'.$_SERVER['SERVER_NAME'].'/'.$path);
 
 }
-
 
 //发送邮件,用来替代原生mail,多个接受者用分号隔开
 function sendmail($mail_to, $mail_subject, $mail_message)
