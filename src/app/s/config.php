@@ -32,18 +32,18 @@ route('/@name:[a-z0-9]{32}\.[a-z0-9]{2,4}',array('regex','storage'));
 
 
 //mysql数据库配置
-// define('DB_HOST','localhost');
-// define('DB_PORT',3306);
-// define('DB_NAME','bbs');
-// define('DB_USER','root');
-// define('DB_PASS','123456');
+define('DB_HOST','rds3a326jjabjay.mysql.rds.aliyuncs.com');
+define('DB_PORT',3306);
+define('DB_NAME','dbd9sn0cunmk5x7u');
+define('DB_USER','db_user');
+define('DB_PASS','123456');
 
-//mysql数据库配置
+/*//mysql数据库配置
 define('DB_HOST',getenv("MOPAAS_MYSQL8840_HOST"));
 define('DB_PORT',getenv("MOPAAS_MYSQL8840_PORT"));
 define('DB_NAME',getenv("MOPAAS_MYSQL8840_NAME"));
 define('DB_USER',getenv("MOPAAS_MYSQL8840_USERNAME"));
-define('DB_PASS',getenv("MOPAAS_MYSQL8840_PASSWORD"));
+define('DB_PASS',getenv("MOPAAS_MYSQL8840_PASSWORD"));*/
 //sqlite 数据库配置
 define('SQLITE','./app/s/data.db');
 //配置使用何种数据库,0为mysql,1为sqlite

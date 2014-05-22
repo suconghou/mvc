@@ -21,7 +21,6 @@ function regex_router($uri)
 	}
 	foreach ($APP['regex_router'] as $regex)///遍历所有pattren
 	{
-	
 		$char = substr($regex[0], -1);
 		$pattern=str_replace(array(')','*'), array(')?','.*?'),$regex[0]); //第一步替换
 		$pattern=preg_replace_callback( '#@([\w]+)(:([^/\(\)]*))?#','regex_router_callback',$pattern);//第二步替换
@@ -29,7 +28,6 @@ function regex_router($uri)
 		// Attempt to match route and named parameters
 		if (preg_match('#^'.$pattern.'(?:\?.*)?$#i', $uri, $matches))///说明成功匹配
 	 	{	
-
 	 		foreach ($APP['ids'] as $k => $v)
 		 	{
 	            $params[$k] = (array_key_exists($k, $matches)) ? urldecode($matches[$k]) : null;
@@ -147,7 +145,6 @@ function show_errorpage($errno, $errstr, $errfile=null, $errline=null)
 			if(DEBUG)
 			{	
 				log_message($h1.$h2);
-
 			}
 			else
 			{
@@ -194,7 +191,7 @@ function process()
 
 	$router[0]=empty($router[0])?DEFAULT_CONTROLLER:$router[0];
 	$router[1]=empty($router[1])?DEFAULT_ACTION:$router[1];
-
+	var_dump($router);
 	//控制器名包含问号,截取问号前的作为控制器名
 	$offset=strpos($router[0],'?');
 	if($offset!==false)
@@ -202,17 +199,22 @@ function process()
 		$router[0]=substr($router[0],0,$offset);
 		$router[0]||$router[0]=DEFAULT_CONTROLLER;
 	}
-	//如果控制器的名称不合法,采用默认控制器,可过滤index.php,index.html
-	if(!preg_match('/^\w+$/',$router[0]))
-	{
-		$router[0]=DEFAULT_CONTROLLER;
-	}
 	//方法名包含问号,截取问号前的作为方法名
 	$offset=strpos($router[1],'?');
 	if($offset!==false)
 	{
 		$router[1]=substr($router[1],0,$offset);
 		$router[1]||$router[1]=DEFAULT_ACTION;
+	}
+	//如果控制器的名称不合法,采用默认控制器,可过滤index.php,index.html
+	if(!preg_match('/^\w+$/',$router[0]))
+	{
+		$router[0]=DEFAULT_CONTROLLER;
+	}
+	//如果方法的名称不合法,采用默认方法
+	if(!preg_match('/^\w+$/',$router[1]))
+	{
+		$router[1]=DEFAULT_ACTION;
 	}
 	$APP['router']=$router;
 	return $router;
@@ -672,28 +674,6 @@ class model
 	function getInstance()
 	{
 		return self::$link;
-	}
-	function escape($str)
-	{
-		return mysql_real_escape_string($str);
-	}
-	function commitTransaction($sqlarr)
-	{	
-		is_array($sqlarr)||show_errorpage('500','提交的事务应是一个SQL语句数组');
-		try
-		{
-			self::$link->beginTransaction();
-			foreach ($sqlarr as $sql)
-			{
-				self::$link->exec($sql);
-			}
-			self::$link->commit();
-		}
-		catch(Exception $e)
-		{ 
-			self::$link->rollBack(); 
-			show_errorpage('500',"Failed: " . $e->getMessage()); 
-		} 
 	}
 
 	function __destruct()
