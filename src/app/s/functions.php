@@ -4,7 +4,7 @@
 
 
 //php post数据
-function post_data($url,$post_string)
+function postData($url,$post_string)
 {
 	$ch=curl_init();
 	curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$post_string));
@@ -30,7 +30,7 @@ function sendFile($url,$post_data)
 * $data = array("username" => $username,"password"  => $password,"file"  => "@".realpath("1.jpg") );
 */
 
-function http_info($url)
+function httpInfo($url)
 {
 	$ch=curl_init($url);
 	curl_setopt($ch, CURLOPT_HEADER, 1); 
@@ -45,26 +45,26 @@ function http_info($url)
 
 
 ///探测http状态码
-function httpcode($url)
+function httpCode($url)
 {
 	$res=http_info($url);
 	return $res['http_code'];
 }
 
 //探测网址是否存在
-function url_exists($url)   
+function urlExists($url)   
 {   
 	$res=http_info($url);
 	return $res['header_size']?true:false;
 }
 //获得要下载的文件大小
-function getsize($url)
+function getSize($url)
 {
 	$res=http_info($url);
 	return $res['download_content_length'];
 }
 //发送飞信
-function sendsms($to,$msg)//成功返回true
+function sendSms($to,$msg)//成功返回true
 {
     $user=SMS_USER;
     $pass=SMS_PASS;
@@ -81,14 +81,29 @@ function sendsms($to,$msg)//成功返回true
     }
 }
 //验证
-function is_email($email)
+function isEmail($email)
 {
 
 	return (preg_match("/^[0-9a-zA-Z]+@(([0-9a-zA-Z]+)[.])+[a-z]{2,4}$/i",$email ));
 
 }
-function is_tel($tel)
+function isTel($tel)
 {
 	return (preg_match("/^1[3458][0-9]{9}$/",$tel));
 }
 
+function getImg($id,$page=1)
+{
+    $pattern='/http:\/\/image.hnol.net\/[a-z]\/201(2|3|4)-\d{2}\/\d{1,2}\/\d{1,2}\/\d{17,19}-\d{7}.jpg/';
+    $url="http://bbs.voc.com.cn/viewthread.php?action=printable&tid={$id}&page={$page}";
+    $subject=file_get_contents($url);
+    if(preg_match_all($pattern, $subject, $matches))
+    {
+        return array_unique($matches[0]);
+    }
+    else
+    {
+        return false;
+    }
+
+}
