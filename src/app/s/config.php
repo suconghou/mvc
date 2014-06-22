@@ -1,7 +1,7 @@
 <?
 
 
-set_error_handler('show_errorpage');///异常处理
+set_error_handler('showErrorpage');///异常处理
 date_default_timezone_set('PRC');//设置时区
 set_include_path('./app/s/');//此路径下可直接include
 
@@ -26,16 +26,17 @@ define('REGEX_ROUTER',1);
 ///添加一个正则路由,数组第一个为控制器,第二个为方法,前面的将作为该方法的第一个实参,以此类推
 
 route('/@name:[a-z0-9]{32}\.[a-z0-9]{2,4}',array('regex','storage'));
+route('/upload',array('regex','upload'));
 
 
 
 
 
 //mysql数据库配置
-define('DB_HOST','rds3a326jjabjay.mysql.rds.aliyuncs.com');
+define('DB_HOST','localhost');
 define('DB_PORT',3306);
-define('DB_NAME','dbd9sn0cunmk5x7u');
-define('DB_USER','db_user');
+define('DB_NAME','bbs');
+define('DB_USER','root');
 define('DB_PASS','123456');
 
 /*//mysql数据库配置
@@ -45,7 +46,7 @@ define('DB_NAME',getenv("MOPAAS_MYSQL8840_NAME"));
 define('DB_USER',getenv("MOPAAS_MYSQL8840_USERNAME"));
 define('DB_PASS',getenv("MOPAAS_MYSQL8840_PASSWORD"));*/
 //sqlite 数据库配置
-define('SQLITE','./app/s/data.db');
+define('SQLITE','./app/s/mm.db');
 //配置使用何种数据库,0为mysql,1为sqlite
 define('DB',1);
 

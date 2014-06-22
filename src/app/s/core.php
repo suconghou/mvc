@@ -1,7 +1,8 @@
 <?
 
-//mvc 核心框架类库
-//update 2014.04.09
+//mvc核心框架类库
+//VERSION1.23
+//update 2014.06.22
 require 'config.php';
 
 //正则路由分析器
@@ -66,7 +67,7 @@ function common_router($uri)
 }
 
 //异常处理 404 500等
-function show_errorpage($errno, $errstr, $errfile=null, $errline=null)
+function showErrorpage($errno, $errstr, $errfile=null, $errline=null)
 {
 	$e = new Exception;
 	$trace=$e->getTraceAsString();
@@ -84,7 +85,7 @@ function show_errorpage($errno, $errstr, $errfile=null, $errline=null)
 		http_response_code($errno);
 		if(USER_ERROR_PAGE_404)
 		{
-			DEBUG&&log_message($h1.$h2);
+			DEBUG&&logMessage($h1.$h2);
 			include './app/s/error/'.USER_ERROR_PAGE_404;
 			die;
 		}
@@ -92,7 +93,7 @@ function show_errorpage($errno, $errstr, $errfile=null, $errline=null)
 		{	
 			if(DEBUG)
 			{
-				log_message($h1.$h2);
+				logMessage($h1.$h2);
 			}
 			else
 			{
@@ -107,7 +108,7 @@ function show_errorpage($errno, $errstr, $errfile=null, $errline=null)
 		http_response_code($errno);
 		if(USER_ERROR_PAGE_500)
 		{
-			DEBUG&&log_message($h1.$h2);
+			DEBUG&&logMessage($h1.$h2);
 			include './app/s/error/'.USER_ERROR_PAGE_500;
 			die;
 		}
@@ -115,7 +116,7 @@ function show_errorpage($errno, $errstr, $errfile=null, $errline=null)
 		{	
 			if(DEBUG)
 			{
-				log_message($h1.$h2);
+				logMessage($h1.$h2);
 			}
 			else
 			{
@@ -130,13 +131,13 @@ function show_errorpage($errno, $errstr, $errfile=null, $errline=null)
 		http_response_code('500');
 		if(USER_ERROR_PAGE_500)
 		{
-			DEBUG&&log_message($h1.$h2);
+			DEBUG&&logMessage($h1.$h2);
 			include './app/s/error/'.USER_ERROR_PAGE_500;
 			die;
 		}
 		else if(USER_ERROR_PAGE_404)
 		{
-			DEBUG&&log_message($h1.$h2);
+			DEBUG&&logMessage($h1.$h2);
 			include './app/s/error/'.USER_ERROR_PAGE_404;
 			die;
 		}
@@ -144,7 +145,7 @@ function show_errorpage($errno, $errstr, $errfile=null, $errline=null)
 		{		
 			if(DEBUG)
 			{	
-				log_message($h1.$h2);
+				logMessage($h1.$h2);
 			}
 			else
 			{
@@ -177,7 +178,7 @@ function route($regex,$arr)
 
 function process()
 {
-	(strlen($_SERVER['REQUEST_URI'])>MAX_URL_LENGTH)&&show_errorpage('500','The request url too long ! ');
+	(strlen($_SERVER['REQUEST_URI'])>MAX_URL_LENGTH)&&showErrorpage('500','The request url too long ! ');
 	global $APP;///全局变量
 	if(REGEX_ROUTER)
 	{
@@ -230,23 +231,23 @@ function run($router)
 		if(class_exists($router[0]))
 		{
 			$methods=get_class_methods($router[0]);
-			in_array($router[1], $methods)||show_errorpage('404','class '.$router[0].' does not contain method '.$router[1]);
+			in_array($router[1], $methods)||showErrorpage('404','class '.$router[0].' does not contain method '.$router[1]);
 			$router[0]=new $router[0]();///实例化控制器	
 			return call_user_func_array(array($router[0],$router[1]), array_slice($router,2));//传入参数
 		}
 		else
 		{
-			show_errorpage('404','the contoller file '.$controller.' does not contain the router class '.$router[0]);
+			showErrorpage('404','the contoller file '.$controller.' does not contain the router class '.$router[0]);
 		}
 	}
 	else
 	{
-		show_errorpage('404','the controller file '.$controller.' does not exists');
+		showErrorpage('404','the controller file '.$controller.' does not exists');
 	}
 }
 
 //记录日志的函数
-function log_message($msg)
+function logMessage($msg)
 {
 	$path='./app/s/error/'.date('Y-m-d',APP_START_TIME).'.log';
 	$msg=date('Y-m-d H:i:s',time()).' ==> '.$msg."\r\n";
@@ -259,7 +260,7 @@ function log_message($msg)
 	{
 		function error_log($msg,$type=3,$path)
 		{
-			file_put_contents($path,$msg,FILE_APPEND);
+			file_put_contents($path,$msg,FILE_APPEND); 
 		}
 	}
 }
@@ -277,9 +278,9 @@ function M($model,$param=null)
 	else
 	{
 		$model_file='./app/m/'.$model.'.php';
-		is_file($model_file)||show_errorpage('500','load model '.$m.' failed , mdoel file '.$model_file.' does not exists ');
+		is_file($model_file)||showErrorpage('500','load model '.$m.' failed , mdoel file '.$model_file.' does not exists ');
 		require $model_file;
-		class_exists($m)||show_errorpage('500','model file '.$model_file .' does not contain class '.$m);
+		class_exists($m)||showErrorpage('500','model file '.$model_file .' does not contain class '.$m);
 		$APP['model'][$m]=new $m($param);///对模型实例化
 		return $APP['model'][$m];
 	}
@@ -302,7 +303,7 @@ function S($lib,$param=null)
 		if(is_file($class_file))///是类库文件
 		{
 			require $class_file;
-			class_exists($l)||show_errorpage('500','library file '.$class_file .' does not contain class '.$l);
+			class_exists($l)||showErrorpage('500','library file '.$class_file .' does not contain class '.$l);
 			$APP['lib'][$l]=new $l($param);///对模型实例化
 			return $APP['lib'][$l];
 
@@ -313,7 +314,7 @@ function S($lib,$param=null)
 		}
 		else
 		{
-			show_errorpage('500','load  library '.$l.' failed ,file '.$file.' or '.$class_file.' does not exists ');
+			showErrorpage('500','load  library '.$l.' failed ,file '.$file.' or '.$class_file.' does not exists ');
 		}
 
 	}
@@ -324,16 +325,16 @@ function V($view,$data=null)
 {
 	if(defined('APP_TIME_SPEND'))
 	{
-		show_errorpage('500','You have already loaded a view,function V can not used twice in a method !');
+		showErrorpage('500','You have already loaded a view,function V can not used twice in a method !');
 	}
 	$view_file='./app/v/'.$view.'.php';
 	if(is_file($view_file))
 	{
-		is_array($data)||empty($data)||show_errorpage('500','param to view '.$view_file.' show be an array');
+		is_array($data)||empty($data)||showErrorpage('500','param to view '.$view_file.' show be an array');
 		empty($data)||extract($data);
 		GZIP?ob_start("ob_gzhandler"):ob_start();
 		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));//耗时
-		define('APP_MEMORY_SPEND',byte_format(memory_get_usage()-APP_START_MEMORY));
+		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-APP_START_MEMORY));
 		require $view_file;
 		global $APP;
 		if(isset($APP['cache']))//启用了缓存
@@ -372,7 +373,7 @@ function V($view,$data=null)
 	}
 	else
 	{
-		show_errorpage('404','view file '.$view_file.' does not exists ');
+		showErrorpage('404','view file '.$view_file.' does not exists ');
 	}
 
 }
@@ -438,16 +439,16 @@ function __autoload($class)
 	if(is_file($model_file))
 	{
 		require $model_file;
-		class_exists($class)||show_errorpage('500','Autoload file '.$model_file.' successfully,but not found class '.$class);
+		class_exists($class)||showErrorpage('500','Autoload file '.$model_file.' successfully,but not found class '.$class);
 	}
 	else if(is_file($controller_file))
 	{
 		require $controller_file;
-		class_exists($class)||show_errorpage('500','Autoload file '.$controller_file.' successfully,but not found class '.$class);
+		class_exists($class)||showErrorpage('500','Autoload file '.$controller_file.' successfully,but not found class '.$class);
 	}
 	else
 	{
-		show_errorpage('500','Can not autoload class file '.$class.'.php');
+		showErrorpage('500','Can not autoload class file '.$class.'.php');
 	}
 }
 function template($file)///加载模版
@@ -459,7 +460,7 @@ function template($file)///加载模版
 	}
 	else
 	{
-		show_errorpage('404','template file '.$file.' not exists !');
+		showErrorpage('404','template file '.$file.' not exists !');
 	}
 }
 ///过滤$_POST,$_GET,$_COOKIE,$_SERVER
@@ -555,7 +556,7 @@ function async($router,$curl=false,$lose=false)
 			{
 				$fp = fsockopen($parts['host'],$parts['port'],$errno, $errstr,3);
 			}	
-	    	$fp||show_errorpage($errno,$errstr);
+	    	$fp||showErrorpage($errno,$errstr);
 	    	stream_set_blocking($fp,0);
 	    	$out = 'GET '.$parts['query']." HTTP/1.1\r\nHost: ".$parts['host']."\r\nConnection: Close\r\n\r\n";
 	    	fwrite($fp, $out);
@@ -573,7 +574,7 @@ function async($router,$curl=false,$lose=false)
 */
 class model 
 {
-	protected static $link;///单例模式
+	private  static $pdo;///单例模式
 
 	function __construct()
 	{
@@ -582,17 +583,17 @@ class model
 		{
 			try
 			{
-				if(self::$link==null)
+				if(self::$pdo==null)
 				{
-					self::$link=new PDO("sqlite:".SQLITE);
-					self::$link->exec('PRAGMA synchronous=OFF');
-					self::$link->exec('PRAGMA cache_size =8000');
-					self::$link->exec('PRAGMA temp_store = MEMORY');
+					self::$pdo=new PDO("sqlite:".SQLITE);
+					self::$pdo->exec('PRAGMA synchronous=OFF');
+					self::$pdo->exec('PRAGMA cache_size =8000');
+					self::$pdo->exec('PRAGMA temp_store = MEMORY');
 				}
 			}
 			catch ( Exception $e )
 			{
-            	show_errorpage('500','connect sqlite database error ! '.$e->getMessage());
+            	showErrorpage('500','connect sqlite database error ! '.$e->getMessage());
         	}
 
 		}
@@ -600,17 +601,17 @@ class model
 		{
 			try
 			{		
-				if(self::$link==null)
+				if(self::$pdo==null)
 				{
 					$dsn="mysql:host=".DB_HOST.";dbname=".DB_NAME.";port=".DB_PORT;
-					self::$link= new PDO ($dsn,DB_USER,DB_PASS,array (PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"));
-					self::$link->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+					self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array (PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"));
+					self::$pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
 				}	
 			
 			}
 			catch ( Exception $e )
 			{
-           	 	show_errorpage('500','connect mysql database error ! '.$e->getMessage());
+           	 	showErrorpage('500','connect mysql database error ! '.$e->getMessage());
         	}
 		}
 		
@@ -621,28 +622,27 @@ class model
 	{
 		try
 		{
-			$rs=self::$link->exec($sql);
+			$rs=self::$pdo->exec($sql);
 			return $rs;
 		}
 		catch (PDOException $e)
 		{
-			show_errorpage('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
+			showErrorpage('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
 		}
 		
 		
 	}
-
 	////运行Sql,以多维数组方式返回结果集
 	function getData($sql)
 	{
 		try
 		{
-			$rs=self::$link->query($sql);
+			$rs=self::$pdo->query($sql);
 			return $rs->fetchAll(PDO::FETCH_ASSOC);
 		}
 		catch (PDOException $e)
 		{
-			show_errorpage('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
+			showErrorpage('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
 		}
 
 
@@ -652,12 +652,12 @@ class model
 	{
 		try
 		{
-			$rs=self::$link->query($sql);
+			$rs=self::$pdo->query($sql);
 			return $rs->fetch(PDO::FETCH_ASSOC);
 		}
 		catch (PDOException $e)
 		{
-			show_errorpage('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
+			showErrorpage('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
 		}
 
 	}
@@ -666,34 +666,32 @@ class model
 	{
 		try
 		{
-			$rs=self::$link->query($sql);
+			$rs=self::$pdo->query($sql);
 			return $rs->fetchColumn();
 		}
 		catch (PDOException $e)
 		{
-			show_errorpage('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
+			showErrorpage('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
 		}
-
 
 	}
 	function lastId()
 	{
-		return self::$link->lastInsertId();
+		return self::$pdo->lastInsertId();
 	}
 	//返回原生的PDO对象
 	function getInstance()
 	{
-		return self::$link;
+		return self::$pdo;
 	}
-
 	function __destruct()
 	{
-		self::$link=null;
+		self::$pdo=null;
 	}
 }//end class model
 
 /////////some functions blow
-function byte_format($size,$dec=2)
+function byteFormat($size,$dec=2)
 {
     $unit=array("B","KB","MB","GB","TB","PB","EB","ZB","YB");
     return round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i];
@@ -707,7 +705,7 @@ function redirect($url,$seconds=0)
 	exit();
 }
 
-function base_url($path=null)
+function baseUrl($path=null)
 {
 	if(is_numeric($path))
 	{
@@ -720,7 +718,7 @@ function base_url($path=null)
 }
 
 //发送邮件,用来替代原生mail,多个接受者用分号隔开
-function sendmail($mail_to, $mail_subject, $mail_message)
+function sendMail($mail_to, $mail_subject, $mail_message)
 {
 	$mail_subject = '=?utf-8?B?'.base64_encode($mail_subject).'?=';
 	$mail_message = chunk_split(base64_encode(preg_replace("/(^|(\r\n))(\.)/", "\1.\3", $mail_message)));

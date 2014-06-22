@@ -1,5 +1,6 @@
 <?
-//update 20140324
+//VERSION 1.23
+//update 20140622
 //mvc 入口文件
 define('APP_START_TIME',microtime(true));//计时开始
 define('APP_START_MEMORY',memory_get_usage());//初始内存大小
@@ -7,7 +8,7 @@ define('APP_START_MEMORY',memory_get_usage());//初始内存大小
 require 'app/s/core.php';//载入核心
 
 $router=process();//获得路由信息
-$hash='static/cache/'.implode('-',$router).'.html';///缓存hash
+$hash='static/cache/'.md5(implode('-',$router)).'.html';///缓存hash
 
 if (is_file($hash))//存在缓存文件
 {

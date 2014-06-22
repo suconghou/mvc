@@ -101,4 +101,104 @@ class sae_storage
 		$this->kv_delete($key);
 		$this->stor_delete($key);
 	}
+	/**
+     * 由文件内容获得扩展名
+     */
+    public function getType($contents,$userType)
+    {
+        $bin=substr($contents, 0, 2);
+        $strInfo =@unpack("c2chars", $bin);
+        $typeCode=intval($strInfo['chars1'].$strInfo['chars2']);
+        $types=array(
+                    '8297'=>'rar',
+                    '8075'=>'zip',
+                    '55122'=>'7z',
+                    '255216'=>'jpg',
+                    '13780'=>'png',
+                    '7173'=>'gif',
+                    '6677'=>'bmp',
+                    '7784'=>'midi',
+                    '7790'=>'exe',
+                    '7368'=>'mp3',
+                    '7076'=>'flv',
+                    '8381'=>'db',
+                    '4838'=>'wmv',
+                    '3780'=>'pdf',
+                    '2669'=>'mkv' 
+                    );
+        //Fix
+        if($strInfo['chars1']=='-1' && $strInfo['chars2']=='-40')
+        {
+            return 'jpg';
+        }
+        if($strInfo['chars1']=='-119' && $strInfo['chars2']=='80')
+        {
+            return 'png';
+        }
+        return isset($types[$typeCode])?$types[$typeCode]:$userType;
+    }
+	/**
+	 * 由扩展得到mime
+	 */
+	public function mime($ext,$hash)
+    {
+        switch ($ext)
+        {
+            case 'jar': $mime = "application/java-archive"; break;
+            case 'zip': $mime = "application/zip"; break;
+            case 'jpeg': $mime = "image/jpeg"; break;
+            case 'jpg': $mime = "image/jpg"; break;
+            case 'jad': $mime = "text/vnd.sun.j2me.app-descriptor"; break;
+            case "gif": $mime = "image/gif"; break;
+            case "png": $mime = "image/png"; break;
+            case "pdf": $mime = "application/pdf"; break;
+            case "txt": $mime = "text/plain"; break;
+            case "doc": $mime = "application/msword"; break;
+            case "ppt": $mime = "application/vnd.ms-powerpoint"; break;
+            case "wbmp": $mime = "image/vnd.wap.wbmp"; break;
+            case "wmlc": $mime = "application/vnd.wap.wmlc"; break;
+            case "mp4s": $mime = "application/mp4"; break;
+            case "ogg": $mime = "application/ogg"; break;
+            case "pls": $mime = "application/pls+xml"; break;
+            case "asf": $mime = "application/vnd.ms-asf"; break;
+            case "swf": $mime = "application/x-shockwave-flash"; break;
+            case "mp4": $mime = "video/mp4"; break;
+            case "m4a": $mime = "audio/mp4"; break;
+            case "m4p": $mime = "audio/mp4"; break;
+            case "mp4a": $mime = "audio/mp4"; break;
+            case "mp3": $mime = "audio/mpeg"; break;
+            case "m3a": $mime = "audio/mpeg"; break;
+            case "m2a": $mime = "audio/mpeg"; break;
+            case "mp2a": $mime = "audio/mpeg"; break;
+            case "mp2": $mime = "audio/mpeg"; break;
+            case "mpga": $mime = "audio/mpeg"; break;
+            case "wav": $mime = "audio/wav"; break;
+            case "m3u": $mime = "audio/x-mpegurl"; break;
+            case "bmp": $mime = "image/bmp"; break;
+            case "ico": $mime = "image/x-icon"; break;
+            case "3gp": $mime = "video/3gpp"; break;
+            case "3g2": $mime = "video/3gpp2"; break;
+            case "mp4v": $mime = "video/mp4"; break;
+            case "mpg4": $mime = "video/mp4"; break;
+            case "m2v": $mime = "video/mpeg"; break;
+            case "m1v": $mime = "video/mpeg"; break;
+            case "mpe": $mime = "video/mpeg"; break;
+            case "mpeg": $mime = "video/mpeg"; break;
+            case "mpg": $mime = "video/mpeg"; break;
+            case "mov": $mime = "video/quicktime"; break;
+            case "qt": $mime = "video/quicktime"; break;
+            case "avi": $mime = "video/x-msvideo"; break;
+            case "midi": $mime = "audio/midi"; break;
+            case "mid": $mime = "audio/mid"; break;
+            case "amr": $mime = "audio/amr"; break;
+            default: $mime = "application/force-download";
+        }
+        if(!in_array($ext, array('jpg','gif','png','jpeg','mp4','swf','flv'))) //浏览器不能打开,弹出下载提示
+        {
+        	 $filename=$hash.'.'.$ext;
+        	 header('Content-Disposition: attachment; filename='.$filename);
+        }
+        header('Content-Type: '.$mime);
+
+    }
 }
