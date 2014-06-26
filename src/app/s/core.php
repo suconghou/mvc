@@ -1,8 +1,8 @@
 <?
 
 //mvc核心框架类库
-//VERSION1.23
-//update 2014.06.22
+//VERSION1.24
+//update 2014.06.26
 require 'config.php';
 
 //正则路由分析器
@@ -463,50 +463,203 @@ function template($file)///加载模版
 		showErrorpage('404','template file '.$file.' not exists !');
 	}
 }
-///过滤$_POST,$_GET,$_COOKIE,$_SERVER
-function POST($var,$default=null)
-{
-	return isset($_POST[$var])?clean($_POST[$var]):$default;
-}
-function GET($var,$default=null)
-{
-	return isset($_GET[$var])?clean($_GET[$var]):$default;
-}
-function COOKIE($var,$default=null)
-{
-	return isset($_COOKIE[$var])?clean($_COOKIE[$var]):$default;
-}
-function SERVER($var,$default=null)
-{
-	return isset($_SERVER[$var])?clean($_SERVER[$var]):$default;
-}
 
-function clean($data)
+/**
+* Request 用户来访信息,使用静态访问
+*/
+class Request
 {
-	return trim(htmlentities(strip_tags($data)));
-}
+	
+	public static function post($key=null,$default=null)
+	{
+		if($key)
+		{
+			return self::getVar('post',$key,$default);
+		}
+		else
+		{
+			$data=array();
+			foreach ($_POST as $key => $value)
+			{
+				$data[$key]=self::getVar('post',$key);
+			}
+			return $data;
+		}
 
-//来访信息
-function userInfo()
-{
-	if ($_SERVER["HTTP_X_FORWARDED_FOR"])
-	$ip = $_SERVER["HTTP_X_FORWARDED_FOR"];
-	else if ($_SERVER["HTTP_CLIENT_IP"])
-	$ip = $_SERVER["HTTP_CLIENT_IP"];
-	else if ($_SERVER["REMOTE_ADDR"])
-	$ip = $_SERVER["REMOTE_ADDR"];
-	else if (getenv("HTTP_X_FORWARDED_FOR"))
-	$ip = getenv("HTTP_X_FORWARDED_FOR");
-	else if (getenv("HTTP_CLIENT_IP"))
-	$ip = getenv("HTTP_CLIENT_IP");
-	else if (getenv("REMOTE_ADDR"))
-	$ip = getenv("REMOTE_ADDR");
-	else
-	$ip = "Unknown";
-	return $ip;
+	}
+	public static function get($key=null,$default=null)
+	{
+		if($key)
+		{
+			return self::getVar('get',$key,$default);
+		}
+		else
+		{
+			$data=array();
+			foreach ($_GET as $key => $value)
+			{
+				$data[$key]=self::getVar('get',$key);
+			}
+			return $data;
+		}
 
 
+	}
+	public static function cookie($key=null,$default=null)
+	{
+		if($key)
+		{
+			return self::getVar('cookie',$key,$default);
+		}
+		else
+		{
+			$data=array();
+			foreach ($_COOKIE as $key => $value)
+			{
+				$data[$key]=self::getVar('cookie',$key);
+			}
+			return $data;
+		}
+
+	}
+	public static function session($key=null,$default=null)
+	{
+		if(!isset($_SESSION))session_start();
+		if($key)
+		{
+			return self::getVar('session',$key,$default);
+		}
+		else
+		{
+			$data=array();
+			foreach ($_SESSION as $key => $value)
+			{
+				$data[$key]=self::getVar('session',$key);
+			}
+			return $data;
+		}
+
+	}
+	public static function server($key=null,$default=null)
+	{
+		if($key)
+		{
+			return self::getVar('server',$key,$default);
+		}
+		else
+		{
+			$data=array();
+			foreach ($_SERVER as $key => $value)
+			{
+				$data[$key]=self::getVar('server',$key);
+			}
+			return $data;
+		}
+
+	}
+	public static function info()
+	{
+		$data['ip']=self::getIp();
+		$data['ajax']=self::isAjax();
+		$data['ua']=self::ua();
+		return $data;
+	}
+	public static function clean($val)
+	{
+		return trim(htmlentities(strip_tags($val)));
+	}
+	private static function getIp()
+	{
+		if ($ip=self::getVar('server','HTTP_X_FORWARDED_FOR'))
+			return $ip;
+		else if ($ip=self::getVar('server','HTTP_CLIENT_IP'))
+			return $ip;
+		else if ($ip=self::getVar('server','REMOTE_ADDR'))
+			return $ip;
+		else if ($ip=getenv("HTTP_X_FORWARDED_FOR"))
+			return $ip;
+		else if ($ip=getenv("HTTP_CLIENT_IP"))
+			return $ip;
+		else if ($ip=getenv("REMOTE_ADDR"))
+			return $ip;
+		else return null;
+
+	}
+	private static function isAjax()
+	{
+		return self::getVar('server','HTTP_X_REQUESTED_WITH')=='XMLHttpRequest';
+	}
+	private static function ua()
+	{
+		return self::getVar('server','HTTP_USER_AGENT');
+	}
+	private static function getVar($type,$var,$default=null)
+	{
+		switch ($type)
+		{
+			case 'post':
+				return isset($_POST[$var])?self::clean($_POST[$var]):$default;
+				break;
+			case 'get':
+				return isset($_GET[$var])?self::clean($_GET[$var]):$default;
+				break;
+			case 'cookie':
+				return isset($_COOKIE[$var])?self::clean($_COOKIE[$var]):$default;
+				break;
+			case 'server':
+				return isset($_SERVER[$var])?self::clean($_SERVER[$var]):$default;
+				break;
+			case 'session':
+				return isset($_SESSION[$var])?self::clean($_SESSION[$var]):$default;
+				break;
+			default:
+				return false;
+				break;
+		}
+
+	}
 }
+
+/**
+* 验证类,使用静态方法
+*/
+class Validate
+{
+	
+	public static function email($email)
+	{
+		return filter_var($email, FILTER_VALIDATE_EMAIL);
+	}
+	public static function phone($phone)
+	{
+		return preg_match("/^1[3458][0-9]{9}$/",$phone);
+	}
+	public static function url($url)
+	{
+		return preg_match('/^[a-zA-z]+:\/\/[^\s]*$/',$url);
+	}
+	public static function ip($ip)
+	{
+		return (ip2long($ip)!==false);
+	}
+	//中国大陆身份证号(15位或18位)
+	public static function idcard($id)
+	{
+		return preg_match('/^\d{15}(\d\d[0-9xX])?$/',$id);
+	}
+	//数字/大写字母/小写字母/标点符号组成，四种都必有，8位以上
+	public static function pass($pass)
+	{
+		return preg_match('/^(?=^.{8,}$)(?=.*\d)(?=.*\W+)(?=.*[A-Z])(?=.*[a-z])(?!.*\n).*$/',$pass);
+	}
+	//自定义正则验证
+	public static function this($pattern,$subject)
+	{
+		return preg_match('/^'.$pattern.'$/', $subject);
+	}
+
+}
+
 /**
  * 异步(非阻塞)运行一个路由
  * $curl 强制使用curl方式,但此方式至少阻塞1秒

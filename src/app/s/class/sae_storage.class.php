@@ -7,101 +7,106 @@
 */
 class sae_storage
 {
-	private static $kv;
-	private static $stor;
+    private static $kv;
+    private static $stor;
+    private static $size=4194304; //超过多少字节存入到storage中,默认为4M,KV最大存储4M
 
-	function __construct()
-	{
-		self::$kv = new SaeKV();
-   		self::$kv->init();
-   		self::$stor=new SaeStorage();
-	}
-	public function get($key)
-	{
-		return self::$kv->get($key);
-	}
+    function __construct()
+    {
+        self::$kv = new SaeKV();
+        self::$kv->init();
+        self::$stor=new SaeStorage();
+    }
+    public function get($key)
+    {
+        return self::$kv->get($key);
+    }
 
-	public function set($key,$value)
-	{
-		return self::$kv->set($key,$value);
-	}
+    public function set($key,$value)
+    {
+        return self::$kv->set($key,$value);
+    }
 
-	private function kv_push($key,$gzdata)
-	{
-		return $this->set($key,$gzdata);
-	}
-	private function stor_push($key,$orgindata)
-	{
-		$dir=substr($key,0,1);
-		$attr = array('encoding'=>'gzip');
-		return self::$stor->write('storage',$dir.'/'.$key,$orgindata,-1,$attr,true);
-	}
+    private function kv_push($key,$gzdata)
+    {
+        return $this->set($key,$gzdata);
+    }
+    private function stor_push($key,$orgindata,$type)
+    {
+        $dir=substr($key,0,1);
+        $filepath=$dir.'/'.$key.'.'.$type;
+        $attr = array('encoding'=>'gzip');
+        return self::$stor->write('storage',$filepath,$orgindata,-1,$attr,true);
+    }
 
-	private function stor_dump($key)
-	{
-		$dir=substr($key,0,1);
-		if(self::$stor->fileExists('storage',$dir.'/'.$key))
-		{
-			$url=self::$stor->getUrl('storage',$dir.'/'.$key);
-			redirect($url);
-		}
-		else //都没有找到,默认吧
-		{
-			return '404';
-		}
+    private function stor_dump($key,$type)
+    {
+        $dir=substr($key,0,1);
+        $filepath=$dir.'/'.$key.'.'.$type;
+        if(self::$stor->fileExists('storage',$filepath))
+        {
+            $url=self::$stor->getUrl('storage',$filepath);
+            redirect($url); ///调用了重定向
+        }
+        else //KV中没有,storage中也没有找到
+        {
+            return null;
+        }
 
-	}
-	private function kv_delete($key)
-	{
-		 return self::$kv->delete($key);
-	}
-	private function stor_delete($key)
-	{
-		$dir=substr($key,0,1);
-		if(self::$stor->fileExists('storage',$dir.'/'.$key))
-		{
-			return self::$stor->delete('storage',$dir.'/'.$key);	
-		}
-	}
+    }
+    private function kv_delete($key)
+    {
+         return self::$kv->delete($key);
+    }
+    private function stor_delete($key)
+    {
+        $dir=substr($key,0,1);
+        if(self::$stor->fileExists('storage',$dir.'/'.$key))
+        {
+            return self::$stor->delete('storage',$dir.'/'.$key);    
+        }
+    }
 
-	//对外接口,存入
-	public function push($bindata)
-	{
-		 $gz=gzcompress($bindata);
-		 $key=md5($gz);
-		 if(strlen($gz)>=4194304)
-		 {
-		 	return $this->stor_push($key,$bindata)?$key:false;
-		 }
-		 else//采用KV 存储
-		 {
-		 	return $this->kv_push($key,$gz)?$key:false;
-		 }
+    //对外接口,存入
+    public function push($bindata,$type)
+    {
+         $gz=gzcompress($bindata);
+         $key=md5($gz);
+         if(strlen($gz)>=self::$size)
+         {
+            return $this->stor_push($key,$bindata,$type)?$key:false;
+         }
+         else//采用KV 存储, 不需要指定的扩展名
+         {
+            return $this->kv_push($key,$gz)?$key:false;
+         }
 
-	}
-	//取出,在KV的直接输出,在Stor的重定向
-	public function dump($key)
-	{
-		$gz=$this->get($key);
-		if($gz)//在KV中命中
-		{
-			$bindata=$gz?gzuncompress($gz):null;
-	    	return $bindata;
-		}
-		else///在STOR中查找
-		{
-			return $this->stor_dump($key);
-		}
+    }
+    //取出,在KV的直接输出,在Stor的重定向
+    public function dump($key,$type)
+    {
+        $gz=$this->get($key);
+        if($gz)//在KV中命中
+        {
+            
+            $bindata=$gz?gzuncompress($gz):null;
+           
+            return $bindata;
+        }
+        else///在STOR中查找
+        {
+            return $this->stor_dump($key,$type);
+        }
 
 
-	}
-	//删除
-	public function delete($key)
-	{
-		$this->kv_delete($key);
-		$this->stor_delete($key);
-	}
-	/**
+    }
+    //删除
+    public function delete($key)
+    {
+        $this->kv_delete($key);
+        $this->stor_delete($key);
+    }
+    /**
      * 由文件内容获得扩展名
      */
     public function getType($contents,$userType)
@@ -137,10 +142,10 @@ class sae_storage
         }
         return isset($types[$typeCode])?$types[$typeCode]:$userType;
     }
-	/**
-	 * 由扩展得到mime
-	 */
-	public function mime($ext,$hash)
+    /**
+     * 由扩展得到mime
+     */
+    public function mime($ext,$hash)
     {
         switch ($ext)
         {
@@ -195,8 +200,8 @@ class sae_storage
         }
         if(!in_array($ext, array('jpg','gif','png','jpeg','mp4','swf','flv'))) //浏览器不能打开,弹出下载提示
         {
-        	 $filename=$hash.'.'.$ext;
-        	 header('Content-Disposition: attachment; filename='.$filename);
+             $filename=$hash.'.'.$ext;
+             header('Content-Disposition: attachment; filename='.$filename);
         }
         header('Content-Type: '.$mime);
 

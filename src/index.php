@@ -1,6 +1,6 @@
 <?
-//VERSION 1.23
-//update 20140622
+//VERSION 1.24
+//update 20140626
 //mvc 入口文件
 define('APP_START_TIME',microtime(true));//计时开始
 define('APP_START_MEMORY',memory_get_usage());//初始内存大小

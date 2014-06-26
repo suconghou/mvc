@@ -32,7 +32,7 @@ function sendFile($url,$post_data)
 	$curl = curl_init($url);
 	curl_setopt($curl, CURLOPT_POST, 1 );
 	curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0 );
-	curl_setopt($curl, CURLOPT_POSTFIELDS, $post_data);
+	curl_setopt($curl, CURLOPT_POSTFIELDS,$post_data);
 	curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 	$result = curl_exec($curl);
 	$error = curl_error($curl);
@@ -107,8 +107,8 @@ function sendMailByCloud($to,$subject,$html)
                     'subject' => $subject,
                     'html' => $html
                     );
-    $a=postDataByStream($url,$param);
-    var_dump($a);
+    $res=postDataByStream($url,$param);
+   return $res; 
  }
 //验证
 function isEmail($email)
