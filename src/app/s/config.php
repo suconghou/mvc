@@ -25,17 +25,22 @@ define('REGEX_ROUTER',1);
 ///自定义正则路由
 ///添加一个正则路由,数组第一个为控制器,第二个为方法,前面的将作为该方法的第一个实参,以此类推
 
-route('/@name:[a-z0-9]{32}\.[a-z0-9]{2,4}',array('regex','storage'));
-route('/upload',array('regex','upload'));
+/*route('\/files\/(\w+)\/(\w+\.\w{2,4})',array('regex','storage'));
+route('\/upload\/?',array('regex','upload'));
+route('\/page\/(\d{1,9})\.html',array('page','id'));
+route('\/music\/(.+)\.(aac|mp3)',array('music','link'));
+*/
 
-
-
-
+route('\/page\/(\d{1,9})\.html',array('page','id'));
+route('\/read\/(\d{1,9})\.html',array('read','id'));
+route('\/(\d{1,9})\.html',array('home','id'));
+route('\/fm\/(\d{1,9}).fm',array('fm','id'));
+route('\/about',array('home','about'));
 
 //mysql数据库配置
 define('DB_HOST','localhost');
 define('DB_PORT',3306);
-define('DB_NAME','bbs');
+define('DB_NAME','blog');
 define('DB_USER','root');
 define('DB_PASS','123456');
 
@@ -48,7 +53,7 @@ define('DB_PASS',getenv("MOPAAS_MYSQL8840_PASSWORD"));*/
 //sqlite 数据库配置
 define('SQLITE','./app/s/mm.db');
 //配置使用何种数据库,0为mysql,1为sqlite
-define('DB',1);
+define('DB',0);
 
 ///smtp配置
 define('MAIL_SERVER','smtp.126.com');

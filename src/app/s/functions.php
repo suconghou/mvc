@@ -135,3 +135,7 @@ function getImg($id,$page=1)
     }
 
 }
+function utf8Substr($str, $from, $len)
+{   
+   return mb_substr($str,$from,$len,'utf-8');
+}

@@ -1,67 +1,34 @@
 <?
 
 //mvc核心框架类库
-//VERSION1.24
-//update 2014.06.26
+//VERSION1.25
+//update 2014.06.27
 require 'config.php';
-
 //正则路由分析器
-function regex_router($uri)
+function regexRouter($uri)
 {
-	global $APP;
-	$APP['ids']=array();
-	function regex_router_callback($matches)
+	global $APP;	
+	foreach ($APP['regex_router'] as $regex)
 	{
-		global $APP;
-	    $APP['ids'][$matches[1]] = null;
-        if (isset($matches[3]))
-        {
-            return '(?P<'.$matches[1].'>'.$matches[3].')';
-        }
-        return '(?P<'.$matches[1].'>[^/\?]+)';
+		if(preg_match('/^'.$regex[0].'$/', $uri,$matches))
+		{
+			unset($matches[0]);
+			$router=array_merge($regex[1],$matches);
+			return $router;
+		}
 	}
-	foreach ($APP['regex_router'] as $regex)///遍历所有pattren
-	{
-		$char = substr($regex[0], -1);
-		$pattern=str_replace(array(')','*'), array(')?','.*?'),$regex[0]); //第一步替换
-		$pattern=preg_replace_callback( '#@([\w]+)(:([^/\(\)]*))?#','regex_router_callback',$pattern);//第二步替换
-		$pattern=($char==='/')?$pattern.'?':$pattern.'/?';//第三步 Fix trailing slash
-		// Attempt to match route and named parameters
-		if (preg_match('#^'.$pattern.'(?:\?.*)?$#i', $uri, $matches))///说明成功匹配
-	 	{	
-	 		foreach ($APP['ids'] as $k => $v)
-		 	{
-	            $params[$k] = (array_key_exists($k, $matches)) ? urldecode($matches[$k]) : null;
-	        }
-	      	$APP['use_regex_router']=$regex;//标记将要使用的路由
-	 		break;
-	 	}
-
-	}//end foreach
-	unset($APP['ids']);
 	unset($APP['regex_router']);
-	if(isset($APP['use_regex_router']))
-	{
-		$router=array_merge($APP['use_regex_router'][1],$params);
-		unset($APP['use_regex_router']);
-		return $router;
-	}
-	else///遍历完了也没捕获到
-	{
-		return false;
-	}
-
+	return null;
 }
 
-
 //普通路由分析器
-function common_router($uri)
+function commonRouter($uri)
 {
-
 	$uri_arr=explode('/', $uri);
 	foreach ($uri_arr as  $v)
 	{
-		$v&&($router[]=$v);
+		if(($v=='index.php')||empty($v)) continue;
+		$router[]=$v;
 	}
 	return isset($router)?$router:null;
 }
@@ -168,6 +135,7 @@ function route($regex,$arr)
 {
 	if(REGEX_ROUTER)//启用了正则路由
 	{
+		is_array($arr)||showErrorpage('500','Router need to be an array ! ');
 		global $APP;
 		$APP['regex_router'][]=array($regex,$arr);
 	}
@@ -178,48 +146,47 @@ function route($regex,$arr)
 
 function process()
 {
-	(strlen($_SERVER['REQUEST_URI'])>MAX_URL_LENGTH)&&showErrorpage('500','The request url too long ! ');
+	(strlen($_SERVER['REQUEST_URI'])>MAX_URL_LENGTH)&&showErrorpage('500','Request url too long ! ');
 	global $APP;///全局变量
+	list($uri)=explode('?',$_SERVER['REQUEST_URI']);
 	if(REGEX_ROUTER)
 	{
-		$router=regex_router($_SERVER['REQUEST_URI']);
-		$router||($router=common_router($_SERVER['REQUEST_URI']));
+		$router=regexRouter($uri);
+		$router||($router=commonRouter($uri));
 	}
 	else
 	{
-		$router=common_router($_SERVER['REQUEST_URI']);
+		$router=commonRouter($uri);
 	}
 
-	$router[0]=empty($router[0])?DEFAULT_CONTROLLER:$router[0];
-	$router[1]=empty($router[1])?DEFAULT_ACTION:$router[1];
-
-	//控制器名包含问号,截取问号前的作为控制器名
-	$offset=strpos($router[0],'?');
-	if($offset!==false)
+	if(empty($router[0])) // http://127.0.0.1 的情况
 	{
-		$router[0]=substr($router[0],0,$offset);
-		$router[0]||$router[0]=DEFAULT_CONTROLLER;
+		$router=array(DEFAULT_CONTROLLER,DEFAULT_ACTION);
 	}
-	//方法名包含问号,截取问号前的作为方法名
-	$offset=strpos($router[1],'?');
-	if($offset!==false)
+	else if(empty($router[1])) //  http://127.0.0.1/home 的情况
 	{
-		$router[1]=substr($router[1],0,$offset);
-		$router[1]||$router[1]=DEFAULT_ACTION;
+		if(preg_match('/^\w+$/i',$router[0]))
+		{
+			$router=array($router[0],DEFAULT_ACTION);
+		}
+		else
+		{
+			showErrorpage('404','Error controller name ! ');
+		}
 	}
-	//如果控制器的名称不合法,采用默认控制器,可过滤index.php,index.html
-	if(!preg_match('/^\w+$/',$router[0]))
+	else //控制器和动作全部需要过滤
 	{
-		$router[0]=DEFAULT_CONTROLLER;
-	}
-	//如果方法的名称不合法,采用默认方法
-	if(!preg_match('/^\w+$/',$router[1]))
-	{
-		$router[1]=DEFAULT_ACTION;
+		if(!preg_match('/^\w+$/i',$router[0]))
+		{
+			showErrorpage('404','Error controller name ! ');
+		}
+		if(!preg_match('/^\w+$/i',$router[1]))
+		{
+			showErrorpage('404','Error action name ! ');
+		}
 	}
 	$APP['router']=$router;
 	return $router;
-
 }
 function run($router)
 {	
@@ -683,7 +650,8 @@ function async($router,$curl=false,$lose=false)
 			return file_get_contents($url);			
 		}
 		$ch = curl_init(); 
-		$curl_opt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>1,CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
+		$curl_opt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>1,
+							CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
 		curl_setopt_array($ch, $curl_opt);
 		curl_exec($ch);
 		curl_close($ch);
@@ -775,6 +743,7 @@ class model
 	{
 		try
 		{
+			self::ready();
 			$rs=self::$pdo->exec($sql);
 			return $rs;
 		}
@@ -790,6 +759,7 @@ class model
 	{
 		try
 		{
+			self::ready();
 			$rs=self::$pdo->query($sql);
 			return $rs->fetchAll(PDO::FETCH_ASSOC);
 		}
@@ -805,6 +775,7 @@ class model
 	{
 		try
 		{
+			self::ready();
 			$rs=self::$pdo->query($sql);
 			return $rs->fetch(PDO::FETCH_ASSOC);
 		}
@@ -819,6 +790,7 @@ class model
 	{
 		try
 		{
+			self::ready();
 			$rs=self::$pdo->query($sql);
 			return $rs->fetchColumn();
 		}
@@ -830,12 +802,18 @@ class model
 	}
 	function lastId()
 	{
+		self::ready();
 		return self::$pdo->lastInsertId();
 	}
 	//返回原生的PDO对象
 	function getInstance()
 	{
+		self::ready();
 		return self::$pdo;
+	}
+	private function ready()
+	{
+		self::$pdo||showErrorpage('500','PDO not init , have you construct ? ');
 	}
 	function __destruct()
 	{
