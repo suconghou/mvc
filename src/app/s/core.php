@@ -531,9 +531,36 @@ class Request
 		$data['ua']=self::ua();
 		return $data;
 	}
-	public static function clean($val)
+	/**
+	 * 默认去除html标签,去除空格
+	 * $type='1' 去除中文
+	 * $type=''
+	 * $type=''
+	 * $type=''
+	 */
+	public static function clean($val,$type=null,$all=null)
 	{
-		return trim(htmlentities(strip_tags($val)));
+		if(is_null($type))
+		{
+			return trim(htmlentities(strip_tags($val)));
+		}
+		else
+		{
+			switch ($type)
+			{
+				case 1:
+					$out=preg_replace('/[\x80-\xff]/','',$val);
+					break;
+				case 2:
+					$out=preg_replace('','', $val);
+					break;
+				default:
+					$out=$val;
+					break;
+			}
+			return $all?trim(htmlentities(strip_tags($out))):$out;
+		}
+
 	}
 	private static function getIp()
 	{

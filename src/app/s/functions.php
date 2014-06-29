@@ -139,3 +139,22 @@ function utf8Substr($str, $from, $len)
 {   
    return mb_substr($str,$from,$len,'utf-8');
 }
+function gbk2utf8($str){ 
+    $charset = mb_detect_encoding($str,array('UTF-8','GBK','GB2312')); 
+    $charset = strtolower($charset); 
+    if('cp936' == $charset){ 
+        $charset='GBK'; 
+    } 
+    if("utf-8" != $charset){ 
+        $str = iconv($charset,"UTF-8//IGNORE",$str); 
+    } 
+    return $str; 
+}
+function str_to_utf8 ($str) { 
+    
+    if (mb_detect_encoding($str, 'UTF-8', true) === false) { 
+    $str = utf8_encode($str); 
+    }
+
+    return $str;
+}
