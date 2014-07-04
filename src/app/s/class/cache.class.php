@@ -1,5 +1,6 @@
 <?php
 /**
+* memcache,redis,file 缓存,memcache支持sae
 * set,get,del,flush
 * mset,mdel,mget
 * @author suconghou
@@ -42,8 +43,15 @@ class cache
 
 	private static  function initMemcache()
 	{
-		self::$cache= new Memcache();
-		self::$cache->connect(self::$memcacheServer, self::$memcachePort);
+		if(function_exists('memcache_init'))
+		{
+			self::$cache=memcache_init();
+		}
+		else
+		{
+			self::$cache= new Memcache();
+			self::$cache->connect(self::$memcacheServer, self::$memcachePort);
+		}
 		self::$cacheType='memcache';
 	}
 	private static function initRedis()

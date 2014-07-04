@@ -1,8 +1,8 @@
 <?
 
 //mvc核心框架类库
-//VERSION1.25
-//update 2014.06.27
+//VERSION1.26
+//update 2014.07.04
 require 'config.php';
 //正则路由分析器
 function regexRouter($uri)
@@ -17,7 +17,6 @@ function regexRouter($uri)
 			return $router;
 		}
 	}
-	unset($APP['regex_router']);
 	return null;
 }
 
@@ -149,16 +148,17 @@ function process()
 	(strlen($_SERVER['REQUEST_URI'])>MAX_URL_LENGTH)&&showErrorpage('500','Request url too long ! ');
 	global $APP;///全局变量
 	list($uri)=explode('?',$_SERVER['REQUEST_URI']);
+	$uri=='/favicon.ico'&&die;
 	if(REGEX_ROUTER)
 	{
 		$router=regexRouter($uri);
 		$router||($router=commonRouter($uri));
+		unset($APP['regex_router']);
 	}
 	else
 	{
 		$router=commonRouter($uri);
 	}
-
 	if(empty($router[0])) // http://127.0.0.1 的情况
 	{
 		$router=array(DEFAULT_CONTROLLER,DEFAULT_ACTION);
