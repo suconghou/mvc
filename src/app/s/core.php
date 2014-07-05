@@ -190,27 +190,50 @@ function process()
 }
 function run($router)
 {	
-
-	$controller='./app/c/'.$router[0].'.php';
+	$controller='./app/c/'.$router[0].'.php'; 
+	$controllerDir='./app/c/'.$router[0]; ///如果是二级目录
 	if(is_file($controller))
 	{
-		class_exists($router[0])||require $controller;
-		if(class_exists($router[0]))
-		{
-			$methods=get_class_methods($router[0]);
-			in_array($router[1], $methods)||showErrorpage('404','class '.$router[0].' does not contain method '.$router[1]);
-			$router[0]=new $router[0]();///实例化控制器	
-			return call_user_func_array(array($router[0],$router[1]), array_slice($router,2));//传入参数
+		$controllerFile=&$controller;
+		$controllerName=&$router[0];
+		$action=&$router[1];
+		$param=2;
+		require_once $controllerFile;
+	}
+	else if(is_dir($controllerDir))
+	{
+		$controllerFile=$controllerDir.'/'.$router[1].'.php';
+		if(is_file($controllerFile))
+		{			
+			$controllerName=&$router[1];
+			$action=isset($router[2])?$router[2]:DEFAULT_ACTION;
+			$param=3;
+			require_once $controllerFile;
 		}
 		else
 		{
-			showErrorpage('404','the contoller file '.$controller.' does not contain the router class '.$router[0]);
+			showErrorpage('404','the controller file '.$controllerFile.' does not exists');
 		}
+		
 	}
 	else
 	{
 		showErrorpage('404','the controller file '.$controller.' does not exists');
 	}
+	if(class_exists($controllerName))
+	{
+		$methods=get_class_methods($controllerName);
+		in_array($action, $methods)||showErrorpage('404','class '.$controllerName.' does not contain method '.$action);
+		$controllerName=new $controllerName();///实例化控制器	
+		return call_user_func_array(array($controllerName,$action), array_slice($router,$param));//传入参数
+	}
+	else
+	{
+		showErrorpage('404','the contoller file '.$controllerFile.' does not contain the class '.$controllerName);
+	}
+
+
+
 }
 
 //记录日志的函数
@@ -529,6 +552,7 @@ class Request
 		$data['ip']=self::getIp();
 		$data['ajax']=self::isAjax();
 		$data['ua']=self::ua();
+		$data['refer']=self::refer();
 		return $data;
 	}
 	/**
@@ -586,6 +610,10 @@ class Request
 	private static function ua()
 	{
 		return self::getVar('server','HTTP_USER_AGENT');
+	}
+	private static function refer()
+	{
+		return self::getvar('server','HTTP_REFERER');
 	}
 	private static function getVar($type,$var,$default=null)
 	{
@@ -872,6 +900,23 @@ function baseUrl($path=null)
 		return isset($router[$path])?$router[$path]:null;
 	}
 	return('http://'.$_SERVER['SERVER_NAME'].'/'.$path);
+
+}
+function dump($data)
+{
+	echo '<pre>';
+	if(is_array($data))
+	{
+		print_r($data);
+	}
+	else if(is_object($data))
+	{
+		var_dump($data);
+	}
+	else{
+		echo $data;
+	}
+	echo '</pre>';
 
 }
 
