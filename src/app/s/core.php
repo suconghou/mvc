@@ -7,7 +7,8 @@ require 'config.php';
 //正则路由分析器
 function regexRouter($uri)
 {
-	global $APP;	
+	global $APP;
+	if(!$APP['regex_router'])return null;	
 	foreach ($APP['regex_router'] as $regex)
 	{
 		if(preg_match('/^'.$regex[0].'$/', $uri,$matches))
