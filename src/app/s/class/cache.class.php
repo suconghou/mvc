@@ -18,6 +18,7 @@ class cache
 
 	private static $fileCache; //可以自定义路径或者使用系统默认
 	private static $fileArr;
+	private static $fileExpire=false;
 
 	private static $cache;
 	private static $cacheType;
@@ -243,11 +244,11 @@ class cache
 	{
 		if(isset(self::$fileArr[$key]))
 		{
-			if(time()<self::$fileArr[$key]['e']) //未过期
+			if(time()<=self::$fileArr[$key]['e']) //未过期
 			{
 				return self::$fileArr[$key]['v'];
 			}
-			self::fileDel($key);
+			self::$fileExpire=true; //标志检测到有KEY过期
 		}
 		return null;
 		
@@ -262,7 +263,9 @@ class cache
 	}
 	private static function fileFlush()
 	{
-		$self::$fileArr=array('FileCacheInit'=>time());
+		$val['v']=time();
+		$val['e']=2*time();
+		self::$fileArr=array('FileCacheInit'=>$val);
 	}
 	private static function memcacheDel($key)
 	{
@@ -280,7 +283,16 @@ class cache
 		 }
 		 return true;
 	}
-	
+	private static function delFileExpire()
+	{
+		foreach (self::$fileArr as $key => $value)
+		{
+			if(time()>$value['e']) //过期
+			{
+				unset(self::$fileArr[$key]);
+			}
+		}
+	}
 	private static function halt($num)
 	{
 		switch ($num)
@@ -303,7 +315,11 @@ class cache
 	{
 		if(self::$cacheType=='file')
 		{
-			return file_put_contents(self::$fileCache,serialize(self::$fileArr));
+			if(self::$fileExpire) ////有KEY过期了,需要清理
+			{
+				self::delFileExpire();
+			}
+			file_put_contents(self::$fileCache,serialize(self::$fileArr));	
 		}
 	}
 
