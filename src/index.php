@@ -6,7 +6,15 @@ define('APP_START_TIME',microtime(true));//计时开始
 define('APP_START_MEMORY',memory_get_usage());//初始内存大小
 
 require 'app/s/core.php';//载入核心
-
+if(DEBUG)
+{
+	set_error_handler('showErrorpage');///异常处理
+}
+else
+{
+	set_error_handler('showErrorpage',2);///异常处理
+	error_reporting(0);
+}
 $router=process();//获得路由信息
 $hash='static/cache/'.md5(implode('-',$router)).'.html';///缓存hash
 

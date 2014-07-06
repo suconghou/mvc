@@ -1,25 +1,29 @@
 <?
 
 
-set_error_handler('showErrorpage');///异常处理
 date_default_timezone_set('PRC');//设置时区
 set_include_path('./app/s/');//此路径下可直接include
+
+///DEBUG模式,0,禁用debug隐藏警告消息,同时也不记录日志,
+//1记录错误日志,显示错误的堆栈信息(如果未自定义错误页)
+define('DEBUG',1);
+
+//设计你自己的错误页面,存放在./app/s/error下的html或php文件,没有请保持为空
+//自定义错误页不会向用户输出详细错误消息
+define('USER_ERROR_PAGE_404','');
+define('USER_ERROR_PAGE_500','');
+
+//是否开启GZIP
+define('GZIP',0);
+///URL最大长度限制
+define('MAX_URL_LENGTH',200);
 
 //默认的控制器
 define('DEFAULT_CONTROLLER','home');
 ///默认的动作
 define('DEFAULT_ACTION','index');
-//是否开启GZIP
-define('GZIP',0);
-///URL最大长度限制
-define('MAX_URL_LENGTH',200);
-///DEBUG模式,0,禁用debug隐藏警告消息,同时也不记录日志,
-//1记录错误日志,显示错误的堆栈信息(如果未自定义错误页)
-define('DEBUG',1);
-//设计你自己的错误页面,存放在./app/s/error下的html或php文件,没有请保持为空
-//自定义错误页不会向用户输出详细错误消息
-define('USER_ERROR_PAGE_404','');
-define('USER_ERROR_PAGE_500','');
+
+
 //是否启用正则路由
 define('REGEX_ROUTER',1);
 ///自定义正则路由
@@ -31,11 +35,7 @@ route('\/page\/(\d{1,9})\.html',array('page','id'));
 route('\/music\/(.+)\.(aac|mp3)',array('music','link'));
 */
 
-route('\/page\/(\d{1,9})\.html',array('page','id'));
-route('\/read\/(\d{1,9})\.html',array('read','id'));
-route('\/(\d{1,9})\.html',array('home','id'));
-route('\/fm\/(\d{1,9}).fm',array('fm','id'));
-route('\/about',array('home','about'));
+
 
 //mysql数据库配置
 define('DB_HOST','localhost');
@@ -44,14 +44,9 @@ define('DB_NAME','blog');
 define('DB_USER','root');
 define('DB_PASS','123456');
 
-/*//mysql数据库配置
-define('DB_HOST',getenv("MOPAAS_MYSQL8840_HOST"));
-define('DB_PORT',getenv("MOPAAS_MYSQL8840_PORT"));
-define('DB_NAME',getenv("MOPAAS_MYSQL8840_NAME"));
-define('DB_USER',getenv("MOPAAS_MYSQL8840_USERNAME"));
-define('DB_PASS',getenv("MOPAAS_MYSQL8840_PASSWORD"));*/
+
 //sqlite 数据库配置
-define('SQLITE','./app/s/mm.db');
+define('SQLITE','./app/s/data.db');
 //配置使用何种数据库,0为mysql,1为sqlite
 define('DB',0);
 
