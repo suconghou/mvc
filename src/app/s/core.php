@@ -1,21 +1,27 @@
 <?
 
-//mvc核心框架类库
-//VERSION1.26
-//update 2014.07.04
+/**
+ * @author suconghou 
+ * @blog http://blog.suconghou.cn
+ * @link http://github.com/suconghou/mvc
+ * @version 1.28
+ */
+
 require 'config.php';
 //正则路由分析器
 function regexRouter($uri)
 {
 	global $APP;
-	if(!$APP['regex_router'])return null;	
-	foreach ($APP['regex_router'] as $regex)
+	if(isset($APP['regex_router'][0]))
 	{
-		if(preg_match('/^'.$regex[0].'$/', $uri,$matches))
+		foreach ($APP['regex_router'] as $regex)
 		{
-			unset($matches[0]);
-			$router=array_merge($regex[1],$matches);
-			return $router;
+			if(preg_match('/^'.$regex[0].'$/', $uri,$matches))
+			{
+				unset($matches[0]);
+				$router=array_merge($regex[1],$matches);
+				return $router;
+			}
 		}
 	}
 	return null;
@@ -53,7 +59,7 @@ function showErrorpage($errno, $errstr, $errfile=null, $errline=null)
 		if(USER_ERROR_PAGE_404)
 		{
 			DEBUG&&logMessage($h1.$h2);
-			include './app/s/error/'.USER_ERROR_PAGE_404;
+			include LIB_PATH.'error/'.USER_ERROR_PAGE_404;
 			die;
 		}
 		else
@@ -76,7 +82,7 @@ function showErrorpage($errno, $errstr, $errfile=null, $errline=null)
 		if(USER_ERROR_PAGE_500)
 		{
 			DEBUG&&logMessage($h1.$h2);
-			include './app/s/error/'.USER_ERROR_PAGE_500;
+			include LIB_PATH.'error/'.USER_ERROR_PAGE_500;
 			die;
 		}
 		else
@@ -99,13 +105,13 @@ function showErrorpage($errno, $errstr, $errfile=null, $errline=null)
 		if(USER_ERROR_PAGE_500)
 		{
 			DEBUG&&logMessage($h1.$h2);
-			include './app/s/error/'.USER_ERROR_PAGE_500;
+			include LIB_PATH.'error/'.USER_ERROR_PAGE_500;
 			die;
 		}
 		else if(USER_ERROR_PAGE_404)
 		{
 			DEBUG&&logMessage($h1.$h2);
-			include './app/s/error/'.USER_ERROR_PAGE_404;
+			include LIB_PATH.'error/'.USER_ERROR_PAGE_404;
 			die;
 		}
 		else ////没有设置错误页,但是系统错误
@@ -191,8 +197,8 @@ function process()
 }
 function run($router)
 {	
-	$controller='./app/c/'.$router[0].'.php'; 
-	$controllerDir='./app/c/'.$router[0]; ///如果是二级目录
+	$controller=CONTROLLER_PATH.$router[0].'.php'; 
+	$controllerDir=CONTROLLER_PATH.$router[0]; ///如果是二级目录
 	if(is_file($controller))
 	{
 		$controllerFile=&$controller;
@@ -240,13 +246,12 @@ function run($router)
 //记录日志的函数
 function logMessage($msg)
 {
-	$path='./app/s/error/'.date('Y-m-d',APP_START_TIME).'.log';
+	$path=LIB_PATH.'error/'.date('Y-m-d',APP_START_TIME).'.log';
 	$msg=date('Y-m-d H:i:s',time()).' ==> '.$msg."\r\n";
-	if(is_writable('./app/s/error'))
+	if(is_writable(LIB_PATH.'error'))
 	{
 		error_log($msg,3,$path);
 	}
-
 	if(!function_exists('error_log'))
 	{
 		function error_log($msg,$type=3,$path)
@@ -268,7 +273,7 @@ function M($model,$param=null)
 	}
 	else
 	{
-		$model_file='./app/m/'.$model.'.php';
+		$model_file=MODEL_PATH.$model.'.php';
 		is_file($model_file)||showErrorpage('500','load model '.$m.' failed , mdoel file '.$model_file.' does not exists ');
 		require $model_file;
 		class_exists($m)||showErrorpage('500','model file '.$model_file .' does not contain class '.$m);
@@ -289,8 +294,8 @@ function S($lib,$param=null)
 	}
 	else
 	{
-		$file='./app/s/'.$lib.'.php';
-		$class_file='./app/s/'.$lib.'.class.php';
+		$file=LIB_PATH.$lib.'.php';
+		$class_file=LIB_PATH.$lib.'.class.php';
 		if(is_file($class_file))///是类库文件
 		{
 			require $class_file;
@@ -318,7 +323,7 @@ function V($view,$data=null)
 	{
 		showErrorpage('500','You have already loaded a view,function V can not used twice in a method !');
 	}
-	$view_file='./app/v/'.$view.'.php';
+	$view_file=VIEW_PATH.$view.'.php';
 	if(is_file($view_file))
 	{
 		is_array($data)||empty($data)||showErrorpage('500','param to view '.$view_file.' show be an array');
@@ -334,7 +339,7 @@ function V($view,$data=null)
 			if($APP['cache']['file'])//生成文件缓存
 			{
 				$contents=ob_get_contents();
-				$cache_file='./static/cache/'.md5(implode('-',$APP['router'])).'.html';
+				$cache_file=ROOT.'static/cache/'.md5(implode('-',$APP['router'])).'.html';
 				file_put_contents($cache_file,$contents);
 				touch($cache_file,$expires_time);
 				header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
@@ -425,8 +430,8 @@ if(!function_exists('http_response_code'))
 }
 function __autoload($class)
 {
-	$controller_file='./app/c/'.$class.'.php';
-	$model_file='./app/m/'.$class.'.php';	
+	$controller_file=CONTROLLER_PATH.$class.'.php';
+	$model_file=MODEL_PATH.$class.'.php';	
 	if(is_file($model_file))
 	{
 		require $model_file;
@@ -444,7 +449,7 @@ function __autoload($class)
 }
 function template($file)///加载模版
 {
-	$file='./app/v/'.$file.'.php';
+	$file=VIEW_PATH.$file.'.php';
 	if(is_file($file))
 	{
 		include $file;
