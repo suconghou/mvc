@@ -637,7 +637,7 @@ class Request
 			case 'server':
 				return isset($_SERVER[$var])?self::clean($_SERVER[$var]):$default;
 				break;
-			case 'session':
+			case 'session': ///此处为获取session的方式
 				return isset($_SESSION[$var])?self::clean($_SESSION[$var]):$default;
 				break;
 			default:
@@ -883,6 +883,35 @@ class model
 }//end class model
 
 /////////some functions blow
+// session 系列函数
+function session_get($key=null,$default=null)
+{
+	return Request::session($key,$default);
+}
+//此处为设置session的方式,重写可将session迁移至redis等
+function session_set($key,$value)
+{
+	if(!isset($_SESSION))session_start();
+	return $_SESSION[$key]=is_array($value)?json_encode($value):$value;
+}
+function session_del($key=null)
+{
+	if(!isset($_SESSION))session_start();
+	if($key)
+	{
+		if(isset($_SESSION[$key])) unset($_SESSION[$key]);
+		return true;
+	}
+	else
+	{
+		return session_destroy();
+	}
+}
+function session_echo($key,$default=null)
+{
+	echo Request::session($key,$default);
+}
+
 function byteFormat($size,$dec=2)
 {
     $unit=array("B","KB","MB","GB","TB","PB","EB","ZB","YB");

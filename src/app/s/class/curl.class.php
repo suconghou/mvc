@@ -21,9 +21,6 @@ class curl
     {
          $this-> mh=curl_multi_init();//创建批处理cURL句柄
     }
-
-
-
     //增加一个/组请求
     //url为array
     function add($url_array,$header=0,$no_body=0,$timeout=10)
@@ -78,6 +75,28 @@ class curl
         }
         while($running > 0);
         return true;
+
+    }
+
+    function fetch($url,$regex,$index)
+    {
+        if(is_array($url))
+        {
+            $ret=$this->add($url)->exec();
+        }
+        else
+        {
+            $ret=$this->add(array($url))->exec();
+        }
+        $out=array();
+        foreach ($ret as $key => $value)
+        {
+            if(preg_match_all($regex, $value, $matches))
+            {
+                $out[]=$matches[$index];
+            }
+        }
+        return $out;
 
     }
 }
