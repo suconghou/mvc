@@ -261,7 +261,7 @@ class db extends model
 	function getList($table,$column,$page=1,$order='desc',$per=20,$where=null)
 	{
 		$offset=($page-1)*$per;
-		if($where)
+		if(is_array($where))
 		{
 			foreach ($where as $key => $value) 
 			{
