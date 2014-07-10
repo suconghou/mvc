@@ -43,15 +43,16 @@ class kvdb
 	{
 		if($file==null)//加载默认
 		{
-			self::$dbfile=$_SERVER['DOCUMENT_ROOT'].'/app/s/'.self::$dbfile;
+			self::$dbfile=LIB_PATH.self::$dbfile;
+			
 		}
 		else if($file=='tmp')
 		{	
-			self::$dbfile=sys_get_temp_dir().'/KVDB.tmp'; 
+			self::$dbfile=sys_get_temp_dir().'/KVDB.DB'; 
 		}
 		else //指定文件名
 		{
-			self::$dbfile=$_SERVER['DOCUMENT_ROOT'].'/app/s/'.$file;
+			self::$dbfile=LIB_PATH.$file;
 		}
 		if(!file_exists(self::$dbfile))
 		{

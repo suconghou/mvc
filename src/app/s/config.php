@@ -68,10 +68,10 @@ else
 	error_reporting(0);
 }
 
-//是否加载应用设置,以及应用函数库
+//是否加载应用设置,以及应用函数库,非必须
 
-S('app_config',false);
-S('functions',false);
+S('app_config');
+S('functions');
 
 
 

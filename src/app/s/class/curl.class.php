@@ -104,43 +104,48 @@ class curl
         return true;
 
     }
-
-    function fetch($type=null,$regex=null)
+    static function post($url,$post_string)
+    {
+        $ch=curl_init();
+        curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($post_string)?http_build_query($post_string):$post_string));
+        $result=curl_exec($ch);
+        curl_close($ch);
+        return $result;
+    }
+    /**
+     * 内部规则 
+     * img  提取 http://XX.jpg  图片全地址
+     * src  提取 <img src=''  所有能够自己显示的图片
+     * href 提取 <a href=''  所有连接
+     * url  提取 http://    符合http:// 的地址
+     */
+    function fetch($type)
     {
         $res=$this->exec(true);
-        if($type)
+        switch ($type)
         {
-            switch ($type)
-            {
-                case 'img':
-                    $regex='//';
-                    $index=null;
-                    break;
-                case 'url':
-                    
-                    $regex='';
-                    $index=1;
-                    break;
-                case 'pic':
-                    
-                    $regex='';
-                    $index=1;
-                    break;
-                default:
-                    return $res;
-                    break;
-            }
-            return $this->filter($res,$regex,$index);
-        }   
-        else if($regex)
-        {
-           return $this->filter($res,$regex);
-        } 
-        else
-        {
-            return strip_tags($res);
+            case 'img':
+                $regex='/http:\/\/[a-z0-9_-]+(\.[a-z0-9_-]+){1,5}(\/[a-z0-9_-]+){1,9}\.(jpg|jpeg|png|gif|bmp)/i';
+                $index=0;
+                break;
+            case 'src':
+                $regex='/<img.+?src=(\"|\')(.{5,}?)(\"|\').+?\/?>/i';
+                $index=2;
+                break;
+            case 'url':
+                $regex='/http:\/\/[a-z0-9_-]+(\.[a-z0-9_-]+){1,5}(\/[a-z0-9_-]+){1,9}(\.\w+)?/i';
+                $index=0;
+                break;
+            case 'href':
+                $regex='/<a.+?href=(\"|\')(.+?)(\"|\').+?>.+?<\/a>/i';
+                $index=2;
+                break;
+            default:
+                return $this->filter($res,$type);
+                break;
         }
-    
+        return $this->filter($res,$regex,$index);
+       
     }
     private function filter($html,$regex,$index=null)
     {

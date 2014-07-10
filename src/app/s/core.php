@@ -572,7 +572,7 @@ class Request
 	{
 		if(is_null($type))
 		{
-			return trim(htmlentities(strip_tags($val)));
+			return trim(filter_var(filter_var($val,FILTER_SANITIZE_STRING),FILTER_SANITIZE_SPECIAL_CHARS));
 		}
 		else
 		{
@@ -588,7 +588,7 @@ class Request
 					$out=$val;
 					break;
 			}
-			return $all?trim(htmlentities(strip_tags($out))):$out;
+			return $all?trim(filter_var(filter_var($out,FILTER_SANITIZE_STRING),FILTER_SANITIZE_SPECIAL_CHARS)):$out;
 		}
 
 	}
@@ -664,11 +664,15 @@ class Validate
 	}
 	public static function url($url)
 	{
-		return preg_match('/^[a-zA-z]+:\/\/[^\s]*$/',$url);
+		return filter_var($url, FILTER_VALIDATE_URL);
 	}
 	public static function ip($ip)
 	{
-		return (ip2long($ip)!==false);
+		if(function_exists('ip2long'))
+		{
+			return (ip2long($ip)!==false);  			
+		}
+		return filter_var($ip,FILTER_VALIDATE_IP);
 	}
 	//中国大陆身份证号(15位或18位)
 	public static function idcard($id)
@@ -886,13 +890,36 @@ class model
 // session 系列函数
 function session_get($key=null,$default=null)
 {
-	return Request::session($key,$default);
+	if(is_array($key))
+	{
+		$res=array();
+		foreach ($key as  $k)
+		{
+			$res[$k]=Request::session($k,$default);
+		}
+		return $res;
+	}
+	else
+	{
+		return Request::session($key,$default);
+	}
 }
 //此处为设置session的方式,重写可将session迁移至redis等
-function session_set($key,$value)
+function session_set($key,$value=null)
 {
 	if(!isset($_SESSION))session_start();
-	return $_SESSION[$key]=is_array($value)?json_encode($value):$value;
+	if(is_array($key))
+	{
+		foreach ($key as $k => $v)
+		{
+			$_SESSION[$k]=$v;
+		}
+		return true;
+	}
+	else
+	{
+		return $_SESSION[$key]=is_array($value)?json_encode($value):$value;
+	}
 }
 function session_del($key=null)
 {
@@ -909,7 +936,32 @@ function session_del($key=null)
 }
 function session_echo($key,$default=null)
 {
-	echo Request::session($key,$default);
+	e(Request::session($key,$default));
+}
+function e($var)
+{
+	if(isset($var))
+	{
+		if(is_array($var))
+		{
+			print_r($var);
+		}
+		else if(is_object($var))
+		{
+			var_dump($var);
+		}
+		else
+		{
+			echo $var;
+		}
+
+	}
+}
+function dump($data)
+{
+	echo '<pre>';
+	e($data);
+	echo '</pre>';
 }
 
 function byteFormat($size,$dec=2)
@@ -917,6 +969,29 @@ function byteFormat($size,$dec=2)
     $unit=array("B","KB","MB","GB","TB","PB","EB","ZB","YB");
     return round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i];
 }
+function dateFormat($time)
+{
+	$t=time()-$time;
+	if($t<1)return false;
+	$f=array(
+	'31536000'=>'年',
+	'2592000'=>'个月',
+	'604800'=>'星期',
+	'86400'=>'天',
+	'3600'=>'小时',
+	'60'=>'分钟',
+	'1'=>'秒'
+	);
+	foreach ($f as $k=>$v)
+	{
+        if (0 !=$c=floor($t/(int)$k))
+        {
+            return $c.$v.'前';
+        }
+    }
+
+}
+
 
 //外部重定向,会立即结束脚本以发送header
 //内部重定向run(array);
@@ -937,23 +1012,7 @@ function baseUrl($path=null)
 	return('http://'.$_SERVER['SERVER_NAME'].'/'.$path);
 
 }
-function dump($data)
-{
-	echo '<pre>';
-	if(is_array($data))
-	{
-		print_r($data);
-	}
-	else if(is_object($data))
-	{
-		var_dump($data);
-	}
-	else{
-		echo $data;
-	}
-	echo '</pre>';
 
-}
 
 //发送邮件,用来替代原生mail,多个接受者用分号隔开
 function sendMail($mail_to, $mail_subject, $mail_message)
