@@ -418,6 +418,9 @@ if(!function_exists('http_response_code'))
 			break;
 			case '304':
 			$nginx?header('status: 304 Not Modified'):header('HTTP/1.1 304 Not Modified');
+			break;
+			case '403':
+			$nginx?header('status: 403 Forbidden'):header('HTTP/1.1 403 Forbidden');
 			break;			
 			case '404':
 			$nginx?header('status: 404 Not Found'):header('HTTP/1.1 404 Not Found');
@@ -572,7 +575,7 @@ class Request
 	{
 		if(is_null($type))
 		{
-			return trim(filter_var(filter_var($val,FILTER_SANITIZE_STRING),FILTER_SANITIZE_SPECIAL_CHARS));
+			return trim(htmlentities(strip_tags($val)));
 		}
 		else
 		{
@@ -588,7 +591,7 @@ class Request
 					$out=$val;
 					break;
 			}
-			return $all?trim(filter_var(filter_var($out,FILTER_SANITIZE_STRING),FILTER_SANITIZE_SPECIAL_CHARS)):$out;
+			return $all?trim(htmlentities(strip_tags($out))):$out;
 		}
 
 	}
@@ -638,7 +641,7 @@ class Request
 				return isset($_SERVER[$var])?self::clean($_SERVER[$var]):$default;
 				break;
 			case 'session': ///此处为获取session的方式
-				return isset($_SESSION[$var])?self::clean($_SESSION[$var]):$default;
+				return isset($_SESSION[$var])?$_SESSION[$var]:$default;
 				break;
 			default:
 				return false;
@@ -917,17 +920,24 @@ function session_set($key,$value=null)
 		return true;
 	}
 	else
-	{
+	{ 
 		return $_SESSION[$key]=is_array($value)?json_encode($value):$value;
 	}
 }
 function session_del($key=null)
 {
 	if(!isset($_SESSION))session_start();
-	if($key)
+	if(is_array($key))
 	{
-		if(isset($_SESSION[$key])) unset($_SESSION[$key]);
+		while(list($k,$v)=each($key))
+		{
+			unset($_SESSION[$v]);
+		}
 		return true;
+	}
+	else if($key)
+	{
+		unset($_SESSION[$key]);
 	}
 	else
 	{
