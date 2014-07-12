@@ -1,0 +1,4 @@
+2014-07-08 00:15:51 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 75 ERROR(8):  Undefined variable: _SESSION
+2014-07-08 00:15:59 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 76 ERROR(8):  Undefined index: vcode
+2014-07-08 00:16:00 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 76 ERROR(8):  Undefined index: vcode
+2014-07-08 21:03:16 ==> 404 - Request Page Not Found ! ERROR(404):  Error action name ! 

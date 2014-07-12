@@ -1,0 +1,14 @@
+2014-07-12 00:00:58 ==> 500 - Internet Server Error ! ERROR(500):  load  library base failed ,file D:\php\htdocs/app/s/base.php or D:\php\htdocs/app/s/base.class.php does not exists 
+2014-07-12 00:01:17 ==> 500 - Internet Server Error ! ERROR(500):  load  library base failed ,file D:\php\htdocs/app/s/../base.php or D:\php\htdocs/app/s/../base.class.php does not exists 
+2014-07-12 00:02:17 ==> 404 - Request Page Not Found ! ERROR(404):  class base does not contain method auto
+2014-07-12 00:02:46 ==> An error occurred at D:\php\htdocs\app\c\base.php on line 65 ERROR(2):  Missing argument 1 for base::ip()
+2014-07-12 00:13:30 ==> An error occurred at D:\php\htdocs\app\c\base.php on line 220 ERROR(8):  Array to string conversion
+2014-07-12 00:13:31 ==> An error occurred at D:\php\htdocs\app\c\base.php on line 220 ERROR(8):  Array to string conversion
+2014-07-12 00:32:29 ==> An error occurred at D:\php\htdocs\app\s\class\faster.class.php on line 16 ERROR(8):  Use of undefined constant __methond__ - assumed '__methond__'
+2014-07-12 00:33:43 ==> An error occurred at D:\php\htdocs\app\s\class\faster.class.php on line 40 ERROR(8):  Undefined variable: data
+2014-07-12 00:40:03 ==> 404 - Request Page Not Found ! ERROR(404):  class base does not contain method index
+2014-07-12 00:40:30 ==> 404 - Request Page Not Found ! ERROR(404):  class base does not contain method __construct2
+2014-07-12 00:40:38 ==> 404 - Request Page Not Found ! ERROR(404):  class base does not contain method index
+2014-07-12 13:15:07 ==> An error occurred at D:\php\htdocs\app\s\class\faster.class.php on line 51 ERROR(8):  Undefined offset: 103
+2014-07-12 13:23:51 ==> An error occurred at D:\php\htdocs\app\s\class\faster.class.php on line 57 ERROR(8):  Undefined index: n
+2014-07-12 13:29:57 ==> An error occurred at D:\php\htdocs\app\s\class\faster.class.php on line 56 ERROR(8):  Undefined variable: html_t

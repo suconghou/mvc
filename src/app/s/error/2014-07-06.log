@@ -1,0 +1,45 @@
+2014-07-06 22:28:22 ==> 404 - Request Page Not Found ! ERROR(404):  Error action name ! 
+2014-07-06 23:45:51 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:46:42 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:46:55 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:47:29 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:47:35 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:47:36 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:47:36 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:47:37 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:50:51 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:50:52 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:50:52 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:51:05 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:51:46 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:53:55 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:53:55 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:53:55 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:53:56 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:54:07 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:54:07 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:54:07 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:54:25 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:54:25 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:54:26 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:54:31 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:54:32 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:54:32 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:54:58 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:54:58 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:54:58 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:55:06 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:55:07 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:55:31 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:55:34 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:55:53 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:55:54 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:55:54 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:56:21 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:56:21 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:56:32 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:56:33 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 67 ERROR(2):  Missing argument 1 for home::a()
+2014-07-06 23:56:41 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:56:42 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:56:42 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a
+2014-07-06 23:57:13 ==> An error occurred at D:\php\htdocs\app\c\home.php on line 69 ERROR(8):  Undefined variable: a

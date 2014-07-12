@@ -46,9 +46,9 @@ define('DB_PASS','123456');
 
 
 //sqlite 数据库配置
-define('SQLITE',LIB_PATH.'data.db');
+define('SQLITE',LIB_PATH.'mm.db');
 //配置使用何种数据库,0为mysql,1为sqlite
-define('DB',0);
+define('DB',1);
 
 ///smtp配置
 define('MAIL_SERVER','smtp.126.com');
