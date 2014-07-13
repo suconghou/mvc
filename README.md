@@ -1,7 +1,8 @@
-##便捷快速的MVC开发框架 update 20140407
+##便捷快速的MVC开发框架
+###version1.29
         
 * 只有两个核心文件入口文件index.php核心文件core.php,快速便捷,适用于各种项目
-* 20140325修复apache和nginx状态码差异
+* 修复apache和nginx状态码差异
 * 完善了正则路由,新的路由机制已经支持php5.2
 * 完善了默认控制器,以及路径包含问题
 * 完善了GET,POST的内容过滤
@@ -20,13 +21,13 @@
         
 ##文件分析
        
-* regex_router 正则路由分析器
-* common_router 普通路由分析器
-* show_errorpage 异常捕获
+* regexRouter 正则路由分析器
+* commonRouter 普通路由分析器
+* showErrorpage 异常捕获
 * route 添加正则路由
 * process 流程导航器
 * run 内部重定向
-* log_message 记录错误日志
+* logMessage 记录错误日志
 * M model加载器
 * S lib加载器
 * V view加载器
@@ -34,14 +35,9 @@
 * http_response_code nginx自定义状态码
 * __autoload 自动装载器
 * template 模板加载器
-* userInfo 来访信息
-* POST POST消息过滤器
-* GET GET消息过滤器
-* COOKIE COOKIE消息过滤器
-* SERVER SERVER消息过滤器
-* byte_format 字节格式化
+* byteFormat 字节格式化
 * redirect 外部重定向
-* base_url 路径组合器
+* baseUrl 路径组合器
 * async 异步执行器
 * sendmail 发送邮件
 * class model 数据库层
@@ -62,7 +58,7 @@
 * 不要对启用正则路由的页面使用文件缓存,缓存文件是根据控制器-方法-参数一-参数二..验证的.正则路由方法的参数不固定这将会产生大量缓存文件
 * 对于app/s目录下的文件,你可以直接include,不用加路径哦
 * 在控制器中,不要多次使用V方法,建议其他试图在view里调用template()
-* base_url(),当参数为数字,则返回路由信息,0为控制器,1为方法,以此类推,否则返回组合路径
+* baseUrl(),当参数为数字,则返回路由信息,0为控制器,1为方法,以此类推,否则返回组合路径
 * async 异步触发一个路由,或者无阻塞触发外界网址,个别服务器会失效,请使用async($router,1),采用curl方式触发
 * 开启DEBUG,会记录错误日志,否则不记录;自定义错误页,始终不会输出错误信息;没有自定义错误页,若开启debug,会输出详细错误信息并记录,不开启debug,只提示发生某种错误,不记录日志
         
@@ -70,8 +66,8 @@
         
 * 程序仅需index.php core.php config.php 便可运行,但是建议你为自己的项目组建更适宜的环境.
 * 应在s中创建app_config.php 和functions.php
-* 在m中创建 base_model ,系统并未包装复杂的数据库操作,就是希望自己去包装更适宜的基础model
-* 在c中创建base_controller,提供一些基础的操作,以便可以使用run方法调用他
+* 在m中创建 db ,系统并未包装复杂的数据库操作,就是希望自己去包装更适宜的基础model
+* 在c中创建base,提供一些基础的操作,以便可以使用run方法调用他
         
        
     
