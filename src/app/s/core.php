@@ -4,7 +4,7 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.28
+ * @version 1.29
  */
 
 require 'config.php';
@@ -33,7 +33,7 @@ function commonRouter($uri)
 	$uri_arr=explode('/', $uri);
 	foreach ($uri_arr as  $v)
 	{
-		if(($v=='index.php')||empty($v)) continue;
+		if(empty($v)) continue;
 		$router[]=$v;
 	}
 	return isset($router)?$router:null;
@@ -149,13 +149,16 @@ function route($regex,$arr)
 }
 
 ///流程导航器,第一个启动的
-
 function process()
 {
 	(strlen($_SERVER['REQUEST_URI'])>MAX_URL_LENGTH)&&showErrorpage('500','Request url too long ! ');
 	global $APP;///全局变量
 	list($uri)=explode('?',$_SERVER['REQUEST_URI']);
 	$uri=='/favicon.ico'&&die;
+	if(substr($uri,0,10)=='/index.php')
+	{
+		$uri=substr($uri,10);
+	}
 	if(REGEX_ROUTER)
 	{
 		$router=regexRouter($uri);
@@ -193,6 +196,7 @@ function process()
 		}
 	}
 	$APP['router']=$router;
+	var_dump($router);die;
 	return $router;
 }
 function run($router)
