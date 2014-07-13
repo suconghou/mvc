@@ -196,7 +196,6 @@ function process()
 		}
 	}
 	$APP['router']=$router;
-	var_dump($router);die;
 	return $router;
 }
 function run($router)
