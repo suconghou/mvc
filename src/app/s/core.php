@@ -309,6 +309,7 @@ function S($lib,$param=null)
 		}
 		else if(is_file($file))
 		{
+			unset($APP['lib'][$l]);
 			return require_once $file;
 		}
 		else
