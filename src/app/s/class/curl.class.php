@@ -3,16 +3,17 @@
 /**
 * php curl 并发 多线程
 * @author suconghou <suconghou@126.com>
-* @version v1.0
-* @blog http://blog.suconghou.cn
-* @date 2013.12.25
-* example 
-* $a=$curl->quick_exec($url);
-* add 第一个参数网址数组，第二个header，第三个nobody，第四个超时时间
-* 默认返回正文，超时10秒
+* @version v1.2 <2014.7.15>
+* @link http://blog.suconghou.cn
+* 
+*  
+* $curl->quick_exec($url);
 * $a=$curl->add($url_arr,1,0)->add($url_arr2)->exec();
 * $a=$curl->add($url)->exec();
-* $b=$curl->add($url)->fetch('img');
+* add 第一个参数网址数组，第二个header，第三个nobody，第四个超时时间
+* 默认返回正文，超时10秒
+* $curl->post($url,$post_data);
+* $b=$curl->add($url)->fetch('img'); img/src/url/href/或者自定义正则
 */
 class curl 
 {
@@ -104,7 +105,7 @@ class curl
         return true;
 
     }
-    static function post($url,$post_string)
+    function post($url,$post_string)
     {
         $ch=curl_init();
         curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($post_string)?http_build_query($post_string):$post_string));
@@ -141,6 +142,7 @@ class curl
                 $index=2;
                 break;
             default:
+                if(substr($type,0,1)!='/')return null; ///不是正则
                 return $this->filter($res,$type);
                 break;
         }
