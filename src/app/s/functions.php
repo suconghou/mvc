@@ -44,7 +44,6 @@ function httpInfo($url)
 {
 	$ch=curl_init($url);
 	curl_setopt($ch, CURLOPT_HEADER, 1); 
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0 );
 	curl_setopt($ch, CURLOPT_NOBODY, 1);
 	curl_setopt($ch, CURLOPT_TIMEOUT,3); //超时时长，单位秒    
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);  
@@ -59,7 +58,7 @@ function httpInfo($url)
 function httpCode($url)
 {
 	$res=httpInfo($url);
-	return isset($res['http_code'])?$res['http_code']:0;
+	return $res['http_code'];
 }
 
 //探测网址是否存在

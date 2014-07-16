@@ -1017,13 +1017,16 @@ function redirect($url,$seconds=0)
 
 function baseUrl($path=null)
 {
-	if(is_numeric($path))
+	if(is_string($path))
+	{
+		return('http://'.$_SERVER['SERVER_NAME'].'/'.$path);
+	}
+	else
 	{
 		global $APP;
 		$router=$APP['router'];
 		return isset($router[$path])?$router[$path]:null;
 	}
-	return('http://'.$_SERVER['SERVER_NAME'].'/'.$path);
 
 }
 
