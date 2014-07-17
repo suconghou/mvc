@@ -383,7 +383,7 @@ function C($time,$file=null)
 	global $APP;
 	$cache['time']=$time*60;
 	$cache['file']=$file;
-	$APP['cache']=$cache;
+	$APP['cache']=&$cache;
 	if(!$file)///使用了http缓存,在此处捕获缓存
 	{
 		$expires_time=time()+$APP['cache']['time'];
@@ -1028,7 +1028,7 @@ function baseUrl($path=null)
 	else
 	{
 		global $APP;
-		$router=$APP['router'];
+		$router=&$APP['router'];
 		return isset($router[$path])?$router[$path]:null;
 	}
 
