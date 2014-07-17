@@ -887,6 +887,10 @@ class model
 	{
 		self::$pdo||showErrorpage('500','PDO not init , have you construct ? ');
 	}
+	function __call($name,$args)
+	{
+		showErrorpage('500','Call Error Method '.$name);
+	}
 	function __destruct()
 	{
 		self::$pdo=null;
