@@ -3,9 +3,12 @@
 * 基础控制器类,继承此类以获得请求拦截
 * 该控制器不包含输出操作
 * 包含条件过滤等
-* IP白名单,黑名单
-* REFER白名单,黑名单
+* IP黑名单
+* REFER黑名单
 * GET,POST,SESSION,频次过滤
+* 非ajax过滤
+* 非POST过滤
+* 开启ajax跨域
 * 自定义过滤条件
 * 在其他控制器中调用 $this->ip()->refer()->session()->post()->get()->defender();
 */
@@ -18,8 +21,9 @@ class base
 	private static $post;
 	private static $session;
 	private static $cookie;
+	private static $ajax;
 
-	private static $blockTime=20; //超出频次禁止时间
+	private static $blockTime=10; //超出频次禁止时间
 
 	
 	function __construct()
@@ -34,11 +38,22 @@ class base
 	{
 		if(baseUrl(0)==__CLASS__)die;
 
-		$ip=array('127.0.0.1');
+		$ip=array('188.0.0.1');
 		$refer=array('http://127.0.0.1');
-		$this->frequency(8)->refer($refer)->ip('127.0.0.1');
+		$this->frequency(8)->refer($refer);
 		
 		return $this; 
+	}
+	function cors($domain=null)
+	{
+		if($domain)
+		{
+			header("Access-Control-Allow-Origin:{$domain}");
+		}
+		else
+		{
+			header('Access-Control-Allow-Origin:*');
+		}
 	}
 	function get($arr)
 	{
@@ -51,7 +66,7 @@ class base
 
 		return $this;
 	}
-	function sesson($arr)
+	function session($arr)
 	{
 		self::$session=is_array($arr)?$arr:array($arr);
 		return $this;
@@ -71,6 +86,11 @@ class base
 		self::$refer=is_array($arr)?$arr:array($arr);
 		return $this;
 	}
+	function ajax($a=true)
+	{
+		self::$ajax=$a;
+		return $this;
+	}
 	/**
 	 * 关联数组,或者一个整数 $f['5']=20; 5秒20次 , 次数不宜设置太大
 	 */
@@ -88,9 +108,18 @@ class base
 			if(in_array($info['ip'],self::$ip))
 			{
 				$hit['ip']=&$info['ip'];
+				goto block;
 			}
-			goto block;
-
+		
+		}
+		if(self::$ajax)
+		{
+			var_dump($info);
+			if(!$info['ajax'])
+			{
+				$hit['ajax']=&$info['ajax'];
+				goto block;
+			}
 		}
 		if(self::$refer)
 		{
@@ -170,7 +199,7 @@ class base
 				{
 					$data['block']=APP_START_TIME+self::$blockTime; ///超出限制
 				}
-				if($size>$k*$v)
+				if($size>($k+1)*($v+1))
 				{
 					unset($data[$ssid]);
 				}

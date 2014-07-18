@@ -11,7 +11,10 @@
 *  selectWhere($table,$where=null)
 *  deleteWhere($table,$where=null)
 *  updateWhere($table,$where,$data) 
-*
+*  三种批量操作
+*  multInsert($table,$dataArr)
+*  multUpdate($table,$idArr)
+*  multDelete($table,$idArr)
 *  单字段自增,自减
 *  incrById($table,$column,$id)
 *  decrById($table,$column,$id)
@@ -284,6 +287,7 @@ class db extends model
 		}
 		return array('list'=>$list,'page'=>$page);
 	}
+
 
 
 }

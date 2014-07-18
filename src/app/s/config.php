@@ -29,7 +29,7 @@ define('REGEX_ROUTER',1);
 ///自定义正则路由
 ///添加一个正则路由,数组第一个为控制器,第二个为方法,前面的将作为该方法的第一个实参,以此类推
 
-
+route('\/([A-Z0-9]{40})\.torrent',array('home','a'));
 route('\/page\/(\d{1,9})\.html',array('page','id'));
 route('\/read\/(\d{1,9})\.html',array('read','id'));
 route('\/(\d{1,9})\.html',array('home','id'));
