@@ -38,7 +38,24 @@ function commonRouter($uri)
 	}
 	return isset($router)?$router:null;
 }
-
+function runCli()
+{
+	if(substr(php_sapi_name(), 0, 3) == 'cli') //在CLI模式下
+	{
+		$GLOBALS['APP']['CLI']=true;
+		set_time_limit(0);
+		if($GLOBALS['argc']>1)
+		{
+    		foreach ($GLOBALS['argv'] as $key=>$uri)
+    		{
+    			if($key==0)continue;
+    			$GLOBALS['APP']['router'][]=$uri;
+    		}
+    		unset($GLOBALS['APP']['regex_router']);
+      		run($GLOBALS['APP']['router']);
+      	}
+	}	
+}
 //异常处理 404 500等
 function showErrorpage($errno, $errstr, $errfile=null, $errline=null)
 {
@@ -151,6 +168,7 @@ function route($regex,$arr)
 ///流程导航器,第一个启动的
 function process()
 {
+	isset($_SERVER['REQUEST_URI'])||exit('Use CLI Please Enable CLI Mode');
 	(strlen($_SERVER['REQUEST_URI'])>MAX_URL_LENGTH)&&showErrorpage('500','Request url too long ! ');
 	global $APP;///全局变量
 	list($uri)=explode('?',$_SERVER['REQUEST_URI']);
@@ -200,6 +218,10 @@ function process()
 }
 function run($router)
 {	
+	if(!is_array($router))
+	{
+		$router=array($GLOBALS['APP']['router'][0],$router);
+	}
 	$controller=CONTROLLER_PATH.$router[0].'.php'; 
 	$controllerDir=CONTROLLER_PATH.$router[0]; ///如果是二级目录
 	if(is_file($controller))
@@ -706,9 +728,10 @@ class Validate
  */
 function async($router,$curl=false,$lose=false)
 {
+	CLI&&die('Async Can Not Be Used In CLI Mode');
 	if(is_array($router))
 	{
-		$url='http://'.$_SERVER['HTTP_HOST'].'/'.implode('/',$router);
+		$url='http://'.Request::server('HTTP_HOST').'/'.implode('/',$router);
 	}
 	else
 	{

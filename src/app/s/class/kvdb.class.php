@@ -22,29 +22,23 @@ class kvdb
 
 	function __construct($file=null)
 	{
-
 		self::init($file);
-
 	}
-
 	///从文本读入内存
 	private static function read()
 	{
-		$dbarr=json_decode(file_get_contents(self::$dbfile));
-		return $dbarr; 
+		self::$dbarr=unserialize(file_get_contents(self::$dbfile));
 	}
 	//存入文本
-	private static function write($dbarr)
+	private static function write()
 	{
-		$dbarr=json_encode($dbarr);
-		return file_put_contents(self::$dbfile,$dbarr);
+		file_put_contents(self::$dbfile,serialize(self::$dbarr));
 	}
 	private static function init($file=null)
 	{
 		if($file==null)//加载默认
 		{
 			self::$dbfile=LIB_PATH.self::$dbfile;
-			
 		}
 		else if($file=='tmp')
 		{	
@@ -56,16 +50,54 @@ class kvdb
 		}
 		if(!file_exists(self::$dbfile))
 		{
-			$init=array('init_time'=>time());
-			file_put_contents(self::$dbfile,json_encode($init));
+			self::$dbarr=array('init_time'=>time());
+			file_put_contents(self::$dbfile,serialize(self::$dbarr));
 		}
-		self::$dbarr=self::read();
+		self::read();
 	}
 	function get($key)
 	{
-		return isset(self::$dbarr->$key)?self::$dbarr->$key:null;
+		return isset(self::$dbarr[$key])?self::$dbarr[$key]:null;
 	}
-	function gets($key=null)
+	function mget($arr) //批量获取
+	{
+		if(empty(self::$dbarr))
+		{
+			$this->flush();
+		}
+		$out=array();
+		foreach ($arr as $key)
+		{
+			$out[$key]=isset(self::$dbarr[$key])?self::$dbarr[$key]:null;
+		}
+		return $out;
+	}
+	function mset($arr)
+	{
+		if(empty(self::$dbarr))
+		{
+			$this->flush();
+		}
+		foreach ($arr as $key => $value)
+		{
+			self::$dbarr[$key]=$value;
+		}
+		self::write();
+	}
+	function mdel($arr)
+	{
+		if(empty(self::$dbarr))
+		{
+			$this->flush();
+		}
+		foreach ($arr as $key )
+		{
+			unset(self::$dbarr[$key]);
+		}
+		self::write();
+
+	}
+	function gets($key=null) ///已XX开头的KEY, 为空则所有KEY
 	{
 		if(empty(self::$dbarr))
 		{
@@ -87,7 +119,8 @@ class kvdb
 		{
 			$this->flush();
 		}
-		self::$dbarr->$key=$value;
+		self::$dbarr[$key]=$value;
+		self::write();
 
 	}
 	function sets($arr)
@@ -98,23 +131,26 @@ class kvdb
 		}
 		foreach ($arr as $key => $value)
 		{
-			self::$dbarr->$key=$value;
+			self::$dbarr[$key]=$value;
 		}
+		self::write();
+
 	}
 	function del($key)
 	{
-		if(isset(self::$dbarr->$key))
+		if(isset(self::$dbarr[$key]))
 		{
-			unset(self::$dbarr->$key);	
+			unset(self::$dbarr[$key]);	
+			self::write();
+
 		}
-		else
-		{
-			return true;
-		}
+		return true;
+		
 	}
 	function flush()
 	{
-		self::$dbarr=(object)array('init_time'=>time());
+		self::$dbarr=array('init_time'=>time());
+		self::write();
 	}
 
 	function like($key=null)
@@ -131,7 +167,6 @@ class kvdb
 			}
 		}
 		return isset($res)?$res:null;
-
 	}
 	function change($file=null)
 	{
@@ -139,14 +174,12 @@ class kvdb
 		{
 			self::$dbfile='kvdb.db';
 		}
-		self::write(self::$dbarr);
+		self::write();
 		self::init($file);
-
 	}
 	function __destruct()
 	{
-		return self::write(self::$dbarr);
-
+		self::write();
 	}
 
 }

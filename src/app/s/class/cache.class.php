@@ -3,8 +3,10 @@
 * memcache,redis,file 缓存,memcache支持sae
 * set,get,del,flush
 * mset,mdel,mget
+* file 方式在高并发下可能存在性能问题
 * @author suconghou
-* @blog http://blog.suconghou.cn
+* @link http://blog.suconghou.cn
+* @version V1.20
 */
 class cache
 {
@@ -18,7 +20,6 @@ class cache
 
 	private static $fileCache; //可以自定义路径或者使用系统默认
 	private static $fileArr;
-	private static $fileExpire=false;
 
 	private static $cache;
 	private static $cacheType;
@@ -238,6 +239,7 @@ class cache
 		$realVal['v']=$value;
 		$realVal['e']=$expire+time();
 		self::$fileArr[$key]=$realVal;
+		self::storFile();
 		return true;
 	}
 	private static function fileGet($key)
@@ -248,7 +250,11 @@ class cache
 			{
 				return self::$fileArr[$key]['v'];
 			}
-			self::$fileExpire=true; //标志检测到有KEY过期
+			else//检测到有KEY过期
+			{
+				self::fileDel($key);
+			}
+			 
 		}
 		return null;
 		
@@ -266,6 +272,7 @@ class cache
 		$val['v']=time();
 		$val['e']=2*time();
 		self::$fileArr=array('FileCacheInit'=>$val);
+		self::storFile();
 	}
 	private static function memcacheDel($key)
 	{
@@ -281,17 +288,8 @@ class cache
 		 {
 		 	unset(self::$fileArr[$key]);
 		 }
+		 self::storFile();
 		 return true;
-	}
-	private static function delFileExpire()
-	{
-		foreach (self::$fileArr as $key => $value)
-		{
-			if(time()>$value['e']) //过期
-			{
-				unset(self::$fileArr[$key]);
-			}
-		}
 	}
 	private static function halt($num)
 	{
@@ -310,15 +308,14 @@ class cache
 				break;
 		}
 	}
-
+	function storFile()
+	{
+		self::__destruct();
+	}
 	function __destruct()
 	{
 		if(self::$cacheType=='file')
 		{
-			if(self::$fileExpire) ////有KEY过期了,需要清理
-			{
-				self::delFileExpire();
-			}
 			file_put_contents(self::$fileCache,serialize(self::$fileArr));	
 		}
 	}

@@ -3,7 +3,7 @@
 
 date_default_timezone_set('PRC');//设置时区
 set_include_path(LIB_PATH);//此路径下可直接include
-
+define('CLI',1);//在CLI模式下也能运行
 ///DEBUG模式,0,禁用debug隐藏警告消息,同时也不记录日志,
 //1记录错误日志,显示错误的堆栈信息(如果未自定义错误页)
 define('DEBUG',1);
@@ -66,6 +66,8 @@ else
 	set_error_handler('showErrorpage',2);///异常处理
 	error_reporting(0);
 }
+
+
 
 //是否加载应用设置,以及应用函数库,非必须
 
