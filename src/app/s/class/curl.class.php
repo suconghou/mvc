@@ -3,17 +3,16 @@
 /**
 * php curl 并发 多线程
 * @author suconghou <suconghou@126.com>
-* @version v1.2 <2014.7.15>
-* @link http://blog.suconghou.cn
-* 
-*  
-* $curl->quick_exec($url);
-* $a=$curl->add($url_arr,1,0)->add($url_arr2)->exec();
-* $a=$curl->add($url)->exec();
+* @version v1.0
+* @blog http://blog.suconghou.cn
+* @date 2013.12.25
+* example 
+* $a=$curl->quick_exec($url);
 * add 第一个参数网址数组，第二个header，第三个nobody，第四个超时时间
 * 默认返回正文，超时10秒
-* $curl->post($url,$post_data);
-* $b=$curl->add($url)->fetch('img'); img/src/url/href/或者自定义正则
+* $a=$curl->add($url_arr,1,0)->add($url_arr2)->exec();
+* $a=$curl->add($url)->exec();
+* $b=$curl->add($url)->fetch('img');
 */
 class curl 
 {
@@ -28,19 +27,23 @@ class curl
     //url为array
     function add($url,$header=0,$no_body=0,$timeout=10)
     {
+        if(is_null($this->mh))
+        {
+            self::__construct();
+        }
         if(is_array($url))
         {
-            $url_array=&$url;
+            $url_array=$url;
         }
         else
         {
             $url_array=array($url);
         }
-        foreach ($url_array as  $value)
-        {
-            $this->ch[$value]=curl_init();           
-            curl_setopt_array($this->ch[$value], array(CURLOPT_URL=>$value,CURLOPT_HEADER=>$header,CURLOPT_TIMEOUT=>$timeout,CURLOPT_NOBODY=>$no_body,CURLOPT_RETURNTRANSFER=>1));
-            curl_multi_add_handle($this->mh,$this->ch[$value]);
+        foreach ($url_array as $key=>$value)
+        {  
+            $this->ch[$key]=curl_init();   
+            curl_setopt_array($this->ch[$key], array(CURLOPT_URL=>$value,CURLOPT_HEADER=>$header,CURLOPT_TIMEOUT=>$timeout,CURLOPT_NOBODY=>$no_body,CURLOPT_RETURNTRANSFER=>1));
+            curl_multi_add_handle($this->mh,$this->ch[$key]);
         }
         return $this;
     }
@@ -63,6 +66,7 @@ class curl
            curl_close($value);
         }
         curl_multi_close($this->mh);
+        $this->mh=$this->ch=null;
         if($one)
         {
             $out=null;
@@ -92,6 +96,7 @@ class curl
         }
         foreach ($url_array as $key => $value)
         {
+
             $this->ch[$key]=curl_init();           
             curl_setopt_array($this->ch[$key], array(CURLOPT_URL=>$value,CURLOPT_HEADER=>0,CURLOPT_TIMEOUT=>1,CURLOPT_NOBODY=>1));
             curl_multi_add_handle($this->mh,$this->ch[$key]);
@@ -102,10 +107,17 @@ class curl
             curl_multi_exec($this->mh,$running);
         }
         while($running > 0);
+        foreach ($this->ch as $key => $value)
+        {
+           curl_multi_remove_handle($this->mh,$value);
+           curl_close($value);
+        }
+        curl_multi_close($this->mh);
+        $this->mh=$this->ch=null;
         return true;
 
     }
-    function post($url,$post_string)
+    static function post($url,$post_string)
     {
         $ch=curl_init();
         curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($post_string)?http_build_query($post_string):$post_string));
@@ -142,7 +154,6 @@ class curl
                 $index=2;
                 break;
             default:
-                if(substr($type,0,1)!='/')return null; ///不是正则
                 return $this->filter($res,$type);
                 break;
         }
