@@ -4,12 +4,13 @@
 date_default_timezone_set('PRC');//设置时区
 set_include_path(LIB_PATH);//此路径下可直接include
 define('CLI',1);//在CLI模式下也能运行
+
 ///DEBUG模式,0,禁用debug隐藏警告消息,同时也不记录日志,
 //1记录错误日志,显示错误的堆栈信息(如果未自定义错误页)
 define('DEBUG',1);
 
 //设计你自己的错误页面,存放在LIB_PATH/error下的html或php文件,没有请保持为空
-//自定义错误页不会向用户输出详细错误消息
+//自定义错误页不会向用户输出详细错误消息,无论是否开启DEBUG
 define('USER_ERROR_PAGE_404','');
 define('USER_ERROR_PAGE_500','');
 

@@ -308,14 +308,29 @@ class cache
 				break;
 		}
 	}
-	function storFile()
+	private static function storFile()
 	{
-		self::__destruct();
+		file_put_contents(self::$fileCache,serialize(self::$fileArr));	
 	}
+	/**
+	 * 文本方式删除已过期的
+	 */
+	private static function delFileExpire()
+	{
+		foreach (self::$fileArr as $key => $value)
+		{
+			if(time()>$value['e']) //过期
+			{
+				unset(self::$fileArr[$key]);
+			}
+		}
+	}
+
 	function __destruct()
 	{
 		if(self::$cacheType=='file')
 		{
+			self::delFileExpire();
 			file_put_contents(self::$fileCache,serialize(self::$fileArr));	
 		}
 	}
