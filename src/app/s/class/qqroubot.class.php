@@ -132,9 +132,10 @@ class qqroubot
 	private static function getMsgtime($html)
 	{
 		
-		$regex="(0|1|2[0-9]):[0-5][0-9]:[0-5][0-9]";
+		$regex="((0|1|2)[0-9]?):[0-5][0-9]:[0-5][0-9]";
 		if(preg_match("/".$regex."/", $html, $matches))
 		{
+			
 			if(isset($matches[0]))
 			{
 				$h=$matches[1];
@@ -147,6 +148,7 @@ class qqroubot
 				{
 					$m=substr($matches[0],3,2);
 				}
+				
 				$time=mktime($h,$m,$s);
 				return $time;
 			}
@@ -198,8 +200,11 @@ class qqroubot
 	{
 		$url = "http://q32.3g.qq.com/g/s?sid=".self::$sid."&3G_UIN=".self::$qq."&saveURL=0&aid=nqqChat"; //聊天界面
 		$html=self::postData($url,'act=chat');
+	
 		$user_msg_time=self::getMsgtime($html); //最后聊天的时间
-		if(time()-$user_msg_time>self::$noreplay) //超过10分钟的不再回复
+		$time=time()-$user_msg_time;
+		// var_dump($time,self::$noreplay);die;
+		if($time>self::$noreplay) //超过10分钟的不再回复
 		{
 			self::$cache&&sleep(1);
 			return 'Waiting..';
@@ -256,7 +261,7 @@ class qqroubot
 		$s=$t;
 		for ($i=0; $i < 999999999999; $i++)
 		{ 
-			if($i%10==0) // 每 20个周期 执行登陆
+			if($i%20==0) // 每 20个周期 执行登陆
 			{
 				echo self::login()?'Online':'Offline';
 				echo "\r\n";

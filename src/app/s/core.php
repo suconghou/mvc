@@ -325,7 +325,14 @@ function S($lib,$param=null)
 		{
 			require $class_file;
 			class_exists($l)||showErrorpage('500','library file '.$class_file .' does not contain class '.$l);
-			$APP['lib'][$l]=new $l($param);///对模型实例化
+			if($param)
+			{
+				$APP['lib'][$l]=new $l($param);///对模型实例化
+			}
+			else
+			{
+				$APP['lib'][$l]=new $l();///对模型实例化
+			}
 			return $APP['lib'][$l];
 
 		}
