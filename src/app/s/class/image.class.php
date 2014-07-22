@@ -5,7 +5,8 @@
 * 图像缩放,加水印,旋转,裁剪,缩略,验证码
 * 生成验证码 $image->vcode($num,$rgb)
 * 生成占位符 $image->placeholder($w,$h,$rgb)
-* $image->thumb($path,$w,$h) //返回缩略图 ,$path可以是本地或者远程
+* $image->thumb($path,$w,$h) //缩放图片,参数0-1缩略,1-2放大,$path可以是本地或者远程
+* $cache true 检测缓存,false 不使用缓存 -1不使用缓存并且删除以前的缓存
 * 建议开启http缓存使用 C(60); 缓存1个小时
 */
 class image 
@@ -15,7 +16,7 @@ class image
 	
 	function __construct()
 	{
-		C(60);
+
 	}
 	/**
 	 * 生成验证码随机数
@@ -80,22 +81,40 @@ class image
 	} 
 	/**
 	 * 图片采集与缩放
+	 * @param  $path 本地或远程地址
+	 * @param  $set_w 输出图片宽度 比例或者固定数值
+	 * @param  $set_h 高度
+	 * @param  $cache 是否启用缓存
 	 */
-	function thumb($path,$set_w=null,$set_h=null)
+	function thumb($path,$set_w=null,$set_h=null,$cache=false)
 	{
+		$hash=sys_get_temp_dir().'/'.md5($path.$set_w.$set_h); //缓存的地址
+		if($cache==-1)
+		{
+			self::delCache($hash);
+			$cache=false;
+		}
+		$cache&&self::readCache($hash);
 		if(preg_match('/http(s)?:\/\/([a-z0-9]+\.)+([a-z0-9]+\/)+.*/i',$path,$matches)) //远程地址
 		{
-			$tmp=sys_get_temp_dir().'/thumb.jpg';
-			file_put_contents($tmp,file_get_contents($path));
-			$path=$tmp;
+			$origin=sys_get_temp_dir().'/'.md5($path).'_o';
+			if($cache&&is_file($origin))
+			{
+				$path=$origin;
+			}
+			else
+			{
+				file_put_contents($origin,file_get_contents($path));
+				$path=$origin;
+			}
 		}		
 		$arr=getimagesize($path); //原始图像大小 $type 1gif 2jpg 3png
 		$w=&$arr[0];
 		$h=&$arr[1];
 		$type=&$arr[2];
 		$mime=&$arr['mime'];
-		$set_w=is_null($set_w)?1:$set_w;
-		$set_h=is_null($set_h)?($set_w<=2?$set_w:1):$set_h;
+		$set_w=is_null($set_w)?1:$set_w; //默认宽度原图
+		$set_h=is_null($set_h)?($set_w<=2?$set_w:1):$set_h; //没有设定,若宽度设定了百分比则继承否则原图
 		$real_w=$set_w<=2?$w*$set_w:$set_w;
 		$real_h=$set_h<=2?$h*$set_h:$set_h;
 		
@@ -107,25 +126,45 @@ class image
 				$src_image=imagecreatefromgif($path);
 				imagecopyresampled($new_img,$src_image,0,0,0,0,$real_w,$real_h,$w,$h);
 				header('Content-Type: '.$mime);
-				imagegif($new_img);
+				$cache?(imagegif($new_img,$hash)&&self::readCache($hash)):imagegif($new_img);
 				break;
 			case 2: //jpg
 				$src_image=imagecreatefromjpeg($path);
 				imagecopyresampled($new_img,$src_image,0,0,0,0,$real_w,$real_h,$w,$h);
 				header('Content-Type: '.$mime);
-				imagejpeg($new_img);
+				$cache?(imagejpeg($new_img,$hash)&&self::readCache($hash)):imagejpeg($new_img);
 				break;
 			default: //png
 				$src_image=imagecreatefrompng($path);
 				imagecopyresampled($new_img,$src_image,0,0,0,0,$real_w,$real_h,$w,$h);
 				header('Content-Type: '.$mime);
-				imagepng($new_img);
+				$cache?(imagepng($new_img,$hash)&&self::readCache($hash)):imagepng($new_img);
 				break;
 		}
 		imagedestroy($new_img);
 		imagedestroy($src_image);
-		
+		return $this;
+	}
+	/**
+	 * 尝试读取缓存,命中直接输出
+	 */
+	private static function readCache($hash)
+	{
+		if(is_file($hash))
+		{
+			$arr=getimagesize($hash); //原始图像大小 $type 1gif 2jpg 3png
+			$mime=&$arr['mime'];
+			header('Content-Type: '.$mime);
+			exit(file_get_contents($hash));
+		}
 
+	}
+	/**
+	 * 删除一个缓存
+	 */
+	private static function delCache($hash)
+	{
+		is_file($hash)?unlink($hash):null;
 	}
 
 
