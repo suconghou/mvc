@@ -38,7 +38,7 @@
 * byteFormat 字节格式化
 * redirect 外部重定向
 * baseUrl 路径组合器
-* async 异步执行器
+* async 异步执行器,类似多线程
 * sendmail 发送邮件
 * class model 数据库层
             
