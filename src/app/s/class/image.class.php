@@ -69,6 +69,7 @@ class image
 		$text=$w.'X'.$h;
 		$font=ROOT.'static/font/monaco.ttf';
 		$size=$w/5>$h/5?$h/5:$w/5;
+		$size=$size>sqrt($w*$h)?sqrt($w*$h):$size;
 		$arr=ImageTTFBBox($size, 0, $font,$text);
 		$text_w=$arr[2]-$arr[0];
 		$text_h=$arr[6]-$arr[7];
