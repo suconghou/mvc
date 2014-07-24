@@ -113,11 +113,18 @@ class image
 		$h=&$arr[1];
 		$type=&$arr[2];
 		$mime=&$arr['mime'];
-		$set_w=is_null($set_w)?1:$set_w; //默认宽度原图
-		$set_h=is_null($set_h)?($set_w<=2?$set_w:1):$set_h; //没有设定,若宽度设定了百分比则继承否则原图
+		if(is_null($set_w)&&$set_h)
+		{
+			$set_w=$set_h<=2?$set_h:$set_h/$h;
+		}
+		else
+		{
+			$set_w=is_null($set_w)?1:$set_w; //默认宽度原图
+			$set_h=is_null($set_h)?($set_w<=2?$set_w:$set_w/$w):$set_h; //没有设定,若宽度设定了百分比则继承否则计算出百分比
+		}
 		$real_w=$set_w<=2?$w*$set_w:$set_w;
 		$real_h=$set_h<=2?$h*$set_h:$set_h;
-		
+
 		$new_img=imagecreatetruecolor($real_w,$real_h);
 
 		switch ($type)
