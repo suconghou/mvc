@@ -372,7 +372,7 @@ function V($view,$data=null)
 			if($APP['cache']['file'])//生成文件缓存
 			{
 				$contents=ob_get_contents();
-				$cache_file=ROOT.'static/cache/'.md5(implode('-',$APP['router'])).'.html';
+				$cache_file=LIB_PATH.'data/'.md5(implode('-',$APP['router'])).'.html';
 				file_put_contents($cache_file,$contents);
 				touch($cache_file,$expires_time);
 				header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");

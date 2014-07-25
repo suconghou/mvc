@@ -13,7 +13,7 @@ CLI&&runCli();
 if(!isset($GLOBALS['APP']['CLI']))
 {
 	$router=process();//获得路由信息
-	$hash=ROOT.'static/cache/'.md5(implode('-',$router)).'.html';///缓存hash
+	$hash=LIB_PATH.'data/'.md5(implode('-',$router)).'.html';///缓存hash
 	if (is_file($hash))//存在缓存文件
 	{
 		$expires_time=filemtime($hash);
