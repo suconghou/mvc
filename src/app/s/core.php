@@ -4,7 +4,7 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.29
+ * @version 1.32
  */
 
 require 'config.php';
@@ -42,6 +42,7 @@ function runCli()
 {
 	if(substr(php_sapi_name(), 0, 3) == 'cli') //在CLI模式下
 	{
+		if(!isset($GLOBALS['argc']))return false;
 		$GLOBALS['APP']['CLI']=true;
 		set_time_limit(0);
 		if($GLOBALS['argc']>1)
