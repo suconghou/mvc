@@ -4,16 +4,16 @@ define('APP_START_TIME',microtime(true));//计时开始
 define('APP_START_MEMORY',memory_get_usage());//初始内存大小
 define('ROOT',dirname(__FILE__).'/');//根路径
 define('APP_PATH',ROOT.'app/');//APP路径
-define('LIB_PATH',APP_PATH.'s/');
-define('MODEL_PATH',APP_PATH.'m/');
-define('VIEW_PATH',APP_PATH.'v/');
-define('CONTROLLER_PATH',APP_PATH.'c/');
+define('LIB_PATH',APP_PATH.'system/');
+define('MODEL_PATH',APP_PATH.'model/');
+define('VIEW_PATH',APP_PATH.'view/');
+define('CONTROLLER_PATH',APP_PATH.'controller/');
 require LIB_PATH.'core.php';//载入核心
 CLI&&runCli();
 if(!isset($GLOBALS['APP']['CLI']))
 {
 	$router=process();//获得路由信息
-	$hash=LIB_PATH.'data/'.md5(implode('-',$router)).'.html';///缓存hash
+	$hash=APP_PATH.'cache/'.md5(implode('-',$router)).'.html';///缓存hash
 	if (is_file($hash))//存在缓存文件
 	{
 		$expires_time=filemtime($hash);
