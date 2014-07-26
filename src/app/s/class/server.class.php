@@ -64,7 +64,7 @@ class server
 	{
 		if(self::$log)
 		{
-			$title='监控提醒邮件';
+			$title='监控提醒邮件TEST';
 			sendMail(self::$receiver,$title,self::$log);
 		}
 	}
