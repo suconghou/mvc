@@ -38,7 +38,7 @@ class kvdb
 	{
 		if($file==null)//加载默认
 		{
-			self::$dbfile=LIB_PATH.self::$dbfile;
+			self::$dbfile=APP_PATH.self::$dbfile;
 		}
 		else if($file=='tmp')
 		{	
@@ -46,7 +46,7 @@ class kvdb
 		}
 		else //指定文件名
 		{
-			self::$dbfile=LIB_PATH.$file;
+			self::$dbfile=APP_PATH.$file;
 		}
 		if(!file_exists(self::$dbfile))
 		{
