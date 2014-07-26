@@ -275,15 +275,16 @@ function logMessage($msg)
 	$msg=date('Y-m-d H:i:s',time()).' ==> '.$msg."\r\n";
 	if(is_writable(LIB_PATH.'error'))
 	{
+		if(!function_exists('error_log'))
+		{
+			function error_log($msg,$type=3,$path)
+			{
+				file_put_contents($path,$msg,FILE_APPEND); 
+			}
+		}
 		error_log($msg,3,$path);
 	}
-	if(!function_exists('error_log'))
-	{
-		function error_log($msg,$type=3,$path)
-		{
-			file_put_contents($path,$msg,FILE_APPEND); 
-		}
-	}
+	
 }
 //加载model
 function M($model,$param=null)
