@@ -737,9 +737,10 @@ class Validate
  */
 function async($router,$curl=false,$lose=false)
 {
-	CLI&&die('Async Can Not Be Used In CLI Mode');
+	
 	if(is_array($router))
 	{
+		CLI&&die('Async In CLI Mode Need Whole Url ');
 		$url='http://'.Request::server('HTTP_HOST').'/'.implode('/',$router);
 	}
 	else
@@ -917,11 +918,14 @@ class model
 	}
 	private function ready()
 	{
-		self::$pdo||showErrorpage('500','PDO not init , have you construct ? ');
+		if(!self::$pdo)
+		{
+			self::__construct();
+		}
 	}
 	function __call($name,$args)
 	{
-		showErrorpage('500','Call Error Method '.$name);
+		showErrorpage('500','Call Error Method '.$name.' In Class '.__CLASS__);
 	}
 	function __destruct()
 	{

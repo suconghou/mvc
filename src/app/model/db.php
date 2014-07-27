@@ -27,6 +27,8 @@
 *  $db->cache(1)->查询操作, 开启缓存,可能带来数据不一致
 *  $db->cache(0)->查询操作, 跳过缓存,取真实数据(默认)
 *  $db->cache(0/1,60); 设置缓存有效期, 
+*
+*  继承db的类,请不要执行parent::__construct(); 他留给手动实例化的
 */
 class db extends model
 {
@@ -36,11 +38,22 @@ class db extends model
 	private static $cacheTime=600;  //600秒缓存时间
 	const cacheType='memcache';  //memcache,redis,file,三者其中之一
 
+	private $data;
+	private $table;
+	private $id;
+	private $update;
 
-
-	function __construct()
+	/**
+	 * 带有参数的实例化,会生成数据模型
+	 */
+	function __construct($table=null,$id=null)
 	{
-		parent::__construct();
+		if($table&&$id) //手动实例化,生成数据模型
+		{
+			$this->data[$table]=$this->selectById($table,$id);
+			$this->table=$table;
+			$this->id=$id;
+		}
 	}
 	/**
 	 *  可调用的缓存开关,第一次开启缓存时会初始化cacher
@@ -81,6 +94,7 @@ class db extends model
 		}
 		else
 		{
+
 			return $this->getLine($sql);
 		}
 	}
@@ -108,7 +122,7 @@ class db extends model
 			 $v[]=$key.'='."'".$value."'";
 		}
 		$strv=implode(',',$v);  
-		$sql="UPDATE {table} SET {$strv} WHERE id ='{$id}' ";
+		$sql="UPDATE `{$table}` SET {$strv} WHERE id ='{$id}' ";
 		if(self::$use)
 		{
 			$key=md5($table.$id);
@@ -287,7 +301,53 @@ class db extends model
 		}
 		return array('list'=>$list,'page'=>$page);
 	}
+	/**
+	 * 只有set,会触发__destruct里的sql,因此要监控他
+	 * set 会保护table ,id ,他们不会修改
+	 */
+	function __set($key,$val)
+	{
+		if(isset($this->data[$this->table][$key])) //存在这个字段
+		{
+			$this->data[$this->table][$key]=$val;
+			$this->update[$key]=$val;
+		}
+		else //不存在的字段忽略
+		{ 
+			return false;
+		}
+	}
+	function __get($key)
+	{
+		if(isset($this->data[$this->table][$key]))
+		{
+			return $this->data[$this->table][$key];
+		}
+		return null;
+
+	}
+	function __isset($key)
+	{
+		return isset($this->data[$this->table][$key]);
+
+	}
+	function __unset($key)
+	{
+		unset($this->data[$this->table][$key]);
+
+	}
+	/**
+	 * DB被实例化,每次结束时检查数据模型改动,DB的实例化用于数据模型其他操作请继承DB
+	 */
+	function __destruct()
+	{
+		if($this->update)
+		{
+			return $this->updateById($this->table,$this->id,$this->update);
+		}
+	}
 
 
 
 }
+// end class db
