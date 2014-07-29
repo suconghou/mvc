@@ -2,14 +2,14 @@
 /**
 * 监控服务器是否能够访问
 * 每当状态切换时发送提醒邮件
-* 需要functions里的函数httpcode支持
+* 
 */
 class server
 {
 	
 	private static $log;
 	private static $db;
-	private static $receiver='1126045770@qq.com';
+	public static $receiver='1126045770@qq.com';
 
 	function __construct()
 	{
@@ -18,7 +18,7 @@ class server
 	/**
 	 * 添加要监控的服务器可访问地址
 	 */
-	function addServer($url)
+	function serverOk($url)
 	{
 		$urls=is_array($url)?$url:array($url);
 		foreach ($urls as  $url)
