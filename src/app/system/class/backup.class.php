@@ -28,18 +28,18 @@ class backup
 		if(is_null($dataConfig)&&is_null($dbConfig)) //全站备份
 		{
 			self::$dbConfig=array(DB_HOST,DB_PORT,DB_NAME,DB_USER,DB_PASS); //继承系统设置
-			self::$dataConfig=array('',2); //默认仅云端存储
+			self::$dataConfig=array('backup','.',2); //默认仅云端存储
 		}
 		else
 		{
-
 			self::$dbConfig=is_array($dbConfig)?$dbConfig:null;
 			self::$dataConfig=is_array($dataConfig)?$dataConfig:null;
-	
+			if(!(self::$dbConfig&&self::$dataConfig))
+			{
+				self::log("Init Error");
+			}
 		}
-
-		return $this;
-		
+		return $this;		
 	}
 
 	function dbBackup($dbConfig)
@@ -55,17 +55,17 @@ class backup
 		try
 		{
 			$zip= new ZipArchive(); 
-			$filename=$dataConfig[0].'-'.date("Y-m-d-H-i-s").".zip";
-		    $filepath = ROOT.$filename;  //框架根目录下创建备份文件
+			$filename=$dataConfig[0].'-'.date("YmdHis").".zip";
+		    $filepath = APP_PATH.$filename;  //框架根目录下创建备份文件
 		    if ($zip->open($filepath, ZIPARCHIVE::CREATE)!==TRUE)
 		    {
 		      self::log("ERROR: ".$filepath."不可写。创建文件失败，请检查目录权限。"); 
 		    }
     		$files = self::listDir($dataConfig[1]);
-
+    		
     		if(isset(self::$dbConfig['dbPath'])) // 设定了dbPath,说明备份了数据库
 		    {
-		      	array_push($files, $GLOBALS['sql_name']);   //将数据库文件添加入要压缩的列表 
+		      	array_push($files,self::$dbConfig['dbPath']);   //将数据库文件添加入要压缩的列表 
 		    }
 		    foreach($files as $path)
 		    {
@@ -73,7 +73,7 @@ class backup
 		    }
 		    $ret['filenum']=$zip->numFiles;
 		    $zip->close();
-		    // BACKUP_DB&&unlink($GLOBALS['sql_name']);  //是否要删除生成的SQL文件
+		    unlink(self::$dbConfig['dbPath']);  //是否要删除生成的SQL文件
 		    $ret['filepath']=$filepath; 
 		    return $ret;
 		}
@@ -86,21 +86,43 @@ class backup
 	/**
 	 * 数据云端同步
 	 */
-	function sync()
+	private function sync($path)
 	{
+		self::log('Begin Upoad File '.$path);
+		var_dump($path);
 
 	}
 	/**
-	 * 自动备份
+	 * 自动备份, 程序入口
 	 */
 	function start()
 	{
+		if(self::$dbConfig) //开启了数据库备份
+		{
+			$data=self::dbBackup(self::$dbConfig);
+			$path=APP_PATH.self::$dbConfig[2].date('YmdHis').'.sql';
+			file_put_contents($path,$data);
+			self::$dbConfig['dbPath']=$path;
+			self::log('DB store in '.$path);
+			if(!self::$dataConfig) //仅备份数据库,可以上传了
+			{
+				self::sync($path);
+			}
+		}
+		if(self::$dataConfig) //自定义文件备份选项 ,要备份文件了
+		{
+			$path=self::dataBackup(self::$dataConfig); //备份的文件地址
+			self::log("Backup Files End , Stored In ".$path['filepath'].',Total Files '.$path['filenum']);
+			self::sync($path['filepath']);
+		}
+		
 
 	}
 	private static function mysqlInit($dbConfig)
 	{
 		try
-	    {
+	    {	
+
 	         self::$mysql=mysql_connect($dbConfig[0].':'.$dbConfig[1],$dbConfig[3],$dbConfig[4]);
 	         mysql_select_db($dbConfig[2]);
 	         mysql_query("set names utf8");
@@ -116,6 +138,7 @@ class backup
   	{
 	    try
 	    {
+	 
 	      $result=mysql_query($sql);
 	      return $result;  
 	    }
@@ -154,16 +177,16 @@ class backup
 	/**
 	 * 获取表结构和数据
 	 */
-	function data2sql()
+	private static function data2sql()
 	{
 		$tables=self::getTables();
 		$return="-- ".date('Y-m-d H:i:s')."\r\n";
 		foreach ($tables as $table)
 		{
-		  $result=self::runSql("select * from ".$table);
+		  $result=self::runSql("SELECT * FROM `".$table."`");
 		  $num_fields = mysql_num_fields($result);   
 		  $return.= 'DROP TABLE IF EXISTS `'.$table.'` ;';
-		  $create = mysql_fetch_row(self::runSql('SHOW CREATE TABLE '.$table));
+		  $create = mysql_fetch_row(self::runSql('SHOW CREATE TABLE `'.$table.'`'));
 		  $return.= "\n\n".$create[1].";\n\n";
 		  
 		  for ($i=0; $i < $num_fields ; $i++)
@@ -233,6 +256,6 @@ class backup
 	}
 	function __destruct()
 	{
-
+		echo(self::$log);
 	}
 }
