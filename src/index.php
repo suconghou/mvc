@@ -26,10 +26,6 @@ define('GZIP',0);  //是否开启GZIP
 // ///DEBUG模式,0,禁用debug隐藏警告消息,同时也不记录日志,1记录错误日志,显示错误的堆栈信息(如果未自定义错误页)
 define('DEBUG',1);
 
-
-
-
-
 //mysql数据库配置
 define('DB_HOST','127.0.0.1');
 define('DB_PORT',3306);
@@ -50,10 +46,6 @@ define('MAIL_USERNAME','suconghou@126.com');
 define('MAIL_PASSWORD','11260sch45770');
 define('MAIL_NAME','系统邮件');
 
-
-
-
-
 ///添加一个正则路由,数组第一个为控制器,第二个为方法,前面的将作为该方法的第一个实参,以此类推
 
 app::route('\/([A-Z0-9]{40})\.torrent',array('home','a'));
@@ -63,6 +55,9 @@ app::route('\/(\d{1,9})\.html',array('home','id'));
 app::route('\/fm\/(\d{1,9}).fm',array('fm','id'));
 app::route('\/about',array('home','about'));
 
+//也可以添加自动加载,或者加载程序设置
+S('functions');
+S('class/curl');
 //配置完,可以启动啦
 app::start();
 

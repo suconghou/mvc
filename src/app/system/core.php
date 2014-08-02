@@ -323,8 +323,6 @@ class app
 		}
 
 	}
-
-
 }
 // End of class app
 
@@ -425,15 +423,14 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 }
 
 //加载model
-function m($model,$param=null)
+function M($model,$param=null)
 {
 	$arr=explode('/',$model);
 	$m=end($arr);
-	global $APP;
-	$APP['model'][$m]=isset($APP['model'][$m])?$APP['model'][$m]:$m;
-	if($APP['model'][$m] instanceof $m)
+	$GLOBALS['APP']['model'][$m]=isset($GLOBALS['APP']['model'][$m])?$GLOBALS['APP']['model'][$m]:$m;
+	if($GLOBALS['APP']['model'][$m] instanceof $m)
 	{
-		return $APP['model'][$m];
+		return $GLOBALS['APP']['model'][$m];
 	}
 	else
 	{
@@ -441,20 +438,26 @@ function m($model,$param=null)
 		is_file($model_file)||Error('500','load model '.$m.' failed , mdoel file '.$model_file.' does not exists ');
 		require $model_file;
 		class_exists($m)||Error('500','model file '.$model_file .' does not contain class '.$m);
-		$APP['model'][$m]=new $m($param);///对模型实例化
-		return $APP['model'][$m];
+		if($param)
+		{
+			$GLOBALS['APP']['model'][$m]=new $m($param);///对模型实例化
+		}
+		else
+		{
+			$GLOBALS['APP']['model'][$m]=new $m();///对模型实例化
+		}
+		return $GLOBALS['APP']['model'][$m];
 	}
 }
 //加载类库
-function s($lib,$param=null)
+function S($lib,$param=null)
 {
 	$arr=explode('/',$lib);
 	$l=end($arr);
-	global $APP;
-	$APP['lib'][$l]=isset($APP['lib'][$l])?$APP['lib'][$l]:$l;
-	if($APP['lib'][$l] instanceof $l)
+	$GLOBALS['APP']['lib'][$l]=isset($GLOBALS['APP']['lib'][$l])?$GLOBALS['APP']['lib'][$l]:$l;
+	if($GLOBALS['APP']['lib'][$l] instanceof $l)
 	{
-		return $APP['lib'][$l];
+		return $GLOBALS['APP']['lib'][$l];
 	}
 	else
 	{
@@ -466,30 +469,28 @@ function s($lib,$param=null)
 			class_exists($l)||Error('500','library file '.$class_file .' does not contain class '.$l);
 			if($param)
 			{
-				$APP['lib'][$l]=new $l($param);///对模型实例化
+				$GLOBALS['APP']['lib'][$l]=new $l($param);///对模型实例化
 			}
 			else
 			{
-				$APP['lib'][$l]=new $l();///对模型实例化
+				$GLOBALS['APP']['lib'][$l]=new $l();///对模型实例化
 			}
-			return $APP['lib'][$l];
+			return $GLOBALS['APP']['lib'][$l];
 
 		}
 		else if(is_file($file))
 		{
-			unset($APP['lib'][$l]);
-			return require_once $file;
+			unset($GLOBALS['APP']['lib'][$l]);
+			return require $file;
 		}
 		else
 		{
 			Error('500','load  library '.$l.' failed ,file '.$file.' or '.$class_file.' does not exists ');
 		}
-
 	}
-
 }
 //加载视图
-function v($view,$data=null)
+function V($view,$data=null)
 {
 	if(defined('APP_TIME_SPEND'))
 	{
@@ -505,18 +506,17 @@ function v($view,$data=null)
 		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-$GLOBALS['APP']['APP_START_MEMORY']));
 		unset($GLOBALS['APP']['APP_START_TIME'],$GLOBALS['APP']['APP_START_MEMORY']);
 		require $view_file;
-		global $APP;
-		if(isset($APP['cache']))//启用了缓存
+		if(isset($GLOBALS['APP']['cache']))//启用了缓存
 		{
-			$expires_time=time()+$APP['cache']['time'];
-			if($APP['cache']['file'])//生成文件缓存
+			$expires_time=time()+$GLOBALS['APP']['cache']['time'];
+			if($GLOBALS['APP']['cache']['file'])//生成文件缓存
 			{
 				$contents=ob_get_contents();
-				$cache_file=APP_PATH.'cache/'.md5(implode('-',$APP['router'])).'.html';
+				$cache_file=APP_PATH.'cache/'.md5(implode('-',$GLOBALS['APP']['router'])).'.html';
 				file_put_contents($cache_file,$contents);
 				touch($cache_file,$expires_time);
 				header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
-				header("Cache-Control: max-age=".$APP['cache']['time']);
+				header("Cache-Control: max-age=".$GLOBALS['APP']['cache']['time']);
 				header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT');   
 				flush();
 				ob_end_flush();
@@ -524,7 +524,7 @@ function v($view,$data=null)
 			else//使用的是http缓存
 			{
 				header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
-				header("Cache-Control: max-age=".$APP['cache']['time']);
+				header("Cache-Control: max-age=".$GLOBALS['APP']['cache']['time']);
 				header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT'); 
 				flush();
 				ob_end_flush();
@@ -547,15 +547,14 @@ function v($view,$data=null)
 
 }
 //缓存,第一个参数为缓存时间,第二个为是否文件缓存
-function c($time,$file=null)
+function C($time,$file=null)
 {
-	global $APP;
 	$cache['time']=$time*60;
 	$cache['file']=$file;
-	$APP['cache']=&$cache;
+	$GLOBALS['APP']['cache']=&$cache;
 	if(!$file)///使用了http缓存,在此处捕获缓存
 	{
-		$expires_time=time()+$APP['cache']['time'];
+		$expires_time=time()+$GLOBALS['APP']['cache']['time'];
 		$last_expire = isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) ? $_SERVER['HTTP_IF_MODIFIED_SINCE'] : 0;
 		if($last_expire)
 		{	
@@ -568,9 +567,8 @@ function c($time,$file=null)
 		else
 		{
 			header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
-			header("Cache-Control: max-age=".$APP['cache']['time']);
+			header("Cache-Control: max-age=".$GLOBALS['APP']['cache']['time']);
 			header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT'); 
-
 		}
 
 	}
@@ -588,8 +586,6 @@ function template($file)///加载模版
 		Error('404','template file '.$file.' not exists !');
 	}
 }
-
-
 
 /**
 * Request 用户来访信息,使用静态访问
@@ -629,7 +625,6 @@ class Request
 			}
 			return $data;
 		}
-
 
 	}
 	public static function cookie($key=null,$default=null)
@@ -682,7 +677,6 @@ class Request
 			}
 			return $data;
 		}
-
 	}
 	public static function info()
 	{
@@ -779,14 +773,20 @@ class Request
 	}
 }
 
-
-
 /**
 * 验证类,使用静态方法
 */
 class Validate
 {
-	
+	private static $data;
+	public static function check($data)
+	{
+		self::$data=$data;
+	}
+	public static function addRule()
+	{
+
+	}
 	public static function email($email)
 	{
 		return filter_var($email, FILTER_VALIDATE_EMAIL);
@@ -825,15 +825,18 @@ class Validate
 
 }
 
-
 /**
-* model 层
+* model 层,可以静态方式使用
 */
 class db 
 {
 	private  static $pdo;///单例模式
 
 	function __construct()
+	{
+		self::init();
+	}
+	private static function init()
 	{
 		if(DB)//使用sqlite
 		{
@@ -868,7 +871,6 @@ class db
            	 	Error('500','connect mysql database error ! '.$e->getMessage());
         	}
 		}
-		
 
 	}
 	//运行Sql语句,不返回结果集,但会返回成功与否,不能用于select
@@ -942,11 +944,11 @@ class db
 		self::ready();
 		return self::$pdo;
 	}
-	private function ready()
+	private static  function ready()
 	{
 		if(!self::$pdo)
 		{
-			self::__construct();
+			self::init();
 		}
 	}
 	function __call($name,$args)
