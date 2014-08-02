@@ -12,8 +12,8 @@ class home
 	}
 	function index()
 	{
-        C(5);
-       	V('index');
+       
+     var_dump($GLOBALS['APP']);
        
 	}
 	function test()

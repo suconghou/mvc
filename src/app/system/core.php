@@ -4,61 +4,333 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.32
+ * @version 1.4
  */
 
-require APP_PATH.'config.php';
-//正则路由分析器
-function regexRouter($uri)
+/**
+* APP 主要控制类
+*/
+class app
 {
-	global $APP;
-	if(isset($APP['regex_router'][0]))
+	/**
+	 * 启动入口
+	 */
+	public static function start()
 	{
-		foreach ($APP['regex_router'] as $regex)
+		$GLOBALS['APP']['APP_START_TIME']=microtime(true);
+		$GLOBALS['APP']['APP_START_MEMORY']=memory_get_usage();
+		date_default_timezone_set('PRC');//设置时区
+		set_include_path(LIB_PATH);//此路径下可直接include
+		if(defined('DEBUG')&&DEBUG)
 		{
-			if(preg_match('/^'.$regex[0].'$/', $uri,$matches))
-			{
-				unset($matches[0]);
-				$router=array_merge($regex[1],$matches);
-				return $router;
-			}
+			set_error_handler('Error');///异常处理
+		}
+		else
+		{
+			set_error_handler('Error',2);///异常处理
+			error_reporting(0);
+		}
+		CLI&&self::runCli();
+		if(!isset($GLOBALS['APP']['CLI']))
+		{
+			$router=self::init();
+			self::process($router);
 		}
 	}
-	return null;
-}
-
-//普通路由分析器
-function commonRouter($uri)
-{
-	$uri_arr=explode('/', $uri);
-	foreach ($uri_arr as  $v)
+	/**
+	 * 内部转向,可以治指定一个方法,控制器保持原有的
+	 */
+	public static function run($router)
 	{
-		if(empty($v)) continue;
-		$router[]=$v;
-	}
-	return isset($router)?$router:null;
-}
-function runCli()
-{
-	if(substr(php_sapi_name(), 0, 3) == 'cli') //在CLI模式下
-	{
-		if(!isset($GLOBALS['argc']))return false;
-		$GLOBALS['APP']['CLI']=true;
-		set_time_limit(0);
-		if($GLOBALS['argc']>1)
+		if(!is_array($router))
 		{
-    		foreach ($GLOBALS['argv'] as $key=>$uri)
-    		{
-    			if($key==0)continue;
-    			$GLOBALS['APP']['router'][]=$uri;
-    		}
-    		unset($GLOBALS['APP']['regex_router']);
-      		run($GLOBALS['APP']['router']);
-      	}
-	}	
+			$router=array($GLOBALS['APP']['router'][0],$router);
+		}
+		$controller=CONTROLLER_PATH.$router[0].'.php'; 
+		$controllerDir=CONTROLLER_PATH.$router[0]; ///如果是二级目录
+		if(is_file($controller))
+		{
+			$controllerFile=$controller;
+			$controllerName=$router[0];
+			$action=$router[1];
+			$param=2;
+			require $controllerFile;
+		}
+		else if(is_dir($controllerDir))
+		{
+			$controllerFile=$controllerDir.'/'.$router[1].'.php';
+			if(is_file($controllerFile))
+			{			
+				$controllerName=$router[1];
+				$action=isset($router[2])?$router[2]:DEFAULT_ACTION;
+				$param=3;
+				require $controllerFile;
+			}
+			else
+			{
+				Error('404','the controller file '.$controllerFile.' does not exists');
+			}
+			
+		}
+		else
+		{
+			Error('404','the controller file '.$controller.' does not exists');
+		}
+		if(class_exists($controllerName))
+		{
+			$methods=get_class_methods($controllerName);
+			in_array($action, $methods)||Error('404','class '.$controllerName.' does not contain method '.$action);
+			$controllerName=new $controllerName();///实例化控制器	
+			return call_user_func_array(array($controllerName,$action), array_slice($router,$param));//传入参数
+		}
+		else
+		{
+			Error('404','the contoller file '.$controllerFile.' does not contain the class '.$controllerName);
+		}
+
+	}
+	/**
+	 * 添加正则路由,参数一正则,参数二数组
+	 */
+	public static function route($regex,$arr)
+	{
+		if(REGEX_ROUTER)//启用了正则路由
+		{	
+			is_array($arr)||Error('500','Router need to be an array ! ');
+			$GLOBALS['APP']['regex_router'][]=array($regex,$arr);
+		}
+
+	}
+	public static function log($msg)
+	{
+		$path=APP_PATH.'log/'.date('Y-m-d',$GLOBALS['APP']['APP_START_TIME']).'.log';
+		$msg=date('Y-m-d H:i:s',time()).' ==> '.$msg."\r\n";
+		if(is_writable(APP_PATH.'log'))
+		{
+			if(!function_exists('error_log'))
+			{
+				function error_log($msg,$type=3,$path)
+				{
+					file_put_contents($path,$msg,FILE_APPEND); 
+				}
+			}
+			error_log($msg,3,$path);
+		}
+	}
+	/**
+	 * 正则路由分析器
+	 */
+	private static function regexRouter($uri)
+	{
+		if(isset($GLOBALS['APP']['regex_router'][0]))
+		{
+			foreach ($GLOBALS['APP']['regex_router'] as $regex)
+			{
+				if(preg_match('/^'.$regex[0].'$/', $uri,$matches))
+				{
+					unset($matches[0]);
+					$router=array_merge($regex[1],$matches);
+					return $router;
+				}
+			}
+		}
+		return array();
+	}
+	/**
+	 * 普通路由分析器
+	 */
+	private static function commonRouter($uri)
+	{
+		$uri_arr=explode('/', $uri);
+		foreach ($uri_arr as  $v)
+		{
+			if(empty($v)) continue;
+			$router[]=$v;
+		}
+		return isset($router)?$router:array();
+	}
+	/**
+	 * CLI运行入口
+	 */
+	private static function runCli()
+	{
+		if(substr(php_sapi_name(), 0, 3) == 'cli') //在CLI模式下
+		{
+			if(!isset($GLOBALS['argc']))return false;
+			set_time_limit(0);
+			if($GLOBALS['argc']>1)
+			{
+				$GLOBALS['APP']['CLI']=true;
+	    		foreach ($GLOBALS['argv'] as $key=>$uri)
+	    		{
+	    			if($key==0)continue;
+	    			$GLOBALS['APP']['router'][]=$uri;
+	    		}
+	      		self::run($GLOBALS['APP']['router']);
+	      	}
+		}	
+
+	}
+	/**
+	 *  缓存检测
+	 */
+	private static function process($router)
+	{
+		$hash=APP_PATH.'cache/'.md5(implode('-',$router)).'.html';///缓存hash
+		if (is_file($hash))//存在缓存文件
+		{
+			$expires_time=filemtime($hash);
+			if(time()<$expires_time) ///缓存未过期
+			{		 
+				if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']))
+				{
+					http_response_code(304);
+					exit;  
+				}
+				else
+				{	
+					header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT');   
+					exit(file_get_contents($hash));
+				}
+			}
+			else ///已过期
+			{
+				unlink($hash);  ///删除过期文件
+				self::run($router);
+			}
+		}
+		else
+		{
+			self::run($router);
+		}
+
+	}
+	/**
+	 * 初始化相关
+	 */
+	private static function init()
+	{
+	
+		isset($_SERVER['REQUEST_URI'])||exit('Use CLI Please Enable CLI Mode');
+		(strlen($_SERVER['REQUEST_URI'])>MAX_URL_LENGTH)&&Error('500','Request url too long ! ');
+		list($uri)=explode('?',$_SERVER['REQUEST_URI']);
+		$uri=='/favicon.ico'&&die;
+		if(substr($uri,0,10)=='/index.php')
+		{
+			$uri=substr($uri,10);
+		}
+		if(REGEX_ROUTER)
+		{
+			$router=self::regexRouter($uri);
+			$router||($router=self::commonRouter($uri));
+			unset($GLOBALS['APP']['regex_router']);
+		}
+		else
+		{
+			$router=self::commonRouter($uri);
+		}
+		if(empty($router[0])) // http://127.0.0.1 的情况
+		{
+			$router=array(DEFAULT_CONTROLLER,DEFAULT_ACTION);
+		}
+		else if(empty($router[1])) //  http://127.0.0.1/home 的情况
+		{
+			if(preg_match('/^\w+$/i',$router[0]))
+			{
+				$router=array($router[0],DEFAULT_ACTION);
+			}
+			else
+			{
+				Error('404','Error controller name ! ');
+			}
+		}
+		else //控制器和动作全部需要过滤
+		{
+			if(!preg_match('/^\w+$/i',$router[0]))
+			{
+				Error('404','Error controller name ! ');
+			}
+			if(!preg_match('/^\w+$/i',$router[1]))
+			{
+				Error('404','Error action name ! ');
+			}
+		}
+		$GLOBALS['APP']['router']=$router;
+		return $router;
+	}
+
+	/**
+	 * 异步(非阻塞)运行一个路由
+	 * $curl 强制使用curl方式,但此方式至少阻塞1秒
+	 * $lose 如果可以,断开客户端连接,脚本后台运行,以后输出不能发送到浏览器
+	 */
+	function async($router,$curl=false,$lose=false)
+	{
+		if(is_array($router))
+		{
+			isset($GLOBALS['APP']['CLI'])&&die('Async In CLI Mode Need Whole Url ');
+			$url='http://'.Request::server('HTTP_HOST').'/'.implode('/',$router);
+		}
+		else
+		{
+			$url=$router;
+		}
+		if($curl)
+		{
+			if(function_exists('fastcgi_finish_request')&&$lose)
+			{
+				fastcgi_finish_request();
+				return file_get_contents($url);			
+			}
+			$ch = curl_init(); 
+			$curl_opt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>1,
+								CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
+			curl_setopt_array($ch, $curl_opt);
+			curl_exec($ch);
+			curl_close($ch);
+			return true;
+		}
+		else
+		{ 
+			if(function_exists('fastcgi_finish_request')&&$lose)
+			{
+				fastcgi_finish_request();
+				return file_get_contents($url);			
+			}
+			else if (function_exists('fsockopen')||function_exists('stream_socket_client'))
+			{
+				$parts = parse_url($url);
+				$parts['port']=isset($parts['port']) ? $parts['port'] : 80;
+				$parts['query']=isset($parts['query'])?$parts['path'].'?'.$parts['query']:$parts['path'];
+				if(function_exists('stream_socket_client'))
+				{
+					$fp = stream_socket_client($parts['host'].':'.$parts['port'], $errno, $errstr,3);
+				}
+				else
+				{
+					$fp = fsockopen($parts['host'],$parts['port'],$errno, $errstr,3);
+				}	
+		    	$fp||Error($errno,$errstr);
+		    	stream_set_blocking($fp,0);
+		    	$out = 'GET '.$parts['query']." HTTP/1.1\r\nHost: ".$parts['host']."\r\nConnection: Close\r\n\r\n";
+		    	fwrite($fp, $out);
+		    	ob_flush();
+		    	flush();
+		    	fclose($fp);
+		    	return true;
+			}
+			return false;
+		}
+
+	}
+
+
 }
+// End of class app
+
+
 //异常处理 404 500等
-function showErrorpage($errno, $errstr, $errfile=null, $errline=null)
+function Error($errno, $errstr, $errfile=null, $errline=null)
 {
 	$e = new Exception;
 	$trace=$e->getTraceAsString();
@@ -74,17 +346,17 @@ function showErrorpage($errno, $errstr, $errfile=null, $errline=null)
 	{
 		$h1='404 - Request Page Not Found ! ';	
 		http_response_code($errno);
-		if(USER_ERROR_PAGE_404)
+		if(ERROR_PAGE_404)
 		{
-			DEBUG&&logMessage($h1.$h2);
-			include APP_PATH.USER_ERROR_PAGE_404;
+			DEBUG&&app::log($h1.$h2);
+			include APP_PATH.ERROR_PAGE_404;
 			die;
 		}
 		else
 		{	
 			if(DEBUG)
 			{
-				logMessage($h1.$h2);
+				app::log($h1.$h2);
 			}
 			else
 			{
@@ -97,17 +369,17 @@ function showErrorpage($errno, $errstr, $errfile=null, $errline=null)
 	{
 		$h1='500 - Internet Server Error ! ';
 		http_response_code($errno);
-		if(USER_ERROR_PAGE_500)
+		if(ERROR_PAGE_500)
 		{
-			DEBUG&&logMessage($h1.$h2);
-			include APP_PATH.USER_ERROR_PAGE_500;
+			DEBUG&&app::log($h1.$h2);
+			include APP_PATH.ERROR_PAGE_500;
 			die;
 		}
 		else
 		{	
 			if(DEBUG)
 			{
-				logMessage($h1.$h2);
+				app::log($h1.$h2);
 			}
 			else
 			{
@@ -120,23 +392,23 @@ function showErrorpage($errno, $errstr, $errfile=null, $errline=null)
 	{	
 		$h1='An error occurred at '.$errfile.' on line '.$errline.' ';	
 		http_response_code('500');
-		if(USER_ERROR_PAGE_500)
+		if(ERROR_PAGE_500)
 		{
-			DEBUG&&logMessage($h1.$h2);
-			include APP_PATH.USER_ERROR_PAGE_500;
+			DEBUG&&app::log($h1.$h2);
+			include APP_PATH.ERROR_PAGE_500;
 			die;
 		}
-		else if(USER_ERROR_PAGE_404)
+		else if(ERROR_PAGE_404)
 		{
-			DEBUG&&logMessage($h1.$h2);
-			include APP_PATH.USER_ERROR_PAGE_404;
+			DEBUG&&app::log($h1.$h2);
+			include APP_PATH.ERROR_PAGE_404;
 			die;
 		}
 		else ////没有设置错误页,但是系统错误
 		{		
 			if(DEBUG)
 			{	
-				logMessage($h1.$h2);
+				app::log($h1.$h2);
 			}
 			else
 			{
@@ -150,145 +422,10 @@ function showErrorpage($errno, $errstr, $errfile=null, $errline=null)
 	$html.='<h1>'.$h1.'</h1><h2>'.$h2.'</h2><h3>'.$h3.'</h3>';
 	$html.="</div>";
 	exit($html);
-
 }
 
-
-//添加路由规则,参数一正则,参数二数组
-function route($regex,$arr)
-{
-	if(REGEX_ROUTER)//启用了正则路由
-	{
-		is_array($arr)||showErrorpage('500','Router need to be an array ! ');
-		global $APP;
-		$APP['regex_router'][]=array($regex,$arr);
-	}
-	
-}
-
-///流程导航器,第一个启动的
-function process()
-{
-	isset($_SERVER['REQUEST_URI'])||exit('Use CLI Please Enable CLI Mode');
-	(strlen($_SERVER['REQUEST_URI'])>MAX_URL_LENGTH)&&showErrorpage('500','Request url too long ! ');
-	global $APP;///全局变量
-	list($uri)=explode('?',$_SERVER['REQUEST_URI']);
-	$uri=='/favicon.ico'&&die;
-	if(substr($uri,0,10)=='/index.php')
-	{
-		$uri=substr($uri,10);
-	}
-	if(REGEX_ROUTER)
-	{
-		$router=regexRouter($uri);
-		$router||($router=commonRouter($uri));
-		unset($APP['regex_router']);
-	}
-	else
-	{
-		$router=commonRouter($uri);
-	}
-	if(empty($router[0])) // http://127.0.0.1 的情况
-	{
-		$router=array(DEFAULT_CONTROLLER,DEFAULT_ACTION);
-	}
-	else if(empty($router[1])) //  http://127.0.0.1/home 的情况
-	{
-		if(preg_match('/^\w+$/i',$router[0]))
-		{
-			$router=array($router[0],DEFAULT_ACTION);
-		}
-		else
-		{
-			showErrorpage('404','Error controller name ! ');
-		}
-	}
-	else //控制器和动作全部需要过滤
-	{
-		if(!preg_match('/^\w+$/i',$router[0]))
-		{
-			showErrorpage('404','Error controller name ! ');
-		}
-		if(!preg_match('/^\w+$/i',$router[1]))
-		{
-			showErrorpage('404','Error action name ! ');
-		}
-	}
-	$APP['router']=$router;
-	return $router;
-}
-function run($router)
-{	
-	if(!is_array($router))
-	{
-		$router=array($GLOBALS['APP']['router'][0],$router);
-	}
-	$controller=CONTROLLER_PATH.$router[0].'.php'; 
-	$controllerDir=CONTROLLER_PATH.$router[0]; ///如果是二级目录
-	if(is_file($controller))
-	{
-		$controllerFile=&$controller;
-		$controllerName=&$router[0];
-		$action=&$router[1];
-		$param=2;
-		require_once $controllerFile;
-	}
-	else if(is_dir($controllerDir))
-	{
-		$controllerFile=$controllerDir.'/'.$router[1].'.php';
-		if(is_file($controllerFile))
-		{			
-			$controllerName=&$router[1];
-			$action=isset($router[2])?$router[2]:DEFAULT_ACTION;
-			$param=3;
-			require_once $controllerFile;
-		}
-		else
-		{
-			showErrorpage('404','the controller file '.$controllerFile.' does not exists');
-		}
-		
-	}
-	else
-	{
-		showErrorpage('404','the controller file '.$controller.' does not exists');
-	}
-	if(class_exists($controllerName))
-	{
-		$methods=get_class_methods($controllerName);
-		in_array($action, $methods)||showErrorpage('404','class '.$controllerName.' does not contain method '.$action);
-		$controllerName=new $controllerName();///实例化控制器	
-		return call_user_func_array(array($controllerName,$action), array_slice($router,$param));//传入参数
-	}
-	else
-	{
-		showErrorpage('404','the contoller file '.$controllerFile.' does not contain the class '.$controllerName);
-	}
-
-
-
-}
-
-//记录日志的函数
-function logMessage($msg)
-{
-	$path=APP_PATH.'log/'.date('Y-m-d',APP_START_TIME).'.log';
-	$msg=date('Y-m-d H:i:s',time()).' ==> '.$msg."\r\n";
-	if(is_writable(APP_PATH.'log'))
-	{
-		if(!function_exists('error_log'))
-		{
-			function error_log($msg,$type=3,$path)
-			{
-				file_put_contents($path,$msg,FILE_APPEND); 
-			}
-		}
-		error_log($msg,3,$path);
-	}
-	
-}
 //加载model
-function M($model,$param=null)
+function m($model,$param=null)
 {
 	$arr=explode('/',$model);
 	$m=end($arr);
@@ -301,15 +438,15 @@ function M($model,$param=null)
 	else
 	{
 		$model_file=MODEL_PATH.$model.'.php';
-		is_file($model_file)||showErrorpage('500','load model '.$m.' failed , mdoel file '.$model_file.' does not exists ');
+		is_file($model_file)||Error('500','load model '.$m.' failed , mdoel file '.$model_file.' does not exists ');
 		require $model_file;
-		class_exists($m)||showErrorpage('500','model file '.$model_file .' does not contain class '.$m);
+		class_exists($m)||Error('500','model file '.$model_file .' does not contain class '.$m);
 		$APP['model'][$m]=new $m($param);///对模型实例化
 		return $APP['model'][$m];
 	}
 }
 //加载类库
-function S($lib,$param=null)
+function s($lib,$param=null)
 {
 	$arr=explode('/',$lib);
 	$l=end($arr);
@@ -326,7 +463,7 @@ function S($lib,$param=null)
 		if(is_file($class_file))///是类库文件
 		{
 			require $class_file;
-			class_exists($l)||showErrorpage('500','library file '.$class_file .' does not contain class '.$l);
+			class_exists($l)||Error('500','library file '.$class_file .' does not contain class '.$l);
 			if($param)
 			{
 				$APP['lib'][$l]=new $l($param);///对模型实例化
@@ -345,27 +482,28 @@ function S($lib,$param=null)
 		}
 		else
 		{
-			showErrorpage('500','load  library '.$l.' failed ,file '.$file.' or '.$class_file.' does not exists ');
+			Error('500','load  library '.$l.' failed ,file '.$file.' or '.$class_file.' does not exists ');
 		}
 
 	}
 
 }
 //加载视图
-function V($view,$data=null)
+function v($view,$data=null)
 {
 	if(defined('APP_TIME_SPEND'))
 	{
-		showErrorpage('500','You have already loaded a view,function V can not used twice in a method !');
+		Error('500','You have already loaded a view,function V can not used twice in a method !');
 	}
 	$view_file=VIEW_PATH.$view.'.php';
 	if(is_file($view_file))
 	{
-		is_array($data)||empty($data)||showErrorpage('500','param to view '.$view_file.' show be an array');
+		is_array($data)||empty($data)||Error('500','param to view '.$view_file.' show be an array');
 		empty($data)||extract($data);
 		GZIP?ob_start("ob_gzhandler"):ob_start();
-		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));//耗时
-		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-APP_START_MEMORY));
+		define('APP_TIME_SPEND',round((microtime(true)-$GLOBALS['APP']['APP_START_TIME']),4));//耗时
+		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-$GLOBALS['APP']['APP_START_MEMORY']));
+		unset($GLOBALS['APP']['APP_START_TIME'],$GLOBALS['APP']['APP_START_MEMORY']);
 		require $view_file;
 		global $APP;
 		if(isset($APP['cache']))//启用了缓存
@@ -404,12 +542,12 @@ function V($view,$data=null)
 	}
 	else
 	{
-		showErrorpage('404','view file '.$view_file.' does not exists ');
+		Error('404','view file '.$view_file.' does not exists ');
 	}
 
 }
 //缓存,第一个参数为缓存时间,第二个为是否文件缓存
-function C($time,$file=null)
+function c($time,$file=null)
 {
 	global $APP;
 	$cache['time']=$time*60;
@@ -438,53 +576,6 @@ function C($time,$file=null)
 	}
 }
 
-if(!function_exists('http_response_code'))
-{
-	function http_response_code($code)
-	{
-		$nginx=(php_sapi_name()=='cgi-fcgi')?true:false;
-		switch ($code)
-		{
-			case '301':
-			$nginx?header('status: 301 Moved Permanently'):header('HTTP/1.1 301 Moved Permanently');
-			break;
-			case '302':
-			$nginx?header('status: 302 Moved Temporarily'):header('HTTP/1.1 302 Moved Temporarily');
-			break;
-			case '304':
-			$nginx?header('status: 304 Not Modified'):header('HTTP/1.1 304 Not Modified');
-			break;
-			case '403':
-			$nginx?header('status: 403 Forbidden'):header('HTTP/1.1 403 Forbidden');
-			break;			
-			case '404':
-			$nginx?header('status: 404 Not Found'):header('HTTP/1.1 404 Not Found');
-			break;
-			case '500':
-			$nginx?header('status: 500 Internal Server Error'):header('HTTP/1.1 500 Internal Server Error');	
-			break;
-		}
-	}
-}
-function __autoload($class)
-{
-	$controller_file=CONTROLLER_PATH.$class.'.php';
-	$model_file=MODEL_PATH.$class.'.php';	
-	if(is_file($model_file))
-	{
-		require $model_file;
-		class_exists($class)||showErrorpage('500','Autoload file '.$model_file.' successfully,but not found class '.$class);
-	}
-	else if(is_file($controller_file))
-	{
-		require $controller_file;
-		class_exists($class)||showErrorpage('500','Autoload file '.$controller_file.' successfully,but not found class '.$class);
-	}
-	else
-	{
-		showErrorpage('500','Can not autoload class file '.$class.'.php');
-	}
-}
 function template($file)///加载模版
 {
 	$file=VIEW_PATH.$file.'.php';
@@ -494,9 +585,11 @@ function template($file)///加载模版
 	}
 	else
 	{
-		showErrorpage('404','template file '.$file.' not exists !');
+		Error('404','template file '.$file.' not exists !');
 	}
 }
+
+
 
 /**
 * Request 用户来访信息,使用静态访问
@@ -686,6 +779,8 @@ class Request
 	}
 }
 
+
+
 /**
 * 验证类,使用静态方法
 */
@@ -730,81 +825,16 @@ class Validate
 
 }
 
-/**
- * 异步(非阻塞)运行一个路由
- * $curl 强制使用curl方式,但此方式至少阻塞1秒
- * $lose 如果可以,断开客户端连接,脚本后台运行,以后输出不能发送到浏览器
- */
-function async($router,$curl=false,$lose=false)
-{
-	
-	if(is_array($router))
-	{
-		CLI&&die('Async In CLI Mode Need Whole Url ');
-		$url='http://'.Request::server('HTTP_HOST').'/'.implode('/',$router);
-	}
-	else
-	{
-		$url=$router;
-	}
-	if($curl)
-	{
-		if(function_exists('fastcgi_finish_request')&&$lose)
-		{
-			fastcgi_finish_request();
-			return file_get_contents($url);			
-		}
-		$ch = curl_init(); 
-		$curl_opt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>1,
-							CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
-		curl_setopt_array($ch, $curl_opt);
-		curl_exec($ch);
-		curl_close($ch);
-		return true;
-	}
-	else
-	{ 
-		if(function_exists('fastcgi_finish_request')&&$lose)
-		{
-			fastcgi_finish_request();
-			return file_get_contents($url);			
-		}
-		else if (function_exists('fsockopen')||function_exists('stream_socket_client'))
-		{
-			$parts = parse_url($url);
-			$parts['port']=isset($parts['port']) ? $parts['port'] : 80;
-			$parts['query']=isset($parts['query'])?$parts['path'].'?'.$parts['query']:$parts['path'];
-			if(function_exists('stream_socket_client'))
-			{
-				$fp = stream_socket_client($parts['host'].':'.$parts['port'], $errno, $errstr,3);
-			}
-			else
-			{
-				$fp = fsockopen($parts['host'],$parts['port'],$errno, $errstr,3);
-			}	
-	    	$fp||showErrorpage($errno,$errstr);
-	    	stream_set_blocking($fp,0);
-	    	$out = 'GET '.$parts['query']." HTTP/1.1\r\nHost: ".$parts['host']."\r\nConnection: Close\r\n\r\n";
-	    	fwrite($fp, $out);
-	    	ob_flush();
-	    	flush();
-	    	fclose($fp);
-	    	return true;
-		}
-		return false;
-	}
 
-}
 /**
 * model 层
 */
-class model 
+class db 
 {
 	private  static $pdo;///单例模式
 
 	function __construct()
 	{
-
 		if(DB)//使用sqlite
 		{
 			try
@@ -819,9 +849,8 @@ class model
 			}
 			catch ( Exception $e )
 			{
-            	showErrorpage('500','connect sqlite database error ! '.$e->getMessage());
+            	Error('500','connect sqlite database error ! '.$e->getMessage());
         	}
-
 		}
 		else///使用mysql
 		{
@@ -833,11 +862,10 @@ class model
 					self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array (PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"));
 					self::$pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
 				}	
-			
 			}
 			catch ( Exception $e )
 			{
-           	 	showErrorpage('500','connect mysql database error ! '.$e->getMessage());
+           	 	Error('500','connect mysql database error ! '.$e->getMessage());
         	}
 		}
 		
@@ -854,7 +882,7 @@ class model
 		}
 		catch (PDOException $e)
 		{
-			showErrorpage('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
+			Error('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
 		}
 		
 		
@@ -870,10 +898,8 @@ class model
 		}
 		catch (PDOException $e)
 		{
-			showErrorpage('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
+			Error('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
 		}
-
-
 	}
 	//运行Sql,以数组方式返回结果集第一条记录
 	public static function getLine($sql)
@@ -886,7 +912,7 @@ class model
 		}
 		catch (PDOException $e)
 		{
-			showErrorpage('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
+			Error('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
 		}
 
 	}
@@ -901,7 +927,7 @@ class model
 		}
 		catch (PDOException $e)
 		{
-			showErrorpage('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
+			Error('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
 		}
 
 	}
@@ -925,15 +951,63 @@ class model
 	}
 	function __call($name,$args)
 	{
-		showErrorpage('500','Call Error Method '.$name.' In Class '.__CLASS__);
+		Error('500','Call Error Method '.$name.' In Class '.__CLASS__);
 	}
 	function __destruct()
 	{
 		self::$pdo=null;
 	}
-}//end class model
+}//end class db
 
-/////////some functions blow
+
+
+if(!function_exists('http_response_code'))
+{
+	function http_response_code($code)
+	{
+		$nginx=(php_sapi_name()=='cgi-fcgi')?true:false;
+		switch ($code)
+		{
+			case '301':
+			$nginx?header('status: 301 Moved Permanently'):header('HTTP/1.1 301 Moved Permanently');
+			break;
+			case '302':
+			$nginx?header('status: 302 Moved Temporarily'):header('HTTP/1.1 302 Moved Temporarily');
+			break;
+			case '304':
+			$nginx?header('status: 304 Not Modified'):header('HTTP/1.1 304 Not Modified');
+			break;
+			case '403':
+			$nginx?header('status: 403 Forbidden'):header('HTTP/1.1 403 Forbidden');
+			break;			
+			case '404':
+			$nginx?header('status: 404 Not Found'):header('HTTP/1.1 404 Not Found');
+			break;
+			case '500':
+			$nginx?header('status: 500 Internal Server Error'):header('HTTP/1.1 500 Internal Server Error');	
+			break;
+		}
+	}
+}
+function __autoload($class)
+{
+	$controller_file=CONTROLLER_PATH.$class.'.php';
+	$model_file=MODEL_PATH.$class.'.php';	
+	if(is_file($model_file))
+	{
+		require $model_file;
+		class_exists($class)||Error('500','Autoload file '.$model_file.' successfully,but not found class '.$class);
+	}
+	else if(is_file($controller_file))
+	{
+		require $controller_file;
+		class_exists($class)||Error('500','Autoload file '.$controller_file.' successfully,but not found class '.$class);
+	}
+	else
+	{
+		Error('500','Can not autoload class file '.$class.'.php');
+	}
+}
 // session 系列函数
 function session_get($key=null,$default=null)
 {
@@ -988,35 +1062,6 @@ function session_del($key=null)
 		return session_destroy();
 	}
 }
-function session_echo($key,$default=null)
-{
-	e(Request::session($key,$default));
-}
-function e($var)
-{
-	if(isset($var))
-	{
-		if(is_array($var))
-		{
-			print_r($var);
-		}
-		else if(is_object($var))
-		{
-			var_dump($var);
-		}
-		else
-		{
-			echo $var;
-		}
-
-	}
-}
-function dump($data)
-{
-	echo '<pre>';
-	e($data);
-	echo '</pre>';
-}
 
 function byteFormat($size,$dec=2)
 {
@@ -1045,16 +1090,12 @@ function dateFormat($time)
     }
 
 }
-
-
-//外部重定向,会立即结束脚本以发送header
-//内部重定向run(array);
+//外部重定向,会立即结束脚本以发送header,内部重定向app::run(array);
 function redirect($url,$seconds=0)
 {
 	header("Refresh: {$seconds}; url={$url}");
 	exit();
 }
-
 function baseUrl($path=null)
 {
 	if(is_string($path))
@@ -1063,14 +1104,11 @@ function baseUrl($path=null)
 	}
 	else
 	{
-		global $APP;
-		$router=&$APP['router'];
+		$router=$GLOBALS['APP']['router'];
 		return isset($router[$path])?$router[$path]:null;
 	}
 
 }
-
-
 //发送邮件,用来替代原生mail,多个接受者用分号隔开
 function sendMail($mail_to, $mail_subject, $mail_message)
 {
