@@ -844,7 +844,7 @@ class model
 
 	}
 	//运行Sql语句,不返回结果集,但会返回成功与否,不能用于select
-	function runSql($sql)
+	public static function runSql($sql)
 	{
 		try
 		{
@@ -860,7 +860,7 @@ class model
 		
 	}
 	////运行Sql,以多维数组方式返回结果集
-	function getData($sql)
+	public static function getData($sql)
 	{
 		try
 		{
@@ -876,7 +876,7 @@ class model
 
 	}
 	//运行Sql,以数组方式返回结果集第一条记录
-	function getLine($sql)
+	public static function getLine($sql)
 	{
 		try
 		{
@@ -891,7 +891,7 @@ class model
 
 	}
 	//运行Sql,返回结果集第一条记录的第一个字段值
-	function getVar($sql)
+	public static function getVar($sql)
 	{
 		try
 		{
@@ -905,13 +905,13 @@ class model
 		}
 
 	}
-	function lastId()
+	public static function lastId()
 	{
 		self::ready();
 		return self::$pdo->lastInsertId();
 	}
 	//返回原生的PDO对象
-	function getInstance()
+	public static function getInstance()
 	{
 		self::ready();
 		return self::$pdo;
@@ -1138,7 +1138,7 @@ function sendMail($mail_to, $mail_subject, $mail_message)
 		exit("END - ".$lastmessage);
 	}
 	fputs($fp, "QUIT\r\n");
-
+	return true;
 }
 
 

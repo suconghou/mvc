@@ -196,9 +196,11 @@ class sae_storage
             case "midi": $mime = "audio/midi"; break;
             case "mid": $mime = "audio/mid"; break;
             case "amr": $mime = "audio/amr"; break;
+            case "css":$mime="text/css";break;
+            case "js":$mime="text/javascript";break;
             default: $mime = "application/force-download";
         }
-        if(!in_array($ext, array('jpg','gif','png','jpeg','mp4','swf','flv'))) //浏览器不能打开,弹出下载提示
+        if(!in_array($ext, array('jpg','gif','png','jpeg','mp4','mp3','swf','flv','js','css','ico'))) //浏览器不能打开,弹出下载提示
         {
              $filename=$hash.'.'.$ext;
              header('Content-Disposition: attachment; filename='.$filename);
