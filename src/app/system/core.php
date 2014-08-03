@@ -6,7 +6,6 @@
  * @link http://github.com/suconghou/mvc
  * @version 1.4
  */
-
 /**
 * APP 主要控制类
 */
@@ -778,14 +777,25 @@ class Request
 */
 class Validate
 {
-	private static $data;
+	private static $rule;
+	/**
+	 * 按照先前的规则校验
+	 */
 	public static function check($data)
 	{
-		self::$data=$data;
+		foreach (self::$rule as $item)
+		{
+			list($key,$rule)=$item;
+			var_dump($key,$rule);
+		}
+		
 	}
-	public static function addRule()
+	/**
+	 * 添加过滤规则
+	 */
+	public static function addRule($key,$rule)
 	{
-
+		self::$rule[]=array($key,$rule);
 	}
 	public static function email($email)
 	{
