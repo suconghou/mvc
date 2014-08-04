@@ -786,7 +786,9 @@ class Validate
 		foreach (self::$rule as $item)
 		{
 			list($key,$rule)=$item;
+			
 			var_dump($key,$rule);
+
 		}
 		
 	}
