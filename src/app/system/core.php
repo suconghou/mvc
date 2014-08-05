@@ -786,7 +786,7 @@ class Validate
 		foreach (self::$rule as $item)
 		{
 			list($key,$rule)=$item;
-			
+			//TODO 设计规则
 			var_dump($key,$rule);
 
 		}
