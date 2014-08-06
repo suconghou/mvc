@@ -1,6 +1,6 @@
 <?php
 /**
-*  数据库基础扩展
+*  数据库基础扩展,继承此类以获得灵活的数据操纵
 *  包含自动缓存系统,缓存系统需cache.class.php支持
 *  四种基本数据访问
 *  selectById($table,$id)
@@ -30,7 +30,7 @@
 *
 *  继承db的类,请不要执行parent::__construct(); 他留给手动实例化的
 */
-class db extends model
+class db2 extends db
 {
 	
 	private static $cache; 

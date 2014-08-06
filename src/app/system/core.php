@@ -4,8 +4,9 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.4
+ * @version 1.5
  */
+
 /**
 * APP 主要控制类
 */
@@ -16,8 +17,8 @@ class app
 	 */
 	public static function start()
 	{
-		$GLOBALS['APP']['APP_START_TIME']=microtime(true);
-		$GLOBALS['APP']['APP_START_MEMORY']=memory_get_usage();
+		define('APP_START_TIME',microtime(true));
+		define('APP_START_MEMORY',memory_get_usage());
 		date_default_timezone_set('PRC');//设置时区
 		set_include_path(LIB_PATH);//此路径下可直接include
 		if(defined('DEBUG')&&DEBUG)
@@ -53,7 +54,7 @@ class app
 			$controllerName=$router[0];
 			$action=$router[1];
 			$param=2;
-			require $controllerFile;
+			require_once $controllerFile;
 		}
 		else if(is_dir($controllerDir))
 		{
@@ -63,7 +64,7 @@ class app
 				$controllerName=$router[1];
 				$action=isset($router[2])?$router[2]:DEFAULT_ACTION;
 				$param=3;
-				require $controllerFile;
+				require_once $controllerFile;
 			}
 			else
 			{
@@ -79,8 +80,12 @@ class app
 		{
 			$methods=get_class_methods($controllerName);
 			in_array($action, $methods)||Error('404','class '.$controllerName.' does not contain method '.$action);
-			$controllerName=new $controllerName();///实例化控制器	
-			return call_user_func_array(array($controllerName,$action), array_slice($router,$param));//传入参数
+			$GLOBALS['APP']['controller'][$controllerName]=isset($GLOBALS['APP']['controller'][$controllerName])?$GLOBALS['APP']['controller'][$controllerName]:$controllerName;
+			if(!$GLOBALS['APP']['controller'][$controllerName] instanceof $controllerName)
+			{
+				$GLOBALS['APP']['controller'][$controllerName]=new $controllerName();///实例化控制器	
+			}
+			return call_user_func_array(array($GLOBALS['APP']['controller'][$controllerName],$action), array_slice($router,$param));//传入参数
 		}
 		else
 		{
@@ -102,7 +107,7 @@ class app
 	}
 	public static function log($msg)
 	{
-		$path=APP_PATH.'log/'.date('Y-m-d',$GLOBALS['APP']['APP_START_TIME']).'.log';
+		$path=APP_PATH.'log/'.date('Y-m-d',APP_START_TIME).'.log';
 		$msg=date('Y-m-d H:i:s',time()).' ==> '.$msg."\r\n";
 		if(is_writable(APP_PATH.'log'))
 		{
@@ -263,7 +268,7 @@ class app
 	 * $curl 强制使用curl方式,但此方式至少阻塞1秒
 	 * $lose 如果可以,断开客户端连接,脚本后台运行,以后输出不能发送到浏览器
 	 */
-	function async($router,$curl=false,$lose=false)
+	public static function async($router,$curl=false,$lose=false)
 	{
 		if(is_array($router))
 		{
@@ -322,6 +327,7 @@ class app
 		}
 
 	}
+
 }
 // End of class app
 
@@ -329,96 +335,55 @@ class app
 //异常处理 404 500等
 function Error($errno, $errstr, $errfile=null, $errline=null)
 {
-	$e = new Exception;
-	$trace=$e->getTraceAsString();
-	$trace_arr=preg_split('/#[0-9]/',$trace);
-	$h2="ERROR({$errno}):  ".$errstr;
-	$h3=null;
-	foreach ($trace_arr as $key => $value)
+
+	if($errno==404||$errno==500)
 	{
-		if(!$value)continue;
-		$h3.='<p>#'.$key.$value.'</p>';
+		$str="ERROR({$errno}) {$errstr}";
+		$code=$errno;
 	}
-	if($errno==404)
+	else
 	{
-		$h1='404 - Request Page Not Found ! ';	
-		http_response_code($errno);
-		if(ERROR_PAGE_404)
+		$str="ERROR({$errno}) {$errstr} at {$errfile} on line {$errline} ";
+		$code=500;
+	}
+	http_response_code($code);
+	if(ERROR_PAGE_404&&ERROR_PAGE_500) //存在404或500自定义
+	{
+		DEBUG&&app::log($str);
+		$errorRouter=array($GLOBALS['APP']['router'][0],$errno==404?ERROR_PAGE_404:ERROR_PAGE_500,$str);
+		app::run($errorRouter);
+	}
+	else
+	{
+		$trace=debug_backtrace();
+		$h1=&$str;
+		$i=count($trace)-1;
+		$li=null;
+		while($i>=0)
 		{
-			DEBUG&&app::log($h1.$h2);
-			include APP_PATH.ERROR_PAGE_404;
-			die;
+			if(!isset($trace[$i]['file']))
+			{
+				$i--;	continue;
+			}
+			$trace[$i]['class']=isset($trace[$i]['class'])?$trace[$i]['class']:null;
+			$trace[$i]['type']=isset($trace[$i]['type'])?$trace[$i]['type']:null;
+			$li.='<p>'.$trace[$i]['file'].'=>'.$trace[$i]['class'].$trace[$i]['type'].$trace[$i]['function'].'() on line '.$trace[$i]['line'].'</p>';
+			$i--;
+		}
+		if(DEBUG)
+		{
+			app::log($str);
 		}
 		else
-		{	
-			if(DEBUG)
-			{
-				app::log($h1.$h2);
-			}
-			else
-			{
-				$h2='Please contact the administrator';
-				$h3='';
-			}	
-		}
-	}
-	else if($errno==500)
-	{
-		$h1='500 - Internet Server Error ! ';
-		http_response_code($errno);
-		if(ERROR_PAGE_500)
 		{
-			DEBUG&&app::log($h1.$h2);
-			include APP_PATH.ERROR_PAGE_500;
-			die;
+			$li='<p>See the log for more information ! </p>';
 		}
-		else
-		{	
-			if(DEBUG)
-			{
-				app::log($h1.$h2);
-			}
-			else
-			{
-				$h2='Please contact the administrator';
-				$h3='';
-			}
-		}
+		$html='<div style="margin:2% auto;width:80%;box-shadow:0px 0px 8px #555;padding:2%;font:14px \'Monaco\',Courier">';
+		$html.='<b>'.$h1.'</b>'.$li;
+		$html.="</div>";
+		exit($html);
 	}
-	else///系统抛出错误
-	{	
-		$h1='An error occurred at '.$errfile.' on line '.$errline.' ';	
-		http_response_code('500');
-		if(ERROR_PAGE_500)
-		{
-			DEBUG&&app::log($h1.$h2);
-			include APP_PATH.ERROR_PAGE_500;
-			die;
-		}
-		else if(ERROR_PAGE_404)
-		{
-			DEBUG&&app::log($h1.$h2);
-			include APP_PATH.ERROR_PAGE_404;
-			die;
-		}
-		else ////没有设置错误页,但是系统错误
-		{		
-			if(DEBUG)
-			{	
-				app::log($h1.$h2);
-			}
-			else
-			{
-				$h1='Something Error ! ';
-				$h2='Please contact the administrator';
-				$h3='';
-			}
-		}
-	}
-	$html='<div style="margin:2% auto;width:80%;box-shadow:0px 0px 4px #888;padding:2%;font:12px \'Monaco\',Courier">';
-	$html.='<h1>'.$h1.'</h1><h2>'.$h2.'</h2><h3>'.$h3.'</h3>';
-	$html.="</div>";
-	exit($html);
+
 }
 
 //加载model
@@ -501,9 +466,8 @@ function V($view,$data=null)
 		is_array($data)||empty($data)||Error('500','param to view '.$view_file.' show be an array');
 		empty($data)||extract($data);
 		GZIP?ob_start("ob_gzhandler"):ob_start();
-		define('APP_TIME_SPEND',round((microtime(true)-$GLOBALS['APP']['APP_START_TIME']),4));//耗时
-		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-$GLOBALS['APP']['APP_START_MEMORY']));
-		unset($GLOBALS['APP']['APP_START_TIME'],$GLOBALS['APP']['APP_START_MEMORY']);
+		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));//耗时
+		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-APP_START_MEMORY));
 		require $view_file;
 		if(isset($GLOBALS['APP']['cache']))//启用了缓存
 		{

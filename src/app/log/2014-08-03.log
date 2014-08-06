@@ -1,8 +1,0 @@
-2014-08-03 00:26:30 ==> An error occurred at D:\git\mvc\src\app\controller\home.php on line 19 ERROR(8):  Undefined variable: data
-2014-08-03 00:26:54 ==> An error occurred at D:\git\mvc\src\app\system\core.php on line 785 ERROR(8):  Undefined variable: this
-2014-08-03 00:27:05 ==> An error occurred at D:\git\mvc\src\app\system\core.php on line 785 ERROR(8):  Use of undefined constant this - assumed 'this'
-2014-08-03 00:27:44 ==> An error occurred at D:\git\mvc\src\app\system\core.php on line 785 ERROR(8):  Undefined variable: this
-2014-08-03 00:27:44 ==> An error occurred at D:\git\mvc\src\app\system\core.php on line 785 ERROR(8):  Undefined variable: this
-2014-08-03 00:27:44 ==> An error occurred at D:\git\mvc\src\app\system\core.php on line 785 ERROR(8):  Undefined variable: this
-2014-08-03 00:27:45 ==> An error occurred at D:\git\mvc\src\app\system\core.php on line 785 ERROR(8):  Undefined variable: this
-2014-08-03 00:27:56 ==> An error occurred at D:\git\mvc\src\app\system\core.php on line 785 ERROR(8):  Use of undefined constant self - assumed 'self'

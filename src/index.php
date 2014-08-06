@@ -9,22 +9,20 @@ define('CONTROLLER_PATH',APP_PATH.'controller/'); //控制器路径
 require LIB_PATH.'core.php';//载入核心
 
 define('CLI',1);//在CLI模式下也能运行
-// 设计你自己的错误页面,存放在APP_PATH下的html或php文件,没有请保持为空
-// 自定义错误页不会向用户输出详细错误消息,无论是否开启DEBUG
-define('ERROR_PAGE_404','');
-define('ERROR_PAGE_500','');
+
 define('MAX_URL_LENGTH',200); //URL最大长度限制
 define('REGEX_ROUTER',1);  //是否启用正则路由
 
-
 define('DEFAULT_CONTROLLER','home'); //默认的控制器
-
 define('DEFAULT_ACTION','index'); ///默认的动作
 
 define('GZIP',0);  //是否开启GZIP
-
-// ///DEBUG模式,0,禁用debug隐藏警告消息,同时也不记录日志,1记录错误日志,显示错误的堆栈信息(如果未自定义错误页)
+//0 不使用,也不记录错误日志,1使用记录错误日志,捕获警告消息
 define('DEBUG',1);
+
+//自定义404,500路由,若设定请确保必须存在,系统定义Error404,Error500
+define('ERROR_PAGE_404','Error404');
+define('ERROR_PAGE_500','Error500');
 
 //mysql数据库配置
 define('DB_HOST','127.0.0.1');

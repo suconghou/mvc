@@ -260,5 +260,14 @@ class base
 		http_response_code(403);
 		exit('禁止'.$t);
 	}
+
+	public function Error404($str)
+	{
+		echo '404',$str;
+	}
+	public function Error500()
+	{
+		echo '500';
+	}
 	
 }

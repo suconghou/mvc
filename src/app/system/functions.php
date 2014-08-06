@@ -71,7 +71,21 @@ function sendFile($url,$post_data)
 	return $error ? $error : $result;
 }
 
+/**
+ * CURl发送get请求
+ */
+function curlGet($url)
+{
+    $ch=curl_init($url);
+    curl_setopt_array($ch, array(CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>3));
+    $result=curl_exec($ch);
+    curl_close($ch);
+    return $result;
+}
 
+/**
+ * 返回解析好的http信息头
+ */
 function httpInfo($url)
 {
 	$ch=curl_init($url);
