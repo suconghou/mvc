@@ -21,8 +21,8 @@ define('GZIP',0);  //是否开启GZIP
 define('DEBUG',1);
 
 //自定义404,500路由,若设定请确保必须存在,系统定义Error404,Error500
-define('ERROR_PAGE_404','Error404');
-define('ERROR_PAGE_500','Error500');
+define('ERROR_PAGE_404',''); //Error404
+define('ERROR_PAGE_500','');//Error500
 
 //mysql数据库配置
 define('DB_HOST','127.0.0.1');

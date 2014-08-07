@@ -13,8 +13,8 @@ class home extends base
 	function index()
 	{
       
-      
-       echo app::run('hello22');
+     	 
+     
 	}
 	function test()
 	{
