@@ -1,0 +1,35 @@
+header>aside{
+	position: fixed;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 200px;
+	background-color: #eee;
+}
+aside>nav>ul{
+margin-top: 100px;
+}
+aside>nav>ul>li{
+	margin: 10px 0;
+	height: 30px;
+	line-height: 30px;
+	text-indent: 2em;
+
+}
+aside>nav>ul>li>a{
+display: block;
+height: 100%;
+}
+aside>nav>ul>li>a:hover{
+	color: #393;
+}
+
+#wrapper{
+
+	position: absolute;
+	left: 200px;
+	height: auto;
+	right: 0;
+	min-height: 600px;
+	padding: 20px;
+}

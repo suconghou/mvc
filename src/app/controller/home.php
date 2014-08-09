@@ -13,7 +13,7 @@ class home extends base
 	function index()
 	{
       
-     	 
+     	 V('mvc');
      
 	}
 	function test()
@@ -23,9 +23,7 @@ class home extends base
 	function hello2()
 	{
 
-    	 var_dump($GLOBALS['APP']);
-
-		return '0022';
+    	
 	}
 
 

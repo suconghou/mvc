@@ -445,7 +445,7 @@ function S($lib,$param=null)
 		else if(is_file($file))
 		{
 			unset($GLOBALS['APP']['lib'][$l]);
-			return require $file;
+			return require_once $file;
 		}
 		else
 		{
