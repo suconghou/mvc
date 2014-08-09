@@ -201,7 +201,7 @@
 			<p>静态类Request可以获得各种系统环境数据和超全局变量数据</p>
 			<p>Request::post()</p>
 			<p>Request::get()</p>
-			<p>Request::seeeion()</p>
+			<p>Request::session()</p>
 			<p>Request::cookie()</p>
 			<p>Request::server()</p>
 			<p>Request::info()</p>
