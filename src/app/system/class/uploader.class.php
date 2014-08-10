@@ -135,7 +135,7 @@ class uploader
 		$res=json_decode(self::postData(self::$saeServer,$data));
 		if($res->code==0)
 		{
-			return array('code'=>0 ,'msg'=>'http://2.suconghou.sinaapp.com/'.$res->msg);
+			return array('code'=>0 ,'msg'=>'http://suconghou.sinaapp.com/'.$res->msg);
 		}
 		return array('code'=>-1,'msg'=>'send to sae error');
 		

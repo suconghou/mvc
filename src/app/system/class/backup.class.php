@@ -252,7 +252,7 @@ class backup
 	}
 	function __call($name,$args)
 	{
-		ShowErrorpage('500','Call Error Method '.$name.' In Class '.__CLASS__);
+		Error('500','Call Error Method '.$name.' In Class '.__CLASS__);
 	}
 	function __destruct()
 	{

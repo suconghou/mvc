@@ -251,7 +251,7 @@ class qqroubot
 	}
 	function __call($name,$args)
 	{
-		showErrorpage('500','Call Error Method In Class '.__CLASS__);
+		Error('500','Call Error Method In Class '.__CLASS__);
 	}
 	/**
 	 * 命令行循环执行接口,周期时间动态伸缩
