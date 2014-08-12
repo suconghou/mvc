@@ -1040,7 +1040,6 @@ function session_del($key=null)
 		return session_destroy();
 	}
 }
-
 function byteFormat($size,$dec=2)
 {
     $unit=array("B","KB","MB","GB","TB","PB","EB","ZB","YB");
@@ -1067,6 +1066,34 @@ function dateFormat($time)
         }
     }
 
+}
+/** 
+* 压缩html : 清除换行符,清除制表符,去掉注释标记 
+* @param $string 
+* @return 压缩后的$string 
+* */ 
+function compress_html($string)
+{ 
+	$string = str_replace("\r\n", '', $string); //清除换行符 
+	$string = str_replace("\n", '', $string); //清除换行符 
+	$string = str_replace("\t", '', $string); //清除制表符 
+	$pattern = array ( 
+	"/> *([^ ]*) *</", //去掉注释标记 
+	"/[\s]+/", 
+	"/<!--[^!]*-->/", 
+	"/\" /", 
+	"/ \"/", 
+	"'/\*[^*]*\*/'" 
+	); 
+	$replace = array ( 
+	">\\1<", 
+	" ", 
+	"", 
+	"\"", 
+	"\"", 
+	"" 
+	); 
+	return preg_replace($pattern, $replace, $string); 
 }
 //外部重定向,会立即结束脚本以发送header,内部重定向app::run(array);
 function redirect($url,$seconds=0)
