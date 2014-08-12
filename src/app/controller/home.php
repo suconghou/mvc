@@ -12,7 +12,6 @@ class home extends base
 	}
 	function index()
 	{
-      
      	 V('mvc');
      
 	}

@@ -465,7 +465,7 @@ function V($view,$data=null)
 	{
 		is_array($data)||empty($data)||Error('500','param to view '.$view_file.' show be an array');
 		empty($data)||extract($data);
-		GZIP?ob_start("ob_gzhandler"):ob_start();
+		GZIP?ob_start("ob_gzhandler"):ob_start('compress_html');
 		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));//耗时
 		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-APP_START_MEMORY));
 		require $view_file;
@@ -1096,8 +1096,9 @@ function compress_html($string)
 	return preg_replace($pattern, $replace, $string); 
 }
 //外部重定向,会立即结束脚本以发送header,内部重定向app::run(array);
-function redirect($url,$seconds=0)
+function redirect($url,$seconds=0,$code=302)
 {
+	http_response_code($code);
 	header("Refresh: {$seconds}; url={$url}");
 	exit();
 }

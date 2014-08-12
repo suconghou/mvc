@@ -204,3 +204,18 @@ function str_to_utf8 ($str) {
 
     return $str;
 }
+
+/**
+ * 颜色值转换
+ */
+function hex2rgb($c)
+{
+    $r=hexdec(substr($c,0,2));
+    $g=hexdec(substr($c,2,2));
+    $b=hexdec(substr($c,-2));
+    return array($r,$g,$b);
+}
+function rgb2hex($r,$g,$b)
+{
+    return dechex($r).dechex($g).dechex($b);
+}

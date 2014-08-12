@@ -16,7 +16,7 @@ define('REGEX_ROUTER',1);  //是否启用正则路由
 define('DEFAULT_CONTROLLER','home'); //默认的控制器
 define('DEFAULT_ACTION','index'); ///默认的动作
 
-define('GZIP',0);  //是否开启GZIP
+define('GZIP',1);  //开启GZIP或者压缩
 //0 不使用,也不记录错误日志,1使用记录错误日志,捕获警告消息
 define('DEBUG',1);
 
