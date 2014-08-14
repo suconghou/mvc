@@ -12,7 +12,7 @@
 * 自定义过滤条件
 * 在其他控制器中调用 $this->ip()->refer()->session()->post()->get()->defender();
 */
-class base 
+abstract class base 
 {
 	private static $ip;
 	private static $refer; //限制refer,包含关系也会限制
@@ -259,15 +259,6 @@ class base
 	{
 		http_response_code(403);
 		exit('禁止'.$t);
-	}
-
-	public function Error404($str)
-	{
-		echo '404',$str;
-	}
-	public function Error500()
-	{
-		echo '500';
 	}
 	
 }

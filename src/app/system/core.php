@@ -47,7 +47,7 @@ class app
 			$router=array($GLOBALS['APP']['router'][0],$router);
 		}
 		$controller=CONTROLLER_PATH.$router[0].'.php'; 
-		$controllerDir=CONTROLLER_PATH.$router[0]; ///如果是二级目录
+		$controllerDir=CONTROLLER_PATH.$router[0]; ///二级目录
 		if(is_file($controller))
 		{
 			$controllerFile=$controller;
@@ -78,8 +78,7 @@ class app
 		}
 		if(class_exists($controllerName))
 		{
-			$methods=get_class_methods($controllerName);
-			in_array($action, $methods)||Error('404','class '.$controllerName.' does not contain method '.$action);
+			method_exists($controllerName,$action)||Error('404','class '.$controllerName.' does not contain method '.$action);
 			$GLOBALS['APP']['controller'][$controllerName]=isset($GLOBALS['APP']['controller'][$controllerName])?$GLOBALS['APP']['controller'][$controllerName]:$controllerName;
 			if(!$GLOBALS['APP']['controller'][$controllerName] instanceof $controllerName)
 			{
@@ -94,20 +93,23 @@ class app
 
 	}
 	/**
-	 * 添加正则路由,参数一正则,参数二数组
+	 * 添加正则路由,参数一正则,参数二路由数组,参数三强制类内寻找
 	 */
-	public static function route($regex,$arr)
+	public static function route($regex,$arr,$in=false)
 	{
 		if(REGEX_ROUTER)//启用了正则路由
 		{	
 			is_array($arr)||Error('500','Router need to be an array ! ');
 			$GLOBALS['APP']['regex_router'][]=array($regex,$arr);
+			if($in)
+			{
+				$GLOBALS['APP']['regex_router'][$regex]=$arr[0];
+			}
 		}
-
 	}
 	public static function log($msg)
 	{
-		$path=APP_PATH.'log/'.date('Y-m-d',APP_START_TIME).'.log';
+		$path=APP_PATH.'log/'.date('Y-m-d').'.log';
 		$msg=date('Y-m-d H:i:s',time()).' ==> '.$msg."\r\n";
 		if(is_writable(APP_PATH.'log'))
 		{
@@ -134,6 +136,11 @@ class app
 				{
 					unset($matches[0]);
 					$router=array_merge($regex[1],$matches);
+					$GLOBALS['APP']['regex']['using']=$regex[0]; //命中的正则
+					if(isset($GLOBALS['APP']['regex_router'][$regex[0]]))
+					{
+						$GLOBALS['APP']['regex']['lib']=$GLOBALS['APP']['regex_router'][$regex[0]]; //强制lib寻找
+					}
 					return $router;
 				}
 			}
@@ -200,14 +207,36 @@ class app
 			else ///已过期
 			{
 				unlink($hash);  ///删除过期文件
-				self::run($router);
+				self::runRouter($router);
 			}
 		}
 		else
 		{
-			self::run($router);
+			self::runRouter($router);
 		}
 
+	}
+
+	private static function  runRouter($router)
+	{
+		if(isset($GLOBALS['APP']['regex']['lib'])) //lib 中寻找http handler
+		{
+			$lib=$GLOBALS['APP']['regex']['lib'];
+			if(isset($GLOBALS['APP']['lib'][$lib])&&is_object($GLOBALS['APP']['lib'][$lib]))
+			{
+					unset($GLOBALS['APP']['regex']);
+					method_exists($GLOBALS['APP']['lib'][$lib],$router[1])||Error('404','Regex http handler '.$GLOBALS['APP']['regex']['lib'].' does not contain method '.$router[1]);
+					return call_user_func_array(array($GLOBALS['APP']['lib'][$lib],$router[1]), array_slice($router,2));//传入参数
+			}
+			else
+			{
+				Error('404','Not Found regex http handler '.$GLOBALS['APP']['regex']['lib'].' in loaded libraries !');
+			}
+		}
+		else
+		{
+			app::run($router);
+		}
 	}
 	/**
 	 * 初始化相关

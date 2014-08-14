@@ -30,7 +30,7 @@
 *
 *  继承db的类,请不要执行parent::__construct(); 他留给手动实例化的
 */
-class db2 extends db
+abstract class database extends db
 {
 	
 	private static $cache; 
@@ -350,4 +350,5 @@ class db2 extends db
 
 
 }
-// end class db
+// end class database
+
