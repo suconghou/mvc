@@ -365,6 +365,7 @@ class app
 function Error($errno, $errstr, $errfile=null, $errline=null)
 {
 
+
 	if($errno==404||$errno==500)
 	{
 		$str="ERROR({$errno}) {$errstr}";
@@ -376,11 +377,24 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 		$code=500;
 	}
 	http_response_code($code);
-	if(ERROR_PAGE_404&&ERROR_PAGE_500) //存在404或500自定义
+	if(ERROR_PAGE_404&&ERROR_PAGE_500) //自定义了404和500
 	{
 		DEBUG&&app::log($str);
 		$errorRouter=array($GLOBALS['APP']['router'][0],$errno==404?ERROR_PAGE_404:ERROR_PAGE_500,$str);
-		app::run($errorRouter);
+		$errorController=is_file(CONTROLLER_PATH.$errorRouter[0].'.php')?$errorRouter[0]:DEFAULT_CONTROLLER; 
+		if(method_exists($errorController,$errorRouter[1]))//当前已加载的控制器或默认控制器中含有ERROR处理
+		{
+			$GLOBALS['APP']['controller'][$errorController]=isset($GLOBALS['APP']['controller'][$errorController])?$GLOBALS['APP']['controller'][$errorController]:$errorController;
+			if(!$GLOBALS['APP']['controller'][$errorController] instanceof $errorController)
+			{
+				$GLOBALS['APP']['controller'][$errorController]=new $errorController();///实例化控制器	
+			}
+			exit(call_user_func_array(array($GLOBALS['APP']['controller'][$errorController],$errorRouter[1]), array($str)));//传入参数
+		}
+		else
+		{
+			exit('No Error Handler Found In '.$errorController.'::'.$errorRouter[1]);
+		}
 	}
 	else
 	{

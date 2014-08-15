@@ -260,5 +260,14 @@ abstract class base
 		http_response_code(403);
 		exit('禁止'.$t);
 	}
+
+	function Error404($msg)
+	{
+		echo $msg;
+	}
+	function Error500($msg)
+	{
+		echo $msg;
+	}
 	
 }
