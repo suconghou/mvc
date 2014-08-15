@@ -82,9 +82,12 @@ class curl
     }
 
     //快速发起忽略返回值的并行请求
-    function quick_exec($url)
+    function quickExec($url)
     {
-
+        if(!$this->mh)
+        {
+            $this->mh=curl_multi_init();
+        }
         if(is_array($url))
         {
             $url_array=&$url;

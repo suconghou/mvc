@@ -166,21 +166,6 @@ function isTel($tel)
 	return (preg_match("/^1[3458][0-9]{9}$/",$tel));
 }
 
-function getImg($id,$page=1)
-{
-    $pattern='/http:\/\/image.hnol.net\/[a-z]\/201(2|3|4)-\d{2}\/\d{1,2}\/\d{1,2}\/\d{17,19}-\d{7}.jpg/';
-    $url="http://bbs.voc.com.cn/viewthread.php?action=printable&tid={$id}&page={$page}";
-    $subject=file_get_contents($url);
-    if(preg_match_all($pattern, $subject, $matches))
-    {
-        return array_unique($matches[0]);
-    }
-    else
-    {
-        return false;
-    }
-
-}
 function utf8Substr($str, $from, $len)
 {   
    return mb_substr($str,$from,$len,'utf-8');

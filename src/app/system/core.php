@@ -224,8 +224,8 @@ class app
 			$lib=$GLOBALS['APP']['regex']['lib'];
 			if(isset($GLOBALS['APP']['lib'][$lib])&&is_object($GLOBALS['APP']['lib'][$lib]))
 			{
-					unset($GLOBALS['APP']['regex']);
 					method_exists($GLOBALS['APP']['lib'][$lib],$router[1])||Error('404','Regex http handler '.$GLOBALS['APP']['regex']['lib'].' does not contain method '.$router[1]);
+					unset($GLOBALS['APP']['regex']);
 					return call_user_func_array(array($GLOBALS['APP']['lib'][$lib],$router[1]), array_slice($router,2));//传入参数
 			}
 			else
@@ -508,7 +508,7 @@ function V($view,$data=null)
 	{
 		is_array($data)||empty($data)||Error('500','param to view '.$view_file.' show be an array');
 		empty($data)||extract($data);
-		GZIP?ob_start("ob_gzhandler"):ob_start('compress_html');
+		GZIP?ob_start("ob_gzhandler"):ob_start();
 		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));//耗时
 		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-APP_START_MEMORY));
 		require $view_file;
@@ -1110,34 +1110,7 @@ function dateFormat($time)
     }
 
 }
-/** 
-* 压缩html : 清除换行符,清除制表符,去掉注释标记 
-* @param $string 
-* @return 压缩后的$string 
-* */ 
-function compress_html($string)
-{ 
-	$string = str_replace("\r\n", '', $string); //清除换行符 
-	$string = str_replace("\n", '', $string); //清除换行符 
-	$string = str_replace("\t", '', $string); //清除制表符 
-	$pattern = array ( 
-	"/> *([^ ]*) *</", //去掉注释标记 
-	"/[\s]+/", 
-	"/<!--[^!]*-->/", 
-	"/\" /", 
-	"/ \"/", 
-	"'/\*[^*]*\*/'" 
-	); 
-	$replace = array ( 
-	">\\1<", 
-	" ", 
-	"", 
-	"\"", 
-	"\"", 
-	"" 
-	); 
-	return preg_replace($pattern, $replace, $string); 
-}
+
 //外部重定向,会立即结束脚本以发送header,内部重定向app::run(array);
 function redirect($url,$seconds=0,$code=302)
 {
