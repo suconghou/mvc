@@ -915,6 +915,7 @@ class db
 		{
 			self::ready();
 			$rs=self::$pdo->query($sql);
+			if(FALSE==$rs)return array();
 			return $rs->fetchAll(PDO::FETCH_ASSOC);
 		}
 		catch (PDOException $e)
@@ -929,6 +930,7 @@ class db
 		{
 			self::ready();
 			$rs=self::$pdo->query($sql);
+			if(FALSE==$rs)return array();
 			return $rs->fetch(PDO::FETCH_ASSOC);
 		}
 		catch (PDOException $e)
@@ -944,6 +946,7 @@ class db
 		{
 			self::ready();
 			$rs=self::$pdo->query($sql);
+			if(FALSE==$rs)return null;
 			return $rs->fetchColumn();
 		}
 		catch (PDOException $e)
