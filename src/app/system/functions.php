@@ -6,13 +6,11 @@
  *  配置函数的常量
  * 
  */
-// function sendSms 配置
-define('SMS_USER',18749667085);
-define('SMS_PASS','11260sch');
+
 
 // function sendMailByCloud 配置
 define('MAIL_CLOUD_USER','postmaster@sumail.sendcloud.org');
-define('MAIL_CLOUD_PASS','mK0A5iAS');
+define('MAIL_CLOUD_PASS','123456');
 define('MAIL_CLOUD_FROM','admin@suconghou.cn');
 define('MAIL_CLOUD_NAME','苏苏');
 
@@ -119,23 +117,7 @@ function getSize($url)
 	$res=httpInfo($url);
 	return $res['download_content_length'];
 }
-//发送飞信
-function sendSms($to,$msg)//成功返回true
-{
-    $user=SMS_USER;
-    $pass=SMS_PASS;
-    $url="http://quanapi.sinaapp.com/fetion.php?u={$user}&p={$pass}&to={$to}&m={$msg}";
-    $ret=file_get_contents($url);
-    $res=json_decode($ret);
-    if ($res->result==0)///结果为零时成功
-    {
-       return true;
-    }
-    else
-    {
-        return false;
-    }
-}
+
 // 采用SendCloud 发送邮件，需配置好账户密码等
 function sendMailByCloud($to,$subject,$html) 
 {

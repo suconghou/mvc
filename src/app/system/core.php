@@ -167,7 +167,7 @@ class app
 	{
 		if(substr(php_sapi_name(), 0, 3) == 'cli') //在CLI模式下
 		{
-			if(!isset($GLOBALS['argc']))return false;
+			if(!isset($GLOBALS['argc']))return;
 			set_time_limit(0);
 			if($GLOBALS['argc']>1)
 			{
@@ -177,7 +177,7 @@ class app
 	    			if($key==0)continue;
 	    			$GLOBALS['APP']['router'][]=$uri;
 	    		}
-	      		self::run($GLOBALS['APP']['router']);
+	      		self::runRouter($GLOBALS['APP']['router']);
 	      	}
 		}	
 
