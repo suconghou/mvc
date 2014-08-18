@@ -196,16 +196,81 @@ class sae_storage
             case "midi": $mime = "audio/midi"; break;
             case "mid": $mime = "audio/mid"; break;
             case "amr": $mime = "audio/amr"; break;
-            case "css":$mime="text/css";break;
-            case "js":$mime="text/javascript";break;
             default: $mime = "application/force-download";
         }
-        if(!in_array($ext, array('jpg','gif','png','jpeg','mp4','mp3','swf','flv','js','css','ico'))) //浏览器不能打开,弹出下载提示
+        if(!in_array($ext, array('jpg','gif','png','jpeg','mp4','swf','flv'))) //浏览器不能打开,弹出下载提示
         {
              $filename=$hash.'.'.$ext;
              header('Content-Disposition: attachment; filename='.$filename);
         }
         header('Content-Type: '.$mime);
 
+    }
+    /**
+     * 输出接口,需指定key,type
+     * 云存储输出处理,输入hash 与文件扩展名
+     * 检测此hash,在KV中命中,直接返回二进制
+     * 若没有在KV中,则自动转到storage中,按用户给定的hash与type查找,命中即会重定向,否则null
+     * 即KV中命中,要自己检测header输出
+     * 
+     */
+    public function outputHandler($key,$type)
+    {
+        C(600);//http缓存10小时
+        $hash=$key;//取得md5
+        $userType=$type;
+        $ret=$this->dump($hash,$userType); //命中stor会重定向,命中kv,会返回二进制,否则返回null
+        if($ret) //在KV中命中了,检测文件,输出文件头
+        {
+            $type=$this->getType($ret,$userType); ///自动检测扩展,检测不到使用用户输入的
+            $this->mime($type,$hash);
+            echo $ret;
+        }
+        else ///KV中没有命中,转到storage中也没有命中
+        {
+            echo '404';
+        }
+
+    }
+    /**
+     * 上传接口
+     * 上传文件到SAE, 注意上传的文件表单名为file ,并且不能切割上传
+     */
+    public function uploadHandler()
+    {
+        header('Access-Control-Allow-Origin:*');
+        define('MAXSIZE',1024*1024*10); ///最大能够上传的 10M
+        if(!isset($_FILES['file']))
+        {
+            $data['code']=-2;
+            $data['msg']='no file upload ';
+            echo json_encode($data);
+        }
+        else if($_FILES['file']['size']>MAXSIZE)
+        {
+            $data['code']=-3;
+            $data['msg']='文件超过最大限定!';
+            echo json_encode($data);
+        }
+        else
+        {
+            $arr=explode('.', $_FILES['file']['name']);
+            $default= end($arr); ///上传时的扩展名
+            $contents=file_get_contents($_FILES['file']['tmp_name']);
+            $type=$this->getType($contents,$default); ///获取文件类型,获取不到采用上传时的类型
+            $hash=$this->push($contents,$type); ////装载入数据仓库
+            if($hash)
+            {
+                $data['code']=0;
+                $data['msg']=$hash.'.'.$type;
+            }
+            else
+            {
+                $data['code']=-1;
+                $data['msg']='storage error !';
+            }
+            echo json_encode($data);
+
+        }
     }
 }

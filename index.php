@@ -16,9 +16,11 @@ define('REGEX_ROUTER',1);  //是否启用正则路由
 define('DEFAULT_CONTROLLER','home'); //默认的控制器
 define('DEFAULT_ACTION','index'); ///默认的动作
 
-define('GZIP',1);  //开启GZIP或者压缩
-//0 不使用,也不记录错误日志,1使用记录错误日志,捕获警告消息
-define('DEBUG',1);
+define('GZIP',1);  //是否开启GZIP,在SAE若出错请关闭
+//0不自动记录错误日志,非敏感模式,不显示错误详情,建议上线使用
+//1自动记录错误日志,非敏感模式,不显示错误详情,建议测试时或线上DEBUG使用
+//2自动记录错误日志,敏感模式,显示错误详情,建议开发时使用
+define('DEBUG',2);
 
 //自定义404,500路由,若设定请确保必须存在,系统定义Error404,Error500
 define('ERROR_PAGE_404',''); //Error404
@@ -41,7 +43,7 @@ define('MAIL_SERVER','smtp.126.com');
 define('MAIL_PORT',25);
 define("MAIL_AUTH",true);
 define('MAIL_USERNAME','suconghou@126.com');
-define('MAIL_PASSWORD','11260sch45770');
+define('MAIL_PASSWORD','123456');
 define('MAIL_NAME','系统邮件');
 
 ///添加一个正则路由,数组第一个为控制器,第二个为方法,前面的将作为该方法的第一个实参,以此类推
@@ -55,7 +57,7 @@ app::route('\/about',array('home','about'));
 
 //也可以添加自动加载,或者加载程序设置
 S('functions');
-S('class/curl');
+
 //配置完,可以启动啦
 app::start();
 

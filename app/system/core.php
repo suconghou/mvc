@@ -21,7 +21,7 @@ class app
 		define('APP_START_MEMORY',memory_get_usage());
 		date_default_timezone_set('PRC');//设置时区
 		set_include_path(LIB_PATH);//此路径下可直接include
-		if(defined('DEBUG')&&DEBUG)
+		if(defined('DEBUG')&&DEBUG==2)
 		{
 			set_error_handler('Error');///异常处理
 		}
@@ -217,7 +217,7 @@ class app
 
 	}
 
-	private static function  runRouter($router)
+	public static function  runRouter($router)
 	{
 		if(isset($GLOBALS['APP']['regex']['lib'])) //lib 中寻找http handler
 		{
@@ -377,9 +377,9 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 		$code=500;
 	}
 	http_response_code($code);
+	DEBUG&&app::log($str);
 	if(ERROR_PAGE_404&&ERROR_PAGE_500) //自定义了404和500
 	{
-		DEBUG&&app::log($str);
 		$errorRouter=array($GLOBALS['APP']['router'][0],$errno==404?ERROR_PAGE_404:ERROR_PAGE_500,$str);
 		$errorController=is_file(CONTROLLER_PATH.$errorRouter[0].'.php')?$errorRouter[0]:DEFAULT_CONTROLLER; 
 		if(method_exists($errorController,$errorRouter[1]))//当前已加载的控制器或默认控制器中含有ERROR处理
@@ -413,15 +413,12 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 			$li.='<p>'.$trace[$i]['file'].'=>'.$trace[$i]['class'].$trace[$i]['type'].$trace[$i]['function'].'() on line '.$trace[$i]['line'].'</p>';
 			$i--;
 		}
-		if(DEBUG)
+		if(DEBUG!=2)
 		{
-			app::log($str);
+			$h1='Oops ! Something Error,Error Code:'.$errno;
+			$li='<p>If you are administartor,See the log for more information ! </p><p>Else please contact the administartor ! </p>';
 		}
-		else
-		{
-			$li='<p>See the log for more information ! </p>';
-		}
-		$html='<div style="margin:2% auto;width:80%;box-shadow:0px 0px 8px #555;padding:2%;font:14px \'Monaco\',Courier">';
+		$html='<div style="margin:2% auto;width:80%;box-shadow:0px 0px 8px #555;padding:2%;font:14px Monaco,Comic Sans MS">';
 		$html.='<b>'.$h1.'</b>'.$li;
 		$html.="</div>";
 		exit($html);
@@ -524,24 +521,24 @@ function V($view,$data=null)
 				header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
 				header("Cache-Control: max-age=".$GLOBALS['APP']['cache']['time']);
 				header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT');   
-				flush();
 				ob_end_flush();
+				flush();
 			}
 			else//使用的是http缓存
 			{
 				header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
 				header("Cache-Control: max-age=".$GLOBALS['APP']['cache']['time']);
 				header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT'); 
-				flush();
 				ob_end_flush();
+				flush();
 			}
 			
 		}
 		else
 		{
 
-			flush();
 			ob_end_flush();
+			flush();
 		}
 		
 			
@@ -1088,6 +1085,7 @@ function session_del($key=null)
 }
 function byteFormat($size,$dec=2)
 {
+	$size=abs($size);
     $unit=array("B","KB","MB","GB","TB","PB","EB","ZB","YB");
     return round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i];
 }
@@ -1119,13 +1117,19 @@ function redirect($url,$seconds=0,$code=302)
 {
 	http_response_code($code);
 	header("Refresh: {$seconds}; url={$url}");
-	exit();
+	exit;
 }
 function baseUrl($path=null)
 {
+	
 	if(is_string($path))
 	{
-		return('http://'.$_SERVER['SERVER_NAME'].'/'.$path);
+		$path=$path[0]=='/'?$path:'/'.$path;
+		return('http://'.$_SERVER['HTTP_HOST'].$path);
+	}
+	else if(is_null($path))
+	{
+		return 'http://'.Request::server('HTTP_HOST');
 	}
 	else
 	{
