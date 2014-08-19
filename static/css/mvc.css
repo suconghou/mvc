@@ -33,3 +33,26 @@ aside>nav>ul>li>a:hover{
 	min-height: 600px;
 	padding: 20px;
 }
+@media(max-width: 800px){
+	header>aside{
+		top: 0;
+		left: 0;
+		right: 0;
+		width: 100%;
+		height: 80px;
+	}
+	aside>nav>ul{
+		margin: 0;
+	}
+	aside>nav>ul>li{
+		display: inline-block;
+		*display: inline;
+		*zoom: 1;
+		margin: 5px 0;
+		text-indent: 1em;
+	}
+	#wrapper{
+		position: inherit;
+		margin-top: 60px;
+	}
+}
