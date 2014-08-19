@@ -2,6 +2,7 @@
 
 /**
 * 文件上传,文件发送到SAE,七牛,酷盘,贴图库,本地
+* upload 参数 表单名,存储名
 * S('class/uploader')->upload()
 * S('class/uploader')->uploadSae()
 * S('class/uploader')->uploadQiniu()
@@ -20,11 +21,13 @@
 */
 class uploader
 {
-	private static $saeServer='http://2.suconghou.sinaapp.com/upload'; //SAE文件存储接口
-	private static $kupanKeyServer='http://api.suconghou.cn/kupan/key/susu'; //存储到酷盘时用到的密钥
-	private static $uploadDir='static/upload/';  //本地存储目录，目录必须存在,前面不加/
-	private static $allowType=array('jpg','gif','png','jpeg','mp4','swf','flv','rar','zip'); //本地存储允许上传的文件类型
-	
+	private static $saeServer='http://suconghou.sinaapp.com/'; //SAE文件存储接口基地址,上传接口upload ,详情见sae_storage.class.php
+	private static $kupanKeyServer='http://api.suconghou.cn/kupan/key/susu'; //存储到酷盘时用到的密钥,见kupan.classs.php 私人存储,勿扰
+	private static $uploadDir='static/upload/';  //本地存储目录,目录必须存在,前面不加/
+	private static $allowType=array('jpg','gif','png','jpeg','mp4','swf','flv','rar','zip','pdf'); //本地存储允许上传的文件类型
+	private static $allowSize=25; //最大允许上传的大小,单位 M
+
+
 	private static $tietuAccesskey = '63f05140c64c80b40f87ee6e4d41c2635c2d1069';
 	private static $tietuSecretkey = '2c332c8c4af922ae525183b671f7471d7b180126';
 	private static $album=1548; //贴图库上传的相册
@@ -33,10 +36,22 @@ class uploader
 	private static $qiniuSecretKey = 'BlGJG8cH2Sgjqjrq3_YAvouxa-DRIAr9eMKWmbiN';
 	private static $bucket='supic'; //七牛的bucket
 
-
-	function __construct()
+	/**
+	 * 传入参数可覆盖默认设置
+	 */
+	function __construct($cfg=null)
 	{
-		# code...
+		if(is_array($cfg))
+		{
+			foreach ($cfg as $k => $v)
+			{
+				if(isset(self::$$k))
+				{
+					self::$$k=$v;
+				}
+			}
+		}
+		
 	}
 	function init()
 	{
@@ -47,105 +62,86 @@ class uploader
 	 */
 	function upload($name,$storName=null)
 	{
-		if(isset($_FILES[$name]))
+		$ret=$this->commonCheck($name,$storName);
+		if($ret['code']==0)
 		{
-			if($_FILES[$name]['error']==0)
-			{	
-				$contents=file_get_contents($_FILES[$name]['tmp_name']);
-				unlink($_FILES[$name]['tmp_name']);
-				
-				$filename=self::detectName($name,$storName);
-				if($filename)
-				{
-					$destination=self::$uploadDir.date('Ymd');
-					if(!is_readable($destination))
-			    	{
-			        	is_file($destination) or mkdir($destination,0700);
-			    	}
-			    	$destination=$destination.'/'.$filename;
-			    	file_put_contents($destination,$contents);
-					return array('code'=>0,'msg'=>baseUrl($destination));
-				}
-				return array('code'=>-3,'msg'=>'file type not allow');
-				
-			}
-			return array('code'=>-2,'msg'=>'upload error');
+			$destination=self::$uploadDir.date('Ymd');
+			if(!is_readable($destination))
+	    	{
+	        	is_file($destination) or mkdir($destination,0700);
+	    	}
+	    	$destination=$destination.'/'.$ret['msg'];
+			move_uploaded_file($_FILES[$name]['tmp_name'], $destination);
+			$ret['msg']=baseUrl($destination);
+			return $ret;
 		}
-		return array('code'=>-1,'msg'=>'no file upload');
-
+		return $ret;
 	}
 	/**
 	 * 监视用户上传并转文件到SAE
+	 * 文件大小sae还有限定,无类型限制,见sae_storage.class.php
+	 * 上传至sae的文件名都是hash,不固定
+	 * $storName无效,但可用于类型检测
 	 */
-	function uploadSae($name)
+	function uploadSae($name,$storName=null)
 	{
-		if(isset($_FILES[$name]))
+		$ret=$this->commonCheck($name,$storName);
+		if($ret['code']==0)
 		{
-			if($_FILES[$name]['error']==0)
-			{
-				return self::sendToSae($_FILES[$name]['tmp_name']);
-			}
-			return array('code'=>-2,'upload error');
+			return self::sendToSae($_FILES[$name]['tmp_name']);
 		}
-		return array('code'=>-1,'msg'=>'no file upload');
+		return $ret;
+			
 	}
 	function uploadKupan($name,$storName=null)
 	{
-		if(isset($_FILES[$name]))
+		$ret=$this->commonCheck($name,$storName);
+		if($ret['code']==0)
 		{
-			if($_FILES[$name]['error']==0)
-			{
-				$filename=self::detectName($name,$storName);
-				return self::sendToKupan($_FILES[$name]['tmp_name'],$filename);
-			}
-			return array('code'=>-2,'msg'=>'upload error');
+			$filename=$ret['msg'];//存储时的文件名
+			return self::sendToKupan($_FILES[$name]['tmp_name'],$filename);
 		}
-		return array('code'=>-1,'msg'=>'no file upload');
+		return $ret;
 	}
 	function uploadQiniu($name,$storName=null)
 	{
-		if(isset($_FILES[$name]))
+		$ret=$this->commonCheck($name,$storName);
+		if($ret['code']==0)
 		{
-			if($_FILES[$name]['error']==0)
-			{
-				$filename=self::detectName($name,$storName);
-				return self::sendToQiniu($_FILES[$name]['tmp_name'],$filename);
-			}
-			return array('code'=>-2,'msg'=>'upload error');
+			$filename=$ret['msg'];
+			return self::sendToQiniu($_FILES[$name]['tmp_name'],$filename);
 		}
-		return array('code'=>-1,'msg'=>'no file upload');
-
-
+		return $ret;
 	}
 	function uploadTietu($name)
 	{
-		if(isset($_FILES[$name]))
+		$ret=$this->commonCheck($name);
+		if($ret['code']==0)
 		{
-			if($_FILES[$name]['error']==0)
-			{
-				return self::sendToTietu($_FILES[$name]['tmp_name']);
-			}
-			return array('code'=>-2,'msg'=>'upload error');
+			return self::sendToTietu($_FILES[$name]['tmp_name']);
 		}
-		return array('code'=>-1,'msg'=>'no file upload');
+		return $ret;
+		
 	}
+	/**
+	 * 发送文件到sae,和文件类型,大小无关
+	 */
 	function sendToSae($filepath)
 	{
-		$data = array("file"  => "@".realpath($filepath));
-		$res=json_decode(self::postData(self::$saeServer,$data));
+		$data = array("file"  => "@".realpath($filepath)); //sae接收的字段也是file
+		$res=json_decode(self::postData(self::$saeServer.'upload',$data)); 
 		if($res->code==0)
 		{
-			return array('code'=>0 ,'msg'=>'http://suconghou.sinaapp.com/'.$res->msg);
+			return array('code'=>0 ,'msg'=>self::$saeServer.$res->msg);
 		}
-		return array('code'=>-1,'msg'=>'send to sae error');
-		
+		return array('code'=>-1,'msg'=>$res->msg); //sae 也会返回错误消息
 	}
 
 	function sendToKupan($filepath,$name)
 	{
 		$file=file_get_contents($filepath);
 	    $path='/files/uploader/'.$name;
-	    $token=file_get_contents(self::$kupanKeyServer);
+	    $token=file_get_contents(self::$kupanKeyServer);  //酷盘密匙每小时更新
 	    $url="https://api-upload.kanbox.com/0/upload{$path}?bearer_token=".$token;
 	    $res=self::postData($url,$file);
 	    $downUrl='http://api.suconghou.cn'.$path;
@@ -155,12 +151,16 @@ class uploader
 	    }
 	    return array('code'=>-2,'msg'=>'send to kupan error');
 	}
+	/**
+	 * $filename 七牛可以手动填写路径
+	 */
 	function sendToQiniu($path,$filename)
 	{
 		Qiniu_setKeys(self::$qiniuAccessKey, self::$qiniuSecretKey);
 		$qiniu = new Qiniu_MacHttpClient(null);
 
 		$putPolicy = new Qiniu_RS_PutPolicy(self::$bucket);
+
 		$upToken = $putPolicy->Token(null);
 		$putExtra = new Qiniu_PutExtra();
 		$putExtra->Crc32 = 1;
@@ -184,56 +184,94 @@ class uploader
 		}
 		
 	}
+	/**
+	 * 贴图库返回有多个可用信息,直接返回上层处理
+	 */
 	function sendToTietu($path)
 	{
-		$tietu = new tietusdk(self::$tietuAccesskey,self::$tietuSecretkey);
-		$url='http://api.tietuku.com/v1/Up';
-		$param['returnBody'] = array('s_url'=> 'url');
-		$param['deadline'] = time()+3600;
-		$param['album'] = self::$album;
-		$token=$tietu->Dealparam($param)->Token();
+
+		$tietu = new TieTuKuToken(self::$tietuAccesskey,self::$tietuSecretkey);
+		$url='http://up.tietuku.com/';
+		$param['deadline'] = time()+60;
+		$param['aid'] = self::$album;
+		$param['from']='file';
+		$token=$tietu->Dealparam($param)->createToken();
 	    $postData = array( "Token"=>$token, "file"=>'@'.realpath($path));
 		$ret = json_decode(self::postData($url,$postData));
-		if(isset($ret->url))
+		if(isset($ret->linkurl))
 		{
-			return array('code'=>0,'msg'=>$ret->url);
+			return array('code'=>0,'msg'=>(array)$ret);
 		}
 		return array('code'=>-2,'msg'=>'send to tietu error ');
 
 	}
 	/**
+	 *  @param $f 表单名,
+	 *  @param $storName 存储名
 	 * 文件类型不合法,则返回false
+	 * ajax切割上传没有发来文件名的会采取自动命名
+	 * 部分文件类型不能检测,需要随请求发送来
 	 */
 	private function detectName($f,$storName=null)
 	{
+		$contents=file_get_contents($_FILES[$f]['tmp_name']);
 		if($storName)
 		{
-			$name=$storName;
+			$default=$storName;
 		}
 		else if(Request::post('name'))
 		{
-			$name=Request::post('name'); 
+			$default=Request::post('name'); 
 		}
 		else if($_FILES[$f]['name']!='blob')
 		{
-			$name=$_FILES[$f]['name'];
-		}
-		else 
-		{
-			$contents=file_get_contents($_FILES[$f]['tmp_name']);
-			$type=self::getType($contents,'jpg');
-			$name=uniqid().$type;
-		}
-		$name=preg_replace('/[\x80-\xff]/','',$name);//过滤中文
-		$arr=explode('.',$name);
-		if(in_array(end($arr),self::$allowType))
-		{
-			return $name;
+			$default=$_FILES[$f]['name'];
 		}
 		else
 		{
-			return false;
+			$default=uniqid().'.unknow';
 		}
+		$default=preg_replace('/[^\w\.]/',chr(mt_rand(65,90)),$default);//文件名清除
+		$arr=explode('.',$default);
+		$defaultType=end($arr); ///综合得出默认文件类型
+		$type=self::getType($contents,$defaultType);
+
+		if(in_array($type,self::$allowType)) //合法的文件类型
+		{
+			$filename=$arr[0].'.'.$type;
+			return $filename;
+		}
+		return false;
+
+	}
+	/**
+	 * 是否存在上传和文件大小与类型检测
+	 * @param $f 表单名
+	 * @param $storName 存储时的文件名
+	 */
+	private function commonCheck($f,$storName=null)
+	{	
+		if(!empty($_FILES)&&is_string($f)&&isset($_FILES[$f]))
+		{
+			if($_FILES[$f]['error']==0)
+			{
+				if($_FILES[$f]['size']<self::$allowSize*1024*1024)
+				{
+					$filename=$this->detectName($f,$storName);
+					if($filename)
+					{
+						return array('code'=>0,'msg'=>$filename); //存储时的文件名
+					}
+					return array('code'=>-2,'msg'=>'file type not allow');
+				}
+				return array('code'=>-3,'msg'=>'exceeds limit size');
+			}
+			return array('code'=>-4,'msg'=>'upload error');
+		}
+
+		return array('code'=>-5,'msg'=>'no file upload');
+
+
 	}
 	private function postData($url,$post_data)
 	{
@@ -286,30 +324,33 @@ class uploader
 }
 //end class uploader
 
+
+
+
 // 贴图库class
-class tietusdk{
-	private $accesskey;
-	private $secretkey;
+class TieTuKuToken{
+	public $accesskey;
+	public $secretkey;
 	private $base64param;
-	function __construct($ak,$sk){
-		if($ak == ''||$sk =='')
+	function __construct($accesskey,$secretkey){
+		if($accesskey == ''||$secretkey =='')
 			return false;
-		$this->accesskey = $ak;
-		$this->secretkey = $sk;
+		$this->accesskey = $accesskey;
+		$this->secretkey = $secretkey;
 	}
-	public function Dealparam($param){
-		$this->base64param = $this->Base64(json_encode($param));
+	function dealParam($param){
+		$this->base64param = $this->URLSafeBase64Encode(json_encode($param));
 		return $this;
 	}
-	public function Token(){
-		$sign = $this->Base64($this->Sign($this->base64param,$this->secretkey));
-		$token = $this->accesskey.':'.$sign.':'.$this->base64param;
-		return $token;
+	function createToken(){
+		if(empty($this->base64param)) return false;
+		$sign = $this->signEncode($this->base64param,$this->secretkey);
+		return $this->accesskey.':'.$this->URLSafeBase64Encode($sign).':'.$this->base64param;
 	}
-	public function Sign($str, $key){
+	function signEncode($str, $key){
 		$hmac_sha1_str = "";
 		if (function_exists('hash_hmac')){
-			$hmac_sha1_str = $this->Base64(hash_hmac("sha1", $str, $key, true));
+			$hmac_sha1_str = hash_hmac("sha1", $str, $key, true);
 		} else {
 			$blocksize = 64;
 			$hashfunc  = 'sha1';
@@ -319,19 +360,17 @@ class tietusdk{
 			$key       		= str_pad($key, $blocksize, chr(0x00));
 			$ipad      		= str_repeat(chr(0x36), $blocksize);
 			$opad      		= str_repeat(chr(0x5c), $blocksize);
-			$hmac      		= pack('H*', $hashfunc(($key ^ $opad) . pack('H*', $hashfunc(($key ^ $ipad) . $str))));
-			$hmac_sha1_str	= $this->Base64($hmac);
+			$hmac_sha1_str	= pack('H*', $hashfunc(($key ^ $opad) . pack('H*', $hashfunc(($key ^ $ipad) . $str))));
 		}
 		return $hmac_sha1_str;
 	}
-	//对url安全的base64编码 URLSafeBase64Encode
-	public function Base64($str){
+	function URLSafeBase64Encode($str){
 		$find = array('+', '/');
 		$replace = array('-', '_');
 		return str_replace($find, $replace, base64_encode($str));
 	}
 }
-//end class tietusdk
+//end class TieTuKuToken
 
 // qiniu API class
 function Qiniu_Encode($str) // URLSafeBase64Encode
@@ -501,7 +540,8 @@ class Qiniu_Response
 
 function Qiniu_Header_Get($header, $key) // => $val
 {
-    $val = @$header[$key];
+    $val = isset($header[$key])?$header[$key]:NULL;
+
     if (isset($val)) {
         if (is_array($val)) {
             return $val[0];
