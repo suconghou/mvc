@@ -532,16 +532,12 @@ function V($view,$data=null)
 				ob_end_flush();
 				flush();
 			}
-			
 		}
 		else
 		{
-
 			ob_end_flush();
 			flush();
 		}
-		
-			
 	}
 	else
 	{
@@ -563,8 +559,7 @@ function C($time,$file=null)
 		{	
 			if((strtotime($last_expire)+$cache['time'])>time()) //命中缓存
 			{
-				http_response_code(304);	
-				die;  
+				exit(http_response_code(304));	
 			}
 		}
 		else
@@ -782,26 +777,81 @@ class Request
 class Validate
 {
 	private static $rule;
+	private static $msg;
+	private static $data;
 	/**
 	 * 按照先前的规则校验
 	 */
 	public static function check($data)
 	{
-		foreach (self::$rule as $item)
+		if(empty(self::$msg)||empty(self::$rule)||empty($data)) return false;
+		self::$data=$data;
+		foreach (self::$rule as $key=>$rule) //遍历所有规则,得到字段,规则,规则可以为空
 		{
-			list($key,$rule)=$item;
+			//1.必须字段检测
+			self::requireFilter($key); //数据中必须存在该字段
+			//2.解析规则
+			$arr=explode('|',$rule);////得出小规则段
+			foreach ($arr as  $v) //$v 规则关键字
+			{
+				if(stripos($v,'=')) //含有变量的规则
+				{
+					self::mixedFilter($key,explode('=', $v));
+				}
+				else //普通规则
+				{
+					self::singleFilter($key,$v);
+				}
+			}
 			//TODO 设计规则
-			var_dump($key,$rule);
+			// var_dump('字段:',$key,$rule,'规则如上<br>');
 
 		}
-		
+	}
+	/**
+	 * 必须字段检测
+	 */
+	private static function requireFilter($key)
+	{
+		if(isset(self::$data[$key]))
+		{
+			return array('code'=>0);
+		}
+		else
+		{
+			$errorMsg=(is_null(self::$rule[$key])&&!empty(self::$msg[$key][0]))?self::$msg[$key][0]:$key.'字段必须存在';
+
+			var_dump(self::$msg[$key][0],$errorMsg);die;
+			return array('code'=>-1,'msg'=>$errorMsg);
+		}
+
+	}
+	private static function lengthFilter()
+	{
+
+	}
+	private static function mixedFilter($key,$arr)
+	{
+		echo '检测字段'.$key.'的规则'.$arr[0].'==>'.$arr[1].'<br>';
+	}
+	private static function singleFilter($key,$rule)
+	{
+		echo '检测字段'.$key.'的规则'.$rule.'<br>';
+	}
+	private static function destruct($msg)
+	{
+		self::$rule=null;
+		self::$msg=null;
+		self::$data=null;
+		return $msg;
 	}
 	/**
 	 * 添加过滤规则
 	 */
-	public static function addRule($key,$rule)
+	public static function addRule($key,$msg=null,$rule=null)
 	{
-		self::$rule[]=array($key,$rule);
+		self::$rule[$key]=$rule;
+		self::$msg[$key]=explode('|', $msg);
 	}
 	public static function email($email)
 	{
