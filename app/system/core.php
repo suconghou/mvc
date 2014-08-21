@@ -788,23 +788,30 @@ class Validate
 		self::$data=$data;
 		foreach (self::$rule as $key=>$rule) //遍历所有规则,得到字段,规则,规则可以为空
 		{
+			echo('key => '.$key.' <br>rule ==> '.implode(',',$rule));
 			//1.必须字段检测
-			self::requireFilter($key); //数据中必须存在该字段
-			//2.解析规则
-			$arr=explode('|',$rule);////得出小规则段
-			foreach ($arr as  $v) //$v 规则关键字
+			$ret=self::requireFilter($key); //数据中必须存在该字段
+			if($ret['code']==0)
 			{
-				if(stripos($v,'=')) //含有变量的规则
-				{
-					self::mixedFilter($key,explode('=', $v));
-				}
-				else //普通规则
-				{
-					self::singleFilter($key,$v);
-				}
+				//2.解析规则
+					$arr=explode('|',$rule);////得出小规则段
+					foreach ($arr as  $v) //$v 规则关键字
+					{
+						if(stripos($v,'=')) //含有变量的规则
+						{
+							self::mixedFilter($key,explode('=', $v));
+						}
+						else //普通规则
+						{
+							self::singleFilter($key,$v);
+						}
+					}
+
 			}
-			//TODO 设计规则
-			// var_dump('字段:',$key,$rule,'规则如上<br>');
+			else
+			{
+				return self::destruct($ret);
+			}
 
 		}
 	}
@@ -819,10 +826,26 @@ class Validate
 		}
 		else
 		{
-			$errorMsg=(is_null(self::$rule[$key])&&!empty(self::$msg[$key][0]))?self::$msg[$key][0]:$key.'字段必须存在';
+			if(is_null(self::$rule[$key]))
+			{
 
-			var_dump(self::$msg[$key][0],$errorMsg);die;
-			return array('code'=>-1,'msg'=>$errorMsg);
+			}
+			else if(count(self::$rule[$key])==count(self::$msg[$key]))
+			{
+				if(is_null(self::$rule[$key])||empty(self::$msg[$key][0]))
+				{
+					$err='字段'.$key.'为必填项';
+				}
+				else
+				{
+					$err=self::$msg[$key][0];
+				}
+			}
+			else
+			{
+				$err=self::$msg[$key][0];
+			}
+			return array('code'=>-1,'msg'=>$err);
 		}
 
 	}
@@ -850,7 +873,7 @@ class Validate
 	 */
 	public static function addRule($key,$msg=null,$rule=null)
 	{
-		self::$rule[$key]=$rule;
+		self::$rule[$key]=explode('|',$rule);
 		self::$msg[$key]=explode('|', $msg);
 	}
 	public static function email($email)
