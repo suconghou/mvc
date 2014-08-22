@@ -780,7 +780,7 @@ class Validate
 	private static $msg;
 	private static $data;
 	/**
-	 * 按照先前的规则校验
+	 * 按照先前的规则校验,校验完,清除本次校验规则以待下次校验
 	 */
 	public static function check($data)
 	{
