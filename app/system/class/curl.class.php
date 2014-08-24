@@ -119,10 +119,26 @@ class curl
         return true;
 
     }
-    static function post($url,$post_string)
+    /**
+     * CURL 发起POST
+     */
+    static function post($url,$post_string,$timeout=5)
     {
         $ch=curl_init();
-        curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($post_string)?http_build_query($post_string):$post_string));
+        curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>$timeout,
+            CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($post_string)?http_build_query($post_string):$post_string));
+        $result=curl_exec($ch);
+        curl_close($ch);
+        return $result;
+    }
+    /**
+     * CURL 发起GET
+     */
+    static function get($url,$timeout=5)
+    {
+        $ch=curl_init();
+        curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>$timeout,
+            CURLOPT_RETURNTRANSFER=>1,CURLOPT_HEADER=>0);
         $result=curl_exec($ch);
         curl_close($ch);
         return $result;
@@ -156,7 +172,7 @@ class curl
                 $index=2;
                 break;
             default:
-                if(substr($type,0,1)!='/')return null; ///不是正则
+                if(!preg_match('/^\/.+\/$/',$v)) return null//正则规则
                 return $this->filter($res,$type);
                 break;
         }
