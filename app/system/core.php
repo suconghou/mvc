@@ -493,8 +493,8 @@ function S($lib,$param=null)
 		}
 	}
 }
-//加载视图
-function V($view,$data=null)
+//加载视图,传递参数,设置缓存
+function V($view,$data=null,$fileCacheMin=0)
 {
 	if(defined('APP_TIME_SPEND'))
 	{
@@ -509,6 +509,11 @@ function V($view,$data=null)
 		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));//耗时
 		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-APP_START_MEMORY));
 		require $view_file;
+		if($fileCacheMin)
+		{
+			$GLOBALS['APP']['cache']['time']=$fileCacheMin*60;
+			$GLOBALS['APP']['cache']['file']=true;
+		}
 		if(isset($GLOBALS['APP']['cache']))//启用了缓存
 		{
 			$expires_time=time()+$GLOBALS['APP']['cache']['time'];
@@ -546,15 +551,14 @@ function V($view,$data=null)
 
 }
 //缓存,第一个参数为缓存时间,第二个为是否文件缓存
-function C($time,$file=null)
+function C($time,$file=false)
 {
-	$cache['time']=$time*60;
-	$cache['file']=$file;
-	$GLOBALS['APP']['cache']=&$cache;
+	$GLOBALS['APP']['cache']['time']=intval($time)*60;
+	$GLOBALS['APP']['cache']['file']=$file;
 	if(!$file)///使用了http缓存,在此处捕获缓存
 	{
 		$expires_time=time()+$GLOBALS['APP']['cache']['time'];
-		$last_expire = isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) ? $_SERVER['HTTP_IF_MODIFIED_SINCE'] : 0;
+		$last_expire = Request::server('HTTP_IF_MODIFIED_SINCE',0);
 		if($last_expire)
 		{	
 			if((strtotime($last_expire)+$cache['time'])>time()) //命中缓存
@@ -676,6 +680,24 @@ class Request
 			return $data;
 		}
 	}
+	//获取http请求正文,默认当做json处理
+	public static function input($key=null,$default=null,$json=true)
+	{
+		$str=file_get_contents('php://input');
+		if($json)
+		{
+			$data=json_decode($str,true);
+		}
+		else
+		{
+			parse_str($str,$data);
+		}
+		if($key)
+		{
+			return isset($data[$key])?$data[$key]:$default;
+		}
+		return $data;
+	}
 	public static function info()
 	{
 		$data['ip']=self::getIp();
@@ -685,7 +707,7 @@ class Request
 		return $data;
 	}
 	/**
-	 * 默认去除html标签,去除空格
+	 * 默认普通过滤,去除html标签,去除空格
 	 * $type='1' 去除中文
 	 * $type=''
 	 * $type=''
@@ -695,7 +717,7 @@ class Request
 	{
 		if(is_null($type))
 		{
-			return trim(htmlentities(strip_tags($val)));
+			return trim((strip_tags($val)));
 		}
 		else
 		{
@@ -711,7 +733,7 @@ class Request
 					$out=$val;
 					break;
 			}
-			return $all?trim(htmlentities(strip_tags($out))):$out;
+			return $all?trim(strip_tags($out)):$out;
 		}
 
 	}
@@ -938,6 +960,13 @@ class Validate
 	{
 		self::$rule[$key]=explode('|',$rule);
 		self::$msg[$key]=explode('|', $msg);
+	}
+	public static function addRules($arr=array())
+	{
+		foreach ($arr as $key)
+		{
+			self::addRule($key);
+		}
 	}
 	public static function email($email)
 	{

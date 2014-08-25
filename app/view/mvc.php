@@ -101,11 +101,15 @@
         <section>
         	<h1>关于debug</h1>
         	<p>开启参数debug,即可启用debug模式 </p>
-        	<p>debug模式对异常敏感,不建议在生产环境使用</p>
-        	<p>开启debug模式即会记录错误日志,但是输不输出错误信息取决于是否定义异常路由</p>
-        	<p>定义了异常路由,便不会将错误信息发送到浏览器</p>
+        	<p>DEBUG三个等级0,1,2</p>
+        	<p>0不自动记录错误日志,非敏感模式,不显示错误详情,建议上线后稳定时使用</p>
+        	<p>1自动记录错误日志,非敏感模式,不显示错误详情,建议测试时或线上DEBUG使用</p>
+        	<p>2自动记录错误日志,敏感模式,显示错误详情,开发时使用</p>
+        	<p>敏感模式,未声明即使用变量的notice也会捕获,不建议在生产环境使用</p>
+        	<p>定义了异常路由,错误消息会传递到异常路由的第一个参数</p>
+        	<p>异常路由显不显示错误消息,自由决定,但是异常路由的错误消息没有跟踪信息</p>
         	<p>开发环境最好不要定义异常路由,以便查看debug输出的跟踪信息</p>
-        	<p>若定义异常路由,请确保该路由确实存在</p>
+        	<p>若定义异常路由,请确保该路由确实存在,也可以继承base获得,也可以自定义或者重写继承过来的</p>
         </section>
 		<section>
 			<h1>控制器模型增强</h1>
@@ -169,9 +173,18 @@
 			<p>若是较晚使用<code>C(60)</code>命中缓存时已经做了大量逻辑,造成资源浪费</p>
 			<p>对于文件缓存方式<code>C(60,true)</code>会下达缓存任务,任务有<code>V()</code>执行</p>
 			<p>文件缓存的检测在实例化控制器之前,所以对文件缓存的影响不大</p>
-			<p>因此,建议将C()代码放在所有逻辑处理之前,以获得最佳缓存体验</p>
-			<p>如上,无论C在何位置,都必须在V之前执行</p>
+			<p>因此,无论如何,建议将C()代码放在所有逻辑处理之前,以获得最佳缓存体验</p>
+			<p>但是,无论C在何位置,都必须在V之前执行</p>
 			<p>并且http缓存可以在没有V的情况下使用,而文件缓存必须在有视图加载的情况下使用</p>
+			<p class="info">另外:方法V()也可以直接调用文件缓存,第三个参数为使用文件的失效时间<br>若填写则启用文件缓存,否则不启用</p>
+			<p class="success">如下,表示按机构获取用户列表渲染视图,并使用文件缓存,每次缓存60分钟</p>
+			<div class="alert success">
+				<p>
+					<code class='danger'>V('userlist',M('m_user')->userListByFid(session_get('FACILITY_ID',1)),60);</code>
+				</p>
+			</div>
+				
+			
 		</section>
 		<section>
 			<h1>任务转向</h1>
@@ -179,9 +192,11 @@
 			<p>使用<code>app::run('方法名')</code>即转到当前控制器的方法内执行</p>
 			<p>这样,相当于使用<code>$this->方法名</code>但是,不能执行私有方法</p>
 			<p><code>app::run()</code>可以返回来自其他控制器方法内返回的数据</p>
-			<p><code>app::run()</code>可以多次使用,与重定向完全不同,其后的代码任会正常实行</p>
+			<p><code>app::run()</code>可以多次使用,与重定向完全不同,其后的代码仍会正常执行</p>
 			<p>如此,可用来权限检测,例如未登录的用户转到登陆的控制器,已登录则执行另一个逻辑</p>
 			<p>此方式,可带来奇妙的url变化</p>
+			<p>若要实现http重定向,则采用redirect($url,$delay=null,$code=301)</p>
+			<p>参数二为延时,参数三为永久重定向或临时</p>
 		</section>
 		<section>
 			<h1>异步</h1>
@@ -213,6 +228,7 @@
 			<p>Request::cookie()</p>
 			<p>Request::server()</p>
 			<p>Request::info()</p>
+			<p>Request::input()</p>
 
 		</section>
 		<section>
@@ -243,6 +259,16 @@
 
 				</ul>
 			</blockquote>
+			<p class="info">Request和Validate结合可以大大简化表单操作等</p>
+			<div class="alert success">
+				<p class="danger"> Validate::addRule('name','用户名必须填写'); </p>
+				<p class="danger"> Validate::addRule('email','邮箱必须填写|邮箱格式不正确','email'); </p>
+				<p class="danger"> Validate::addRule('pass','密码必须填写'); </p>
+				<p class="danger"> $info=Request::post();</p>
+				<p class="danger"> $ret=Validate::check($info); </p>
+				<p class="danger"> if($ret['code']!=0)exit(json_encode($ret)); //验证不通过</p>
+				<p class="danger"> $userid=M('m_user')->addNewUser($info);</p>
+			</div>
 		</section>
 		<section>
 			<h1>session处理</h1>

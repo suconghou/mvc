@@ -122,7 +122,7 @@ class curl
     /**
      * CURL 发起POST
      */
-    static function post($url,$post_string,$timeout=5)
+    static function post($url,$post_string=null,$timeout=5)
     {
         $ch=curl_init();
         curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>$timeout,
