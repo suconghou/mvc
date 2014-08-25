@@ -119,10 +119,26 @@ class curl
         return true;
 
     }
-    static function post($url,$post_string)
+    /**
+     * CURL 发起POST
+     */
+    static function post($url,$post_string,$timeout=5)
     {
         $ch=curl_init();
-        curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($post_string)?http_build_query($post_string):$post_string));
+        curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>$timeout,
+            CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($post_string)?http_build_query($post_string):$post_string));
+        $result=curl_exec($ch);
+        curl_close($ch);
+        return $result;
+    }
+    /**
+     * CURL 发起GET
+     */
+    static function get($url,$timeout=5)
+    {
+        $ch=curl_init();
+        curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>$timeout,
+            CURLOPT_RETURNTRANSFER=>1,CURLOPT_HEADER=>0));
         $result=curl_exec($ch);
         curl_close($ch);
         return $result;
@@ -134,34 +150,45 @@ class curl
      * href 提取 <a href=''  所有连接
      * url  提取 http://    符合http:// 的地址
      */
-    function fetch($type)
+    function fetch($type,$url=null)
     {
-        $res=$this->exec(true);
+        if($url)
+        {
+            $res=$this->add($url)->exec(true);
+        }
+        else
+        {
+            $res=$this->exec(true);
+        }
+        $regex['img']='/http:\/\/[a-z0-9_-]+(\.[a-z0-9_-]+){1,5}(\/[a-z0-9_-]+){1,9}\.(jpg|jpeg|png|gif|bmp)/i';
+        $regex['src']='/<img.+?src=(\"|\')(.{5,}?)(\"|\').+?\/?>/i';
+        $regex['url']='/http:\/\/[a-z0-9_-]+(\.[a-z0-9_-]+){1,5}(\/[a-z0-9_-]+){0,9}(\.\w+)?/i';
+        $regex['href']='/<a.+?href=(\"|\')(.+?)(\"|\').+?>.+?<\/a>/i';
+
         switch ($type)
         {
             case 'img':
-                $regex='/http:\/\/[a-z0-9_-]+(\.[a-z0-9_-]+){1,5}(\/[a-z0-9_-]+){1,9}\.(jpg|jpeg|png|gif|bmp)/i';
                 $index=0;
-                break;
+                return $this->filter($res,$regex['img'],$index);
             case 'src':
-                $regex='/<img.+?src=(\"|\')(.{5,}?)(\"|\').+?\/?>/i';
                 $index=2;
-                break;
+                return $this->filter($res,$regex['src'],$index);
             case 'url':
-                $regex='/http:\/\/[a-z0-9_-]+(\.[a-z0-9_-]+){1,5}(\/[a-z0-9_-]+){1,9}(\.\w+)?/i';
                 $index=0;
-                break;
+                return $this->filter($res,$regex['url'],$index);
             case 'href':
-                $regex='/<a.+?href=(\"|\')(.+?)(\"|\').+?>.+?<\/a>/i';
                 $index=2;
-                break;
+                return $this->filter($res,$regex['href'],$index);
+            case 'all':
+                $ret['img']=$this->filter($res,$regex['img'],0);
+                $ret['src']=$this->filter($res,$regex['src'],2);
+                $ret['url']=$this->filter($res,$regex['url'],0);
+                $ret['href']=$this->filter($res,$regex['href'],2);
+                return $ret;
             default:
-                if(substr($type,0,1)!='/')return null; ///不是正则
+                if(!preg_match('/^\/.+\/$/',$type)) return $res;//不是正则规则
                 return $this->filter($res,$type);
-                break;
         }
-        return $this->filter($res,$regex,$index);
-       
     }
     private function filter($html,$regex,$index=null)
     {
@@ -171,7 +198,7 @@ class curl
             {
                 return $matches;
             }
-            return $matches[$index];
+            return array_unique($matches[$index]);
         }
         return null;
 

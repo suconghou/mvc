@@ -205,7 +205,7 @@
 			<p>启动CLI运行没有默认控制器和方法,需在index.php后输入 控制器 方法</p>
 		</section>
 		<section>
-			<h1>Request请求</h1>
+			<h1>Request请求处理类</h1>
 			<p>静态类Request可以获得各种系统环境数据和超全局变量数据</p>
 			<p>Request::post()</p>
 			<p>Request::get()</p>
@@ -216,16 +216,48 @@
 
 		</section>
 		<section>
-			<h1>Validate静态类</h1>
+			<h1>Validate数据验证类</h1>
 			<p>提供对数据的基本验证</p>
+			<blockquote>
+				<p class="success">
+					数据验证规则分三部分 <br>
+					一部分为类型: <code class='info'>email</code> <code class='info'>tel</code> <code class='info'>url</code> <br>
+					二部分为可变参数 <code class='danger'>min-length=6</code> <code class='danger'>max-length=20</code><br>
+					三部分为正则验证 可以添加自定义正则验证
+				</p>
+				<p>如: <code>Validate::addRule('text','输入的内容不合法','/^\w+$/')</code></p>
+				<p class="danger">注意正则规则以/开头,以/结尾,中间不要含有|,否则会识别为多个规则了</p>
+				<ul>
+					<li>只需简单两步 <code>Validate::addRule('inputurl','不正确的网址格式|网址最小8位','url|min-length=8')</code>
+					再然后<code>$ret=Validate::check($data)</code>
+					</li>
+					<li>验证的结果即存放在$ret中,$ret是一个数组,全部验证通过$ret['code']=0 <br>
+					否则$ret返回错误代号和错误消息$ret['msg']</li>
+					<li>多个错误消息用|隔开,多个验证规则用|隔开,并且错误消息和规则一一对应</li>
+					<li>所有参数都会自动进行存在性检测,所有不用添加require规则,也没有该规则</li>
+					<li>可以省略错误消息,也可以省略规则,这样仅执行存在性检测<br>或者仅省略规则,这样默认的存在性错误消息,将会被自定义的错误消息取代</li>
+					<li>如: <code>Validate::addRule('name','用户名必须存在')</code> ,不填写第二个参数,验证不通过时默认会返回 '字段name必须存在'	</li>
+					<li>多个规则也想要自定义必须性检测的错误消息怎么办?</li>
+					<li>这样,将错误消息的个数比规则个数多出一个,这样必须性检测不通过是会返回第一个错误消息</li>
+					<li>如: <code>Validate::addRule('inputemail','邮箱必须填写|邮箱格式不正确','email')</code></li>
+
+				</ul>
+			</blockquote>
 		</section>
 		<section>
 			<h1>session处理</h1>
 			<p>系统封装的session函数,对于session的处理很有帮助</p>
-			<p>session_set()</p>
-			<p>session_get()</p>
-			<p>session_del()</p>
-			<p>从此再也不需要考虑<code>session_start</code>了</p>
+			<blockquote>
+				<p><code>session_set($key,$value)</code> 设置session,$value可以为array,这样会自动进行json_encode操作,
+				但是获取时需要自己进行json_decode<br>
+				同时$key也可以为键值对这样可以批量设置session,批量设置中也会检测value是否为array,若是则json_encode操作</p>
+				<p><code>session_get($key,$default)</code>获取session, $key可以为array,若是则批量获取session以数组形式返回<br>
+				$default为没有设置该session时的默认值,默认为null</p>
+				<p><code>session_del($key)</code>删除一个session,若$key为null或不传递参数,则执行session_destroy操作<br>
+				$key可以为数组,则执行批量删除操作</p>
+				<p>从此再也不需要考虑<code>session_start</code>了,所有函数直接使用,自动检测session_start</p>	
+			</blockquote>
+			
 		</section>
 		<section>
 			<h1>注意</h1>

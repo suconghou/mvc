@@ -1,5 +1,5 @@
 ##便捷快速的MVC开发框架
-###version1.5
+###version1.6
         
 * 只有两个核心文件入口文件index.php核心文件core.php,快速便捷,适用于各种项目
 * 修复apache和nginx状态码差异

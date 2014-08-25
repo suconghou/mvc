@@ -4,7 +4,7 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.5
+ * @version 1.6
  */
 
 /**
@@ -306,7 +306,7 @@ class app
 		}
 		else
 		{
-			$url=$router;
+			$url=Validate::url($router)?$router:Error(500,'Async needs a  url or an array ');
 		}
 		if($curl)
 		{
@@ -316,7 +316,7 @@ class app
 				return file_get_contents($url);			
 			}
 			$ch = curl_init(); 
-			$curl_opt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>1,
+			$curl_opt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT_MS=>1,CURLOPT_NOSIGNAL=>1,
 								CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
 			curl_setopt_array($ch, $curl_opt);
 			curl_exec($ch);
@@ -784,36 +784,45 @@ class Validate
 	 */
 	public static function check($data)
 	{
-		if(empty(self::$msg)||empty(self::$rule)||empty($data)) return false;
 		self::$data=$data;
+		if(empty(self::$rule))return false;
 		foreach (self::$rule as $key=>$rule) //遍历所有规则,得到字段,规则,规则可以为空
 		{
-			echo('key => '.$key.' <br>rule ==> '.implode(',',$rule));
 			//1.必须字段检测
 			$ret=self::requireFilter($key); //数据中必须存在该字段
-			if($ret['code']==0)
-			{
-				//2.解析规则
-					$arr=explode('|',$rule);////得出小规则段
-					foreach ($arr as  $v) //$v 规则关键字
+			if($ret['code']==0) //必须性监测通过
+			{	
+				if(!empty($rule[0])) //设定了规则//2.解析规则
+				{
+					foreach ($rule as  $v) //$v 规则关键字
 					{
-						if(stripos($v,'=')) //含有变量的规则
+						if(preg_match('/^\/.*\/$/',$v)) //正则规则
 						{
-							self::mixedFilter($key,explode('=', $v));
+							if(!preg_match($v, self::$data[$key]))
+							return self::destruct(array('code'=>-1,'msg'=>self::getErrMsg($key,$v)));
+						}
+						else if(stripos($v,'=')) //含有变量的规则
+						{
+							$ret=self::mixedFilter($key,explode('=', $v));
+							if($ret['code']!=0)
+							return self::destruct($ret);
 						}
 						else //普通规则
 						{
-							self::singleFilter($key,$v);
+							$ret=self::singleFilter($key,$v);
+							if($ret['code']!=0)
+							return self::destruct($ret);
 						}
 					}
+				}
 
 			}
 			else
 			{
 				return self::destruct($ret);
 			}
-
 		}
+		return self::destruct(array('code'=>0));
 	}
 	/**
 	 * 必须字段检测
@@ -826,25 +835,7 @@ class Validate
 		}
 		else
 		{
-			if(is_null(self::$rule[$key]))
-			{
-
-			}
-			else if(count(self::$rule[$key])==count(self::$msg[$key]))
-			{
-				if(is_null(self::$rule[$key])||empty(self::$msg[$key][0]))
-				{
-					$err='字段'.$key.'为必填项';
-				}
-				else
-				{
-					$err=self::$msg[$key][0];
-				}
-			}
-			else
-			{
-				$err=self::$msg[$key][0];
-			}
+			$err=self::getErrMsg($key,null);
 			return array('code'=>-1,'msg'=>$err);
 		}
 
@@ -855,11 +846,83 @@ class Validate
 	}
 	private static function mixedFilter($key,$arr)
 	{
-		echo '检测字段'.$key.'的规则'.$arr[0].'==>'.$arr[1].'<br>';
+		$msg=self::getErrMsg($key,$arr[0].'='.$arr[1]);
+		switch ($arr[0])
+		{
+			case 'min-length':
+				if(strlen(self::$data[$key])<$arr[1])
+				{
+					return array('code'=>-1,'msg'=>$msg);
+				}
+				break;
+			case 'max-length':
+				if(strlen(self::$data[$key])>$arr[1])
+				{
+					return array('code'=>-2,'msg'=>$msg);
+				}
+				break;
+			default:
+				return array('code'=>-5,'msg'=>'Error Rule');
+				break;
+		}
+		return array('code'=>0);
 	}
 	private static function singleFilter($key,$rule)
 	{
-		echo '检测字段'.$key.'的规则'.$rule.'<br>';
+		$msg=self::getErrMsg($key,$rule);
+		$data=self::$data[$key];
+		switch ($rule)
+		{
+			case 'email':
+				if(!self::email($data)) return array('code'=>-1,'msg'=>$msg);
+				break;
+			case 'username':
+				if(!self::username($data)) return array('code'=>-2,'msg'=>$msg);
+				break;
+			case 'password':
+				if(!self::password($data)) return array('code'=>-3,'msg'=>$msg);
+				break;
+			case 'url':
+				if(!self::url($data)) return array('code'=>-4,'msg'=>$msg);
+				break;
+			case 'tel':
+				if(!self::tel($data)) return array('code'=>-5,'msg'=>$msg);
+				break;
+			case 'ip':
+				if(!self::ip($data)) return array('code'=>-6,'msg'=>$msg);
+				break;
+			case 'idcard':
+				if(!self::idcard($data)) return array('code'=>-7,'msg'=>$msg);
+				break;
+			default:
+				return array('code'=>-9,'msg'=>'Error Rule');
+				break;
+		}
+		return array('code'=>0);
+	}
+	private static function getErrMsg($key,$rule=null)
+	{
+		if($rule)
+		{
+			$arr_i=array_keys(self::$rule[$key],$rule);
+			$i=$arr_i[0];
+			$msg=self::$msg[$key][$i];
+			return $msg;
+		}
+		else
+		{
+			if(count(self::$rule[$key])==count(self::$msg[$key]))
+			{
+				$err=self::$msg[$key][0]&&!self::$rule[$key][0]?self::$msg[$key][0]:'字段'.$key.'为必填项';
+			}
+			else
+			{
+				$err=self::$msg[$key][0]?self::$msg[$key][0]:'字段'.$key.'为必填项';
+			}
+			return $err;
+		}
+
+
 	}
 	private static function destruct($msg)
 	{
@@ -902,7 +965,7 @@ class Validate
 		return preg_match('/^\d{15}(\d\d[0-9xX])?$/',$id);
 	}
 	//数字/大写字母/小写字母/标点符号组成，四种都必有，8位以上
-	public static function pass($pass)
+	public static function password($pass)
 	{
 		return preg_match('/^(?=^.{8,}$)(?=.*\d)(?=.*\W+)(?=.*[A-Z])(?=.*[a-z])(?!.*\n).*$/',$pass);
 	}
@@ -1127,7 +1190,7 @@ function session_set($key,$value=null)
 	{
 		foreach ($key as $k => $v)
 		{
-			$_SESSION[$k]=$v;
+			$_SESSION[$k]=is_array($v)?json_encode($v):$v;
 		}
 		return true;
 	}
