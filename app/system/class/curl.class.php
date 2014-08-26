@@ -150,7 +150,7 @@ class curl
      * href 提取 <a href=''  所有连接
      * url  提取 http://    符合http:// 的地址
      */
-    function fetch($type,$url=null)
+    function fetch($type,$url=null,$index=null)
     {
         if($url)
         {
@@ -187,7 +187,7 @@ class curl
                 return $ret;
             default:
                 if(!preg_match('/^\/.+\/$/',$type)) return $res;//不是正则规则
-                return $this->filter($res,$type);
+                return $this->filter($res,$type,$index);
         }
     }
     private function filter($html,$regex,$index=null)
@@ -198,9 +198,9 @@ class curl
             {
                 return $matches;
             }
-            return array_unique($matches[$index]);
+            return isset($matches[$index])?array_unique($matches[$index]):array();
         }
-        return null;
+        return array();
 
     }
 }
