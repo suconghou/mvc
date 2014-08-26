@@ -1,9 +1,10 @@
 <?php
 /**
 *  数据库基础扩展,继承此类以获得灵活的数据操纵
-*  包含自动缓存系统,缓存系统需cache.class.php支持
+*  提供数据库基本操作,但没有限定表名,字段名等
+*  包含自动缓存系统,缓存系统需cache.class.php支持,也是三种缓存类型
 *  四种基本数据访问
-*  selectById($table,$id)
+*  selectById($table,$id,$column='*')
 *  deleteById($table,$id)
 *  updateById($table,$id,$data)
 *  insertData($table,$data) 
@@ -16,8 +17,8 @@
 *  multUpdate($table,$idArr)
 *  multDelete($table,$idArr)
 *  单字段自增,自减
-*  incrById($table,$column,$id)
-*  decrById($table,$column,$id)
+*  incrById($table,$column,$id,$num=1)
+*  decrById($table,$column,$id,$num=1)
 *  
 *  数据列表
 *  getList($table,$column,$page=1,$order='desc',$per=20,$where=null)
@@ -74,9 +75,9 @@ class database extends db
 	/**
 	 * 根据ID获得某个表的一行数据
 	 */
-	function selectById($table,$id)
+	function selectById($table,$id,$column='*')
 	{
-		$sql="SELECT * FROM `{$table}` WHERE id={$id} ";
+		$sql="SELECT {$column} FROM `{$table}` WHERE id={$id} ";
 		if(self::$use)
 		{
 			$key=md5($table.$id);
@@ -151,7 +152,7 @@ class database extends db
 	}
 	// end 四种基本类型
 	///缓存结果不能更新直到过期
-	function selectWhere($table,$where=null)
+	function selectWhere($table,$where=null,$column='*')
 	{	
 		if($where)
 		{
@@ -160,7 +161,7 @@ class database extends db
 				$k[]='(`'.$key.'`="'.$value.'")';
 			}
 			$strk.=implode(" AND ",$k);
-			$sql="SELECT * FROM `{$table}` WHERE ({$strk}) ";
+			$sql="SELECT {$column} FROM `{$table}` WHERE ({$strk}) ";
 			if(self::$use)
 			{
 				$key=md5($table,$strk);
@@ -183,7 +184,7 @@ class database extends db
 		}
 		else
 		{
-			$sql="SELECT * FROM `{$table}` ";
+			$sql="SELECT {$column} FROM `{$table}` ";
 			return $this->getData($sql);
 		}
 		
@@ -245,12 +246,24 @@ class database extends db
 	}
 	// end 三种基本条件
 
+	function multInsert($table,$dataArr)
+	{
+
+	}
+	function multUpdate($table,$idArr)
+	{
+
+	}
+	function multDelete($table,$idArr)
+	{
+
+	}
 	/**
 	 * 将某个表的某个字段自增1
 	 */
-	function incrById($table,$column,$id)
+	function incrById($table,$column,$id,$num=1)
 	{
-		$sql="UPDATE `{$table}` SET {$column}={$column}+1 WHERE id={$id} ";
+		$sql="UPDATE `{$table}` SET {$column}={$column}+{$num} WHERE id={$id} ";
 		if(self::$use)
 		{
 			$key=md5($table.$id);
@@ -262,9 +275,9 @@ class database extends db
 	/**
 	 * 将某个表的某个字段减去1
 	 */
-	function decrById($table,$column,$id)
+	function decrById($table,$column,$id,$num=1)
 	{
-		$sql="UPDATE `{$table}` SET {$column}={$column}-1 WHERE id={$id} ";
+		$sql="UPDATE `{$table}` SET {$column}={$column}-{$num} WHERE id={$id} ";
 		if(self::$use)
 		{
 			$key=md5($table.$id);
@@ -275,7 +288,7 @@ class database extends db
 	/**
 	 * 获得某个表的按某字段排序的分页内容以及总页数,不缓存
 	 */
-	function getList($table,$column,$page=1,$order='desc',$per=20,$where=null)
+	function getList($table,$page=1,$where=null,$column='id',$order='desc',$per=20,$selectCloumn='*')
 	{
 		$offset=($page-1)*$per;
 		if(is_array($where))
@@ -287,14 +300,14 @@ class database extends db
 
 			}
 			$strk.=implode(" AND ",$k);
-			$sql="SELECT * FROM `{$table}` WHERE  ({$strk})  ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
+			$sql="SELECT {$selectCloumn} FROM `{$table}` WHERE  ({$strk})  ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
 			$list=$this->getData($sql);
 			$sql="SELECT COUNT(1) FROM `{$table}` WHERE  ({$strk})  ";
 			$page=ceil($this->getVar($sql)/$per);
 		}
 		else
 		{
-			$sql="SELECT * FROM `{$table}` ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
+			$sql="SELECT {$selectCloumn} FROM `{$table}` ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
 			$list=$this->getData($sql);
 			$sql="SELECT COUNT(1) FROM `{$table}` ";
 			$page=ceil($this->getVar($sql)/$per);
@@ -346,8 +359,6 @@ class database extends db
 			return $this->updateById($this->table,$this->id,$this->update);
 		}
 	}
-
-
 
 }
 // end class database
