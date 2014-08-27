@@ -553,7 +553,7 @@ function V($view,$data=null,$fileCacheMin=0)
 //缓存,第一个参数为缓存时间,第二个为是否文件缓存
 function C($time,$file=false)
 {
-	$GLOBALS['APP']['cache']['time']=intval($time)*60;
+	$GLOBALS['APP']['cache']['time']=$time*60;
 	$GLOBALS['APP']['cache']['file']=$file;
 	if(!$file)///使用了http缓存,在此处捕获缓存
 	{
@@ -561,7 +561,7 @@ function C($time,$file=false)
 		$last_expire = Request::server('HTTP_IF_MODIFIED_SINCE',0);
 		if($last_expire)
 		{	
-			if((strtotime($last_expire)+$cache['time'])>time()) //命中缓存
+			if((strtotime($last_expire)+$GLOBALS['APP']['cache']['time'])>time()) //命中缓存
 			{
 				exit(http_response_code(304));	
 			}
@@ -737,7 +737,7 @@ class Request
 		}
 
 	}
-	private static function getIp()
+	public static function getIp()
 	{
 		if ($ip=self::getVar('server','HTTP_X_FORWARDED_FOR'))
 			return $ip;
@@ -754,15 +754,19 @@ class Request
 		else return null;
 
 	}
-	private static function isAjax()
+	public static function isCli()
+	{
+		return isset($GLOBALS['APP']['CLI']);
+	}
+	public static function isAjax()
 	{
 		return self::getVar('server','HTTP_X_REQUESTED_WITH')=='XMLHttpRequest';
 	}
-	private static function ua()
+	public static function ua()
 	{
 		return self::getVar('server','HTTP_USER_AGENT');
 	}
-	private static function refer()
+	public static function refer()
 	{
 		return self::getvar('server','HTTP_REFERER');
 	}
@@ -1289,7 +1293,7 @@ function baseUrl($path=null)
 	
 	if(is_string($path))
 	{
-		$path=$path[0]=='/'?$path:'/'.$path;
+		$path='/'.ltrim($path, '/');
 		return('http://'.$_SERVER['HTTP_HOST'].$path);
 	}
 	else if(is_null($path))
@@ -1303,6 +1307,20 @@ function baseUrl($path=null)
 	}
 
 }
+function encrypt($input,$key=null)
+{
+	return str_replace(array('+','/','='),array('-','_',''),base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_128,md5($key),$input,MCRYPT_MODE_ECB,mcrypt_create_iv(16))));
+}
+function decrypt($input,$key=null)
+{
+	$input=str_replace(array('-','_'), array('+','/'), $input);
+	if($mod=strlen($input)%4)
+	{
+		$input.=substr('====', $mod);
+	}
+	return trim(mcrypt_decrypt(MCRYPT_RIJNDAEL_128,md5($key),base64_decode($input),MCRYPT_MODE_ECB,mcrypt_create_iv(16)));
+}
+
 //发送邮件,用来替代原生mail,多个接受者用分号隔开
 function sendMail($mail_to, $mail_subject, $mail_message)
 {

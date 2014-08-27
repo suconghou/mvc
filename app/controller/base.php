@@ -12,7 +12,7 @@
 * 自定义过滤条件
 * 在其他控制器中调用 $this->ip()->refer()->session()->post()->get()->defender();
 */
-abstract class base 
+class base 
 {
 	private static $ip;
 	private static $refer; //限制refer,包含关系也会限制
@@ -44,6 +44,9 @@ abstract class base
 		
 		return $this; 
 	}
+	/**
+	 * 开启跨域资源共享
+	 */
 	function cors($domain=null)
 	{
 		if($domain)
@@ -54,6 +57,14 @@ abstract class base
 		{
 			header('Access-Control-Allow-Origin:*');
 		}
+	}
+	/**
+	 * 阻断非CLI请求
+	 */
+	function cli()
+	{
+		Request::isCli()||exit;
+		return $this;
 	}
 	function get($arr)
 	{
