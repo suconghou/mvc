@@ -787,7 +787,9 @@ class Request
 				return isset($_SERVER[$var])?self::clean($_SERVER[$var]):$default;
 				break;
 			case 'session': ///此处为获取session的方式
-				return isset($_SESSION[$var])?$_SESSION[$var]:$default;
+				$session=isset($_SESSION[$var])?$_SESSION[$var]:$default;
+				session_write_close();
+				return $session;
 				break;
 			default:
 				return false;
@@ -1225,11 +1227,13 @@ function session_set($key,$value=null)
 		{
 			$_SESSION[$k]=is_array($v)?json_encode($v):$v;
 		}
-		return true;
+		return session_write_close();
 	}
 	else
 	{ 
-		return $_SESSION[$key]=is_array($value)?json_encode($value):$value;
+		$_SESSION[$key]=is_array($value)?json_encode($value):$value;
+		return session_write_close();
+
 	}
 }
 function session_del($key=null)
@@ -1241,11 +1245,13 @@ function session_del($key=null)
 		{
 			unset($_SESSION[$v]);
 		}
-		return true;
+		return session_write_close();
+		
 	}
 	else if($key)
 	{
 		unset($_SESSION[$key]);
+		return session_write_close();
 	}
 	else
 	{
