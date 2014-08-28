@@ -229,7 +229,7 @@ class qqroubot
 			else //没有回复过,执行回复并记录
 			{
 				$answer=self::getAnswer($user_name,$user_msg); //要回复的内容
-				logMessage($user_qq.'=>'.$answer);
+				app::log($user_qq.'=>'.$answer);
 				if(self::sendMsg($user_qq,$answer)) //回复成功,记录已回复
 				{
 					self::$cache->set($user_msg,$answer,self::$noreplay/2); //记录是否回复过
