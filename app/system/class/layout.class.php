@@ -99,7 +99,7 @@ class layout
 	}
 	static function pager($total,$per=10,$class=null)
 	{
-		$page
+		
 	}
 
 	private static function img()
@@ -139,5 +139,33 @@ class layout
 		
 
 	}
+
+}
+
+// 几个布局函数
+
+/**
+ * <a href=''>$title</a>
+ */
+function anchor($link,$title=null,$class=null,$id=null,$new=null)
+{
+	$title=$title?$title:$link;
+	$new=$new?" target=\"_blank\" ":null;
+	$tit=" title=\"{$title}\" ";
+	$class=$class?" class=\"{$class}\" ":null;
+	$id=$id?" id=\"{$id}\" ":null;
+	return "<a href=\"{$link}\"{$tit}{$class}{$id}{$new}>".$title."</a>";
+}
+
+function ul($data)
+{
+	foreach ($data as $key => $value)
+	{
+				
+	}
+}
+
+function select($data,)
+{
 
 }
