@@ -29,9 +29,9 @@
 *  $db->cache(0)->查询操作, 跳过缓存,取真实数据(默认)
 *  $db->cache(0/1,60); 设置缓存有效期, 
 *
-*  继承db的类,请不要执行parent::__construct(); 他留给手动实例化的
+*  该类只提供继承,不能直接实例化
 */
-class database extends db
+abstract class database extends db
 {
 	
 	private static $cache; 
@@ -77,7 +77,7 @@ class database extends db
 	 */
 	function selectById($table,$id,$column='*')
 	{
-		$sql="SELECT {$column} FROM `{$table}` WHERE id={$id} ";
+		$sql="SELECT {$column} FROM `{$table}` WHERE id='{$id}' ";
 		if(self::$use)
 		{
 			$key=md5($table.$id);
@@ -160,6 +160,7 @@ class database extends db
 			{
 				$k[]='(`'.$key.'`="'.$value.'")';
 			}
+			$strk=null;
 			$strk.=implode(" AND ",$k);
 			$sql="SELECT {$column} FROM `{$table}` WHERE ({$strk}) ";
 			if(self::$use)
@@ -314,51 +315,7 @@ class database extends db
 		}
 		return array('list'=>$list,'page'=>$page);
 	}
-	/**
-	 * 只有set,会触发__destruct里的sql,因此要监控他
-	 * set 会保护table ,id ,他们不会修改
-	 */
-	function __set($key,$val)
-	{
-		if(isset($this->data[$this->table][$key])) //存在这个字段
-		{
-			$this->data[$this->table][$key]=$val;
-			$this->update[$key]=$val;
-		}
-		else //不存在的字段忽略
-		{ 
-			return false;
-		}
-	}
-	function __get($key)
-	{
-		if(isset($this->data[$this->table][$key]))
-		{
-			return $this->data[$this->table][$key];
-		}
-		return null;
-
-	}
-	function __isset($key)
-	{
-		return isset($this->data[$this->table][$key]);
-
-	}
-	function __unset($key)
-	{
-		unset($this->data[$this->table][$key]);
-
-	}
-	/**
-	 * DB被实例化,每次结束时检查数据模型改动,DB的实例化用于数据模型其他操作请继承DB
-	 */
-	function __destruct()
-	{
-		if($this->update)
-		{
-			return $this->updateById($this->table,$this->id,$this->update);
-		}
-	}
+	
 
 }
 // end class database

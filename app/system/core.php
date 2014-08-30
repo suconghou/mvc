@@ -201,7 +201,7 @@ class app
 				else
 				{	
 					header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT');   
-					exit(file_get_contents($hash));
+					exit(readfile($hash));
 				}
 			}
 			else ///已过期
@@ -248,9 +248,9 @@ class app
 		(strlen($_SERVER['REQUEST_URI'])>MAX_URL_LENGTH)&&Error('500','Request url too long ! ');
 		list($uri)=explode('?',$_SERVER['REQUEST_URI']);
 		$uri=='/favicon.ico'&&die;
-		if(substr($uri,0,10)=='/index.php')
+		if(strpos($uri, $_SERVER['SCRIPT_NAME'])!==FALSE)
 		{
-			$uri=substr($uri,10);
+			$uri=str_replace($_SERVER['SCRIPT_NAME'], null, $uri);
 		}
 		if(REGEX_ROUTER)
 		{
@@ -516,7 +516,7 @@ function V($view,$data=null,$fileCacheMin=0)
 		}
 		if(isset($GLOBALS['APP']['cache']))//启用了缓存
 		{
-			$expires_time=time()+$GLOBALS['APP']['cache']['time'];
+			$expires_time=intval(time()+$GLOBALS['APP']['cache']['time']);
 			if($GLOBALS['APP']['cache']['file'])//生成文件缓存
 			{
 				$contents=ob_get_contents();
@@ -555,25 +555,23 @@ function C($time,$file=false)
 {
 	$GLOBALS['APP']['cache']['time']=$time*60;
 	$GLOBALS['APP']['cache']['file']=$file;
-	if(!$file)///使用了http缓存,在此处捕获缓存
-	{
-		$expires_time=time()+$GLOBALS['APP']['cache']['time'];
-		$last_expire = Request::server('HTTP_IF_MODIFIED_SINCE',0);
-		if($last_expire)
-		{	
-			if((strtotime($last_expire)+$GLOBALS['APP']['cache']['time'])>time()) //命中缓存
-			{
-				exit(http_response_code(304));	
-			}
-		}
-		else
+	///使用了http缓存,在此处捕获缓存
+	$expires_time=intval(time()+$GLOBALS['APP']['cache']['time']);
+	$last_expire = Request::server('HTTP_IF_MODIFIED_SINCE',0);
+	if($last_expire)
+	{	
+		if((strtotime($last_expire)+$GLOBALS['APP']['cache']['time'])>time()) //命中缓存
 		{
-			header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
-			header("Cache-Control: max-age=".$GLOBALS['APP']['cache']['time']);
-			header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT'); 
+			exit(http_response_code(304));	
 		}
-
 	}
+	else
+	{
+		header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
+		header("Cache-Control: max-age=".$GLOBALS['APP']['cache']['time']);
+		header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT'); 
+	}
+
 }
 
 function template($file)///加载模版
@@ -1217,7 +1215,6 @@ function session_get($key=null,$default=null)
 		return Request::session($key,$default);
 	}
 }
-//此处为设置session的方式,重写可将session迁移至redis等
 function session_set($key,$value=null)
 {
 	if(!isset($_SESSION))session_start();

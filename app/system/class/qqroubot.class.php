@@ -261,7 +261,7 @@ class qqroubot
 		$s=$t;
 		for ($i=0; $i < 999999999999; $i++)
 		{ 
-			if($i%20==0) // 每 20个周期 执行登陆
+			if($i%50==0) // 每 20个周期 执行登陆
 			{
 				echo self::login()?'Online':'Offline';
 				echo "\r\n";

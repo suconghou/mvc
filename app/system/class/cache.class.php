@@ -331,7 +331,7 @@ class cache
 		if(self::$cacheType=='file')
 		{
 			self::delFileExpire();
-			file_put_contents(self::$fileCache,serialize(self::$fileArr));	
+			self::storFile();
 		}
 	}
 
