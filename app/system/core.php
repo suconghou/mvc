@@ -494,7 +494,7 @@ function S($lib,$param=null)
 	}
 }
 //加载视图,传递参数,设置缓存
-function V($view,$data=null,$fileCacheMin=0)
+function V($view,$data=array(),$fileCacheMin=0)
 {
 	if(defined('APP_TIME_SPEND'))
 	{
@@ -574,11 +574,13 @@ function C($time,$file=false)
 
 }
 
-function template($file)///加载模版
+function template($file,$data=array())///加载模版
 {
 	$file=VIEW_PATH.$file.'.php';
 	if(is_file($file))
 	{
+		is_array($data)||empty($data)||Error('500','param to view '.$file.' show be an array');
+		empty($data)||extract($data);
 		include $file;
 	}
 	else
