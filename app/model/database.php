@@ -300,6 +300,7 @@ abstract class database extends db
 				$k[]='(`'.$key.'`="'.$value.'")';
 
 			}
+			$strk=null;
 			$strk.=implode(" AND ",$k);
 			$sql="SELECT {$selectCloumn} FROM `{$table}` WHERE  ({$strk})  ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
 			$list=$this->getData($sql);
