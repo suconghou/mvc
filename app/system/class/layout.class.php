@@ -151,21 +151,53 @@ function anchor($link,$title=null,$class=null,$id=null,$new=null)
 {
 	$title=$title?$title:$link;
 	$new=$new?" target=\"_blank\" ":null;
-	$tit=" title=\"{$title}\" ";
+	$tit=strip_tags($title)?" title=\"".strip_tags($title)."\" ":null;
 	$class=$class?" class=\"{$class}\" ":null;
 	$id=$id?" id=\"{$id}\" ":null;
 	return "<a href=\"{$link}\"{$tit}{$class}{$id}{$new}>".$title."</a>";
 }
-
-function ul($data)
+/**
+ * img 生成函数
+ */
+function img($src,$alt=null,$class=null,$id=null)
 {
+	$alt=$alt?" alt=\"{$alt}\" ":null;
+	$class=$class?" class=\"{$class}\" ":null;
+	$id=$id?" id=\"{$id}\" ":null;
+	return "<img src=\"{$src}\"{$alt}{$class}{$id}>";
+}
+/**
+ * ul生成函数
+ */
+function ul($data,$class=null,$liclass=null,$id=null)
+{
+	$class=$class?" class=\"{$class}\" ":null;
+	$id=$id?" id=\"{$id}\" ":null;
+	$liclass=$liclass?" \"{$liclass}\" ":null;
+	$html="<ul {$class}{$id}>";
 	foreach ($data as $key => $value)
 	{
-				
+		$html.="<li{$liclass}>{$value}</li>";
 	}
+	$html.="</ul>";
+	return $html;
 }
 
-function select($data,)
+/**
+ * select 生成函数
+ */
+function select($data,$current=null,$name=null,$class=null,$id=null)
 {
+	$name=$name?" name=\"{$name}\" ":null;
+	$class=$class?" class=\"{$class}\" ":null;
+	$id=$id?" id=\"{$id}\" ":null;
+	$html="<select {$name}{$class}{$id} >";
+	foreach ($data as $key => $value)
+	{
+		$current=$key==$current?" selected":null;
+		$html.="<option value=\"{$key}\"{$current}>{$value}</option>";
+	}
+	$html.="</select>";
+	return $html;
 
 }
