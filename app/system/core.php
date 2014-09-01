@@ -4,7 +4,7 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.6
+ * @version 1.62
  */
 
 /**
@@ -38,7 +38,7 @@ class app
 		}
 	}
 	/**
-	 * 内部转向,可以治指定一个方法,控制器保持原有的
+	 * 内部转向,可以指定一个方法,控制器保持原有的
 	 */
 	public static function run($router)
 	{
@@ -1399,4 +1399,4 @@ function sendMail($mail_to, $mail_subject, $mail_message)
 
 
 
-// end file of core.php
+// end  of file core.php
