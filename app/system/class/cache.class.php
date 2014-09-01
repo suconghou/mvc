@@ -18,11 +18,12 @@ class cache
 	private static $redisServer='127.0.0.1';
 	private static $redisPort=6379;
 
-	private static $fileCache; //可以自定义路径或者使用系统默认
+	private static $fileCache; //可以自定义初始化使用的文件数据库
 	private static $fileArr;
 
 	private static $cache;
 	private static $cacheType;
+	private static $db;
 	
 	function __construct($type='memcache')
 	{
@@ -63,10 +64,10 @@ class cache
 		self::$cacheType='redis';
 
 	}
-	private static function initFile()
+	private static function initFile($db=null)
 	{
-		
-		self::$fileCache=empty(self::$fileCache)?sys_get_temp_dir().'/FILECACHE':self::$fileCache;
+		$file=$db?'/'.$db:'/FILECACHE';
+		self::$fileCache=sys_get_temp_dir().$file;
 		if(!file_exists(self::$fileCache))
 		{
 			$init=array('FileCacheInit'=>time());
@@ -163,6 +164,28 @@ class cache
 
 	}
 	/**
+	 * 切换数据库
+	 */
+	function select($db)
+	{
+		self::$db=intval($db);
+		switch (self::$cacheType)
+		{
+			case 'memcache':
+				return self::memcacheSelect();
+				break;
+			case 'redis':
+				return self::redisSelect();
+				break;
+			case 'file':
+				return self::fileSelect();
+				break;	
+			default:
+				self::halt(2);
+				break;
+		}
+	}
+	/**
 	 * 批量设置
 	 */
 	function mset($arr,$expire=86400)
@@ -214,21 +237,35 @@ class cache
 		return self::set($key,abs(intval(self::get($key)))-$num);
 	}
 	
+	private static function  memcacheSelect()
+	{
+		return self::$db.='m_';
+	}
+	private static function redisSelect()
+	{
+		return self::$cache->select(self::$db);
+	}
+	private static function fileSelect()
+	{
+		self::$db.='f_';
+		self::storFile();
+		return self::initFile(self::$db);
+	}
 	private static function memcacheSet($key,$value,$expire=86400)
 	{
-		return self::$cache->set($key,$value,0,$expire);
+		return self::$cache->set(self::$db.$key,$value,0,$expire);
 	} 
 	private static function memcacheGet($key)
 	{
-		return self::$cache->get($key);
+		return self::$cache->get(self::$db.$key);
 	}
 	private static function redisSet($key,$value,$expire=86400)
 	{
-		return self::$cache->setex($key,$expire,$value);
+		return self::$cache->setex($key,$expire,serialize($value));
 	}
 	private static function redisGet($key)
 	{
-		return self::$cache->get($key);
+		return unserialize(self::$cache->get($key));
 	}
 	private static function fileSet($key,$value,$expire=86400)
 	{
@@ -276,7 +313,7 @@ class cache
 	}
 	private static function memcacheDel($key)
 	{
-		return self::$cache->delete($key,0);
+		return self::$cache->delete(self::$db.$key,0);
 	}
 	private static function redisDel($key)
 	{

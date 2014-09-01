@@ -1,19 +1,19 @@
 <?php
 
 /**
-*		基于文本的简易k->v数据库
-* 		kvdb API 
-* 		
-*  		set($key,$value);
-*		sets($arr);//一次设置多个
-*       get($key);
-*		gets($key); 以x开头或者所有
-*		del($key);
-*		flush();//删除所有
-*		like($key);//包含x的
-*		初始化参数  tmp--随机零时文件
-*					tmp/aa--固定零时文件
-*                   其他字符 app/s生成文件，为空加载默认
+*	基于文本的简易k->v数据库
+* 	KVDB API 
+* 	set($key,$value)
+*	mset($arr)
+*	get($key)
+*	mget($arr)
+*	del($key)
+*	mdel($arr)
+*	gets($key)
+*	like($key)
+*	flush()
+*	select($db)
+*	
 */
 class kvdb 
 {
@@ -34,6 +34,9 @@ class kvdb
 	{
 		file_put_contents(self::$dbfile,serialize(self::$dbarr));
 	}
+	/**
+	 * 加载一个数据库初始化
+	 */
 	private static function init($file=null)
 	{
 		if($file==null)//加载默认
@@ -51,27 +54,37 @@ class kvdb
 		if(!file_exists(self::$dbfile))
 		{
 			self::$dbarr=array('init_time'=>time());
-			file_put_contents(self::$dbfile,serialize(self::$dbarr));
+			self::write();
 		}
 		self::read();
 	}
-	function get($key)
+	/**
+	 * 切换到或初始化一个数据库
+	 */
+	function select($db=null)
 	{
-		return isset(self::$dbarr[$key])?self::$dbarr[$key]:null;
+		if($db==null)
+		{
+			self::$dbfile='kvdb.db';
+		}
+		self::write();
+		self::init($db);
 	}
-	function mget($arr) //批量获取
+	/**
+	 * 设置
+	 */
+	function set($key,$value)
 	{
 		if(empty(self::$dbarr))
 		{
 			$this->flush();
 		}
-		$out=array();
-		foreach ($arr as $key)
-		{
-			$out[$key]=isset(self::$dbarr[$key])?self::$dbarr[$key]:null;
-		}
-		return $out;
+		self::$dbarr[$key]=$value;
+		self::write();
 	}
+	/**
+	 * 批量设置
+	 */
 	function mset($arr)
 	{
 		if(empty(self::$dbarr))
@@ -84,6 +97,46 @@ class kvdb
 		}
 		self::write();
 	}
+
+	/**
+	 * 获取
+	 */
+	function get($key)
+	{
+		return isset(self::$dbarr[$key])?self::$dbarr[$key]:null;
+	}
+	/**
+	 * 批量获取
+	 */
+	function mget($arr) 
+	{
+		if(empty(self::$dbarr))
+		{
+			$this->flush();
+		}
+		$out=array();
+		foreach ($arr as $key)
+		{
+			$out[$key]=isset(self::$dbarr[$key])?self::$dbarr[$key]:null;
+		}
+		return $out;
+	}
+	/**
+	 * 删除
+	 */
+	function del($key)
+	{
+		if(isset(self::$dbarr[$key]))
+		{
+			unset(self::$dbarr[$key]);	
+			self::write();
+		}
+		return true;
+		
+	}
+	/**
+	 * 批量删除
+	 */
 	function mdel($arr)
 	{
 		if(empty(self::$dbarr))
@@ -96,6 +149,14 @@ class kvdb
 		}
 		self::write();
 
+	}
+	/**
+	 * 清空此数据库
+	 */
+	function flush()
+	{
+		self::$dbarr=array('init_time'=>time());
+		self::write();
 	}
 	function gets($key=null) ///已XX开头的KEY, 为空则所有KEY
 	{
@@ -111,49 +172,8 @@ class kvdb
 			}
 		}
 		return isset($res)?$res:null;
-
 	}
-	function set($key,$value)
-	{
-		if(empty(self::$dbarr))
-		{
-			$this->flush();
-		}
-		self::$dbarr[$key]=$value;
-		self::write();
-
-	}
-	function sets($arr)
-	{
-		if(empty(self::$dbarr))
-		{
-			$this->flush();
-		}
-		foreach ($arr as $key => $value)
-		{
-			self::$dbarr[$key]=$value;
-		}
-		self::write();
-
-	}
-	function del($key)
-	{
-		if(isset(self::$dbarr[$key]))
-		{
-			unset(self::$dbarr[$key]);	
-			self::write();
-
-		}
-		return true;
-		
-	}
-	function flush()
-	{
-		self::$dbarr=array('init_time'=>time());
-		self::write();
-	}
-
-	function like($key=null)
+	function like($key=null)///包含有XX字符的
 	{
 		if(empty(self::$dbarr))
 		{
@@ -167,15 +187,6 @@ class kvdb
 			}
 		}
 		return isset($res)?$res:null;
-	}
-	function change($file=null)
-	{
-		if($file==null)
-		{
-			self::$dbfile='kvdb.db';
-		}
-		self::write();
-		self::init($file);
 	}
 	function __destruct()
 	{
