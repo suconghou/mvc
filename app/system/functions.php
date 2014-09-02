@@ -210,3 +210,14 @@ function dump($var, $echo=true, $label=null, $strict=true) {
     }else
         return $output;
 }
+//可以指定前缀
+function createUuid($prefix = "",$split="")
+{ 
+    $str = md5(uniqid(mt_rand(), true));
+    $uuid = substr($str, 0, 8).$split ;
+    $uuid .= substr($str, 8, 4).$split;
+    $uuid .= substr($str, 12, 4).$split ;
+    $uuid .= substr($str, 16, 4).$split ;
+    $uuid .= substr($str, 20, 12);
+    return $prefix . $uuid;
+}
