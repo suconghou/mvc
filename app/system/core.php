@@ -698,12 +698,13 @@ class Request
 		}
 		return $data;
 	}
-	public static function info()
+	public static function info($key=null,$default=null)
 	{
-		$data['ip']=self::getIp();
+		$data['ip']=self::ip();
 		$data['ajax']=self::isAjax();
 		$data['ua']=self::ua();
 		$data['refer']=self::refer();
+		if($key) return isset($data[$key])?$data[$key]:$default;
 		return $data;
 	}
 	/**
@@ -737,7 +738,7 @@ class Request
 		}
 
 	}
-	public static function getIp()
+	public static function ip()
 	{
 		if ($ip=self::getVar('server','HTTP_X_FORWARDED_FOR'))
 			return $ip;
