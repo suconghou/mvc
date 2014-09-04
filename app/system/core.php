@@ -4,9 +4,8 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.62
+ * @version 1.7
  */
-
 /**
 * APP 主要控制类
 */
@@ -138,13 +137,12 @@ class app
 		{
 			foreach ($GLOBALS['APP']['regex_router'] as $key=>$item)
 			{
-
 				$regex=is_array($item)?$item[0]:$key;
 				if(preg_match('/^'.$regex.'$/', $uri,$matches)) //能够匹配正则路由
 				{
 					$url=$matches[0];
 					unset($matches[0]); //这个为输入的url
-					if(is_object($item)) //处理回调,返回上级处理
+					if(is_object($item)) 
 					{
 						return array_merge(array($url,$item),$matches);
 					}
