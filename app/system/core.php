@@ -33,8 +33,7 @@ class app
 		CLI&&self::runCli();
 		if(!isset($GLOBALS['APP']['CLI']))
 		{
-			$router=self::init();
-			self::process($router);
+			self::process(self::init());
 		}
 	}
 	/**
@@ -93,18 +92,25 @@ class app
 
 	}
 	/**
-	 * 添加正则路由,参数一正则,参数二路由数组,参数三强制类内寻找
+	 * 正则路由,参数一正则,参数二数组形式的路由表或者回调函数
 	 */
-	public static function route($regex,$arr,$in=false)
+	public static function route($regex,$arr)
 	{
 		if(REGEX_ROUTER)//启用了正则路由
 		{	
-			is_array($arr)||Error('500','Router need to be an array ! ');
-			$GLOBALS['APP']['regex_router'][]=array($regex,$arr);
-			if($in)
+			if(is_array($arr))
 			{
-				$GLOBALS['APP']['regex_router'][$regex]=$arr[0];
+				$GLOBALS['APP']['regex_router'][]=array($regex,$arr);
 			}
+			else if(is_object($arr)) //回调函数
+			{
+				$GLOBALS['APP']['regex_router'][$regex]=$arr;
+			}
+			else
+			{
+				Error(404,'error');
+			}
+
 		}
 	}
 	public static function log($msg)
@@ -128,20 +134,25 @@ class app
 	 */
 	private static function regexRouter($uri)
 	{
-		if(isset($GLOBALS['APP']['regex_router'][0]))
+		if(isset($GLOBALS['APP']['regex_router'][0]))//存在正则路由
 		{
-			foreach ($GLOBALS['APP']['regex_router'] as $regex)
+			foreach ($GLOBALS['APP']['regex_router'] as $key=>$item)
 			{
-				if(preg_match('/^'.$regex[0].'$/', $uri,$matches))
+
+				$regex=is_array($item)?$item[0]:$key;
+				if(preg_match('/^'.$regex.'$/', $uri,$matches)) //能够匹配正则路由
 				{
-					unset($matches[0]);
-					$router=array_merge($regex[1],$matches);
-					$GLOBALS['APP']['regex']['using']=$regex[0]; //命中的正则
-					if(isset($GLOBALS['APP']['regex_router'][$regex[0]]))
+					$url=$matches[0];
+					unset($matches[0]); //这个为输入的url
+					if(is_object($item)) //处理回调,返回上级处理
 					{
-						$GLOBALS['APP']['regex']['lib']=$GLOBALS['APP']['regex_router'][$regex[0]]; //强制lib寻找
+						return array_merge(array($url,$item),$matches);
 					}
-					return $router;
+					else //算出控制器
+					{
+						$router=array_merge($item[1],$matches);
+						return $router;
+					}
 				}
 			}
 		}
@@ -187,7 +198,14 @@ class app
 	 */
 	private static function process($router)
 	{
-		$hash=APP_PATH.'cache/'.md5(implode('-',$router)).'.html';///缓存hash
+		if(is_object($router[1])) //含有回调函数缓存hash
+		{
+			$hash=APP_PATH.'cache/'.($router[0]).'.html';
+		}
+		else //普通路由缓存hash
+		{
+			$hash=APP_PATH.'cache/'.(implode('-',$router)).'.html';
+		}
 		if (is_file($hash))//存在缓存文件
 		{
 			$expires_time=filemtime($hash);
@@ -195,8 +213,7 @@ class app
 			{		 
 				if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']))
 				{
-					http_response_code(304);
-					exit;  
+					exit(http_response_code(304));  
 				}
 				else
 				{	
@@ -204,7 +221,7 @@ class app
 					exit(readfile($hash));
 				}
 			}
-			else ///已过期
+			else //缓存已过期
 			{
 				unlink($hash);  ///删除过期文件
 				self::runRouter($router);
@@ -219,31 +236,22 @@ class app
 
 	public static function  runRouter($router)
 	{
-		if(isset($GLOBALS['APP']['regex']['lib'])) //lib 中寻找http handler
+		$GLOBALS['APP']['router']=$router;
+		if(is_object($router[1]))//含有回调的
 		{
-			$lib=$GLOBALS['APP']['regex']['lib'];
-			if(isset($GLOBALS['APP']['lib'][$lib])&&is_object($GLOBALS['APP']['lib'][$lib]))
-			{
-					method_exists($GLOBALS['APP']['lib'][$lib],$router[1])||Error('404','Regex http handler '.$GLOBALS['APP']['regex']['lib'].' does not contain method '.$router[1]);
-					unset($GLOBALS['APP']['regex']);
-					return call_user_func_array(array($GLOBALS['APP']['lib'][$lib],$router[1]), array_slice($router,2));//传入参数
-			}
-			else
-			{
-				Error('404','Not Found regex http handler '.$GLOBALS['APP']['regex']['lib'].' in loaded libraries !');
-			}
+			return call_user_func_array($router[1],array_slice($router,2));
 		}
 		else
 		{
 			app::run($router);
 		}
+		
 	}
 	/**
 	 * 初始化相关
 	 */
 	private static function init()
 	{
-	
 		isset($_SERVER['REQUEST_URI'])||exit('Use CLI Please Enable CLI Mode');
 		(strlen($_SERVER['REQUEST_URI'])>MAX_URL_LENGTH)&&Error('500','Request url too long ! ');
 		list($uri)=explode('?',$_SERVER['REQUEST_URI']);
@@ -255,8 +263,15 @@ class app
 		if(REGEX_ROUTER)
 		{
 			$router=self::regexRouter($uri);
-			$router||($router=self::commonRouter($uri));
 			unset($GLOBALS['APP']['regex_router']);
+			if($router)
+			{
+				return $router;
+			}
+			else
+			{
+				$router=self::commonRouter($uri);
+			}
 		}
 		else
 		{
@@ -288,7 +303,6 @@ class app
 				Error('404','Error action name ! ');
 			}
 		}
-		$GLOBALS['APP']['router']=$router;
 		return $router;
 	}
 
