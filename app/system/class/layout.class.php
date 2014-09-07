@@ -22,6 +22,9 @@ class layout
 	{
 		exit('Error Method '.$method.'  Called ! ');
 	}
+	/**
+	 * 生成加载css地址
+	 */
 	static function css($css=null)
 	{
 		if($css)
@@ -36,7 +39,7 @@ class layout
 				}
 				else
 				{
-					$css_link.='<link rel="stylesheet" href="/static/css/'.$v.'">';
+					$css_link.='<link rel="stylesheet" href="/static/css/'.$v.'.css">';
 				}
 			}
 			return $css_link;
@@ -57,59 +60,40 @@ class layout
 				}
 				else
 				{
-					$js_link.='<script src="/static/js/'.$v.'"></script>';
+					$js_link.='<script src="/static/js/'.$v.'.js"></script>';
 				}
 			}
 			return $js_link;
 		}
 		return null;
 	}
-	static function title($title=null)
+	static function title($title=null,$default=null)
 	{
-		if($title)
+		if($title||$default)
 		{
-			return '<title>'.$title.'</title>';
+			return '<title>'.$title?$title:$default.'</title>';
 		}
 		return null;
 	}
-	private static function ul_ol($data,$i_class=null)
+	static function h($data,$class=null,$id=null)
 	{
 		$data=is_array($data)?$data:array($data);
-		$ul_ol=null;
-		$i_class=$i_class?" class='{$i_class}' ":null;
+		$h=null;
+		$class=$class?" class=\"{$class}\" ":null;
+		$id=$id?" id=\"{$id}\" ":null;
 		foreach ($data as $key => $value)
 		{
-			$ul_ol.='<li'.$i_class.'>'.$value.'</li>';
+			$key++;
+			$h.="<h{$key}{$class}{$id}>{$value}</h{$key}>";
 		}
-		return $ul_ol;
+		return $h;
 
-	}
-	static function ul($data,$ul_class=null,$li_class=null)
-	{
-		$ul=self::ul_ol($data,$li_class);
-		$ul_class=$ul_class?" class='{$ul_class}' ":null;
-		return '<ul'.$ul_class.'>'.$ul.'</ul>';
-
-	}
-	static function ol($data,$ol_class=null,$li_class=null)
-	{
-		$ol=self::ul_ol($data,$li_class);
-		$ol_class=$ol_class?" class='{$ol_class}' ":null;
-		return '<ol'.$ol_class.'>'.$ol.'</ol>';
 	}
 	static function pager($total,$per=10,$class=null)
 	{
 		
 	}
 
-	private static function img()
-	{
-
-	}
-	private static function a()
-	{
-
-	}
 	static function header($css=null,$js=null,$title=null)
 	{
 		
@@ -123,10 +107,9 @@ class layout
 		return $footer;
 
 	}
-	static function menu()
+	static function menu($data,$current=null,$class=null,$liclass='iblock',$aclass='block',$id=null)
 	{
-		
-
+		return '<nav>'.ul($data,$current,$class,$liclass,$aclass,$id).'</nav>';
 	}
 	
 	static function sidebar()
@@ -169,19 +152,30 @@ function img($src,$alt=null,$class=null,$id=null)
 /**
  * ul生成函数
  */
-function ul($data,$class=null,$liclass=null,$id=null)
+function ul($data,$current=null,$class=null,$liclass=null,$aclass=null,$id=null)
 {
 	$class=$class?" class=\"{$class}\" ":null;
 	$id=$id?" id=\"{$id}\" ":null;
-	$liclass=$liclass?" \"{$liclass}\" ":null;
+	$liclass=$liclass?" class=\"{$liclass}\" ":null;
 	$html="<ul {$class}{$id}>";
 	foreach ($data as $key => $value)
 	{
-		$html.="<li{$liclass}>{$value}</li>";
+		$active=$current==$value?" class=\"active\" ":null;
+		if(is_numeric($key))
+		{
+			$html.="<li{$liclass}{$active}>{$value}</li>";
+		}
+		else
+		{	
+			$current=$current==$value?' active':null;
+			$aaclass=$aclass?" class=\"{$aclass}{$current}\" ":$active;
+			$html.="<li{$liclass}><a href=\"{$key}\"{$aaclass}>{$value}</a></li>";
+		}
 	}
 	$html.="</ul>";
 	return $html;
 }
+
 
 /**
  * select 生成函数
@@ -199,5 +193,5 @@ function select($data,$current=null,$name=null,$class=null,$id=null)
 	}
 	$html.="</select>";
 	return $html;
-
 }
+

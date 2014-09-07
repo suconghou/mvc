@@ -20,28 +20,7 @@
 * 简易的加载方式,WRITE LESS,DO MORE!
         
 ##文件分析
-       
-* regexRouter 正则路由分析器
-* commonRouter 普通路由分析器
-* showErrorpage 异常捕获
-* route 添加正则路由
-* process 流程导航器
-* run 内部重定向
-* logMessage 记录错误日志
-* M model加载器
-* S lib加载器
-* V view加载器
-* C 缓存处理器
-* http_response_code nginx自定义状态码
-* __autoload 自动装载器
-* template 模板加载器
-* byteFormat 字节格式化
-* redirect 外部重定向
-* baseUrl 路径组合器
-* async 异步执行器,类似多线程
-* sendmail 发送邮件
-* class model 数据库层
-            
+
         
    
 ##说明

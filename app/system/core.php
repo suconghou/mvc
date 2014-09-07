@@ -845,14 +845,16 @@ class Validate
 						else if(stripos($v,'=')) //含有变量的规则
 						{
 							$ret=self::mixedFilter($key,explode('=', $v));
-							if($ret['code']!=0)
-							return self::destruct($ret);
+							if($ret['code']!=0) return self::destruct($ret);
 						}
 						else //普通规则
 						{
 							$ret=self::singleFilter($key,$v);
 							if($ret['code']!=0)
-							return self::destruct($ret);
+							{
+								return self::destruct($ret);
+
+							} 
 						}
 					}
 				}
@@ -870,7 +872,7 @@ class Validate
 	 */
 	private static function requireFilter($key)
 	{
-		if(isset(self::$data[$key]))
+		if(isset(self::$data[$key])&&!empty(self::$data[$key]))
 		{
 			return array('code'=>0);
 		}
@@ -947,6 +949,7 @@ class Validate
 		{
 			$arr_i=array_keys(self::$rule[$key],$rule);
 			$i=$arr_i[0];
+			if(count(self::$rule[$key])!=count(self::$msg[$key]))$i++;
 			$msg=self::$msg[$key][$i];
 			return $msg;
 		}
@@ -1011,6 +1014,12 @@ class Validate
 	public static function idcard($id)
 	{
 		return preg_match('/^\d{15}(\d\d[0-9xX])?$/',$id);
+	}
+	//字母数字汉字,不能全是数字
+	public static function username($username)
+	{
+		if(is_numeric($username)) return false;
+		return preg_match('/^[\w\x{4e00}-\x{9fa5}]{3,20}$/u', $username);
 	}
 	//数字/大写字母/小写字母/标点符号组成，四种都必有，8位以上
 	public static function password($pass)
