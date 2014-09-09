@@ -133,7 +133,7 @@ class app
 	 */
 	private static function regexRouter($uri)
 	{
-		if(isset($GLOBALS['APP']['regex_router'][0]))//存在正则路由
+		if(!empty($GLOBALS['APP']['regex_router']))//存在正则路由
 		{
 			foreach ($GLOBALS['APP']['regex_router'] as $key=>$item)
 			{
