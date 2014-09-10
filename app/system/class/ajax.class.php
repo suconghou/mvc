@@ -9,6 +9,7 @@
 * @update 2014.2.26
 * @ 修正了get时忽略了端口号的问题
 * 实例化,传送url为真实的ajax请求地址即可
+* S('class/ajax')->run();
 */
 class ajax 
 {
@@ -22,37 +23,53 @@ class ajax
  
     function __construct()
     {
-        isset($_REQUEST['url'])||exit('no available url');
-        $this->url=$_REQUEST['url'];
-        foreach ($_GET as $key => $value)
-        {
-            if($key=='url')continue;
-            $this->get[$key]=$value;
-        }
-        foreach ($_POST as $key => $value)
-        {
-            if($key=='url')continue;        
-            $this->post[$key]=$value;
-        }
-        if(!empty($this->get))
-        {
-            $this->get_string=$this->implode_with_key($this->get);
-        }
-        if(!empty($this->post))
-        {
-             $this->post_string=$this->implode_with_key($this->post);
-        }
-        //$this->debug();
-        $this->ajax();
-       
+        $this->run();
     }
- 
-    function debug($debug=1)
+ 	
+ 	function run($debug=false)
+ 	{
+ 		if(isset($_REQUEST['url']))
+ 		{
+ 			 $this->url=$_REQUEST['url'];
+ 			 foreach ($_GET as $key => $value)
+	         {
+	            if($key=='url')continue;
+	            $this->get[$key]=$value;
+	         }
+	         foreach ($_POST as $key => $value)
+	         {
+	            if($key=='url')continue;        
+	            $this->post[$key]=$value;
+	         }
+	        if(!empty($this->get))
+	        {
+	            $this->get_string=$this->implode_with_key($this->get);
+	        }
+	        if(!empty($this->post))
+	        {
+	             $this->post_string=$this->implode_with_key($this->post);
+	        }
+	        if($debug)
+	        {
+	        	  $this->debug();
+	        }
+	        $this->ajax();
+
+ 		}
+ 		else
+ 		{
+ 			exit(json_encode(array('code'=>-1,'msg'=>'no available url')));
+ 		}
+
+
+ 	}
+
+    function debug()
     {
-         
         var_dump($this->get);
         var_dump($this->post);
         var_dump($this->get_string);
+        var_dump($this->post_string);
       
     }
     function ajax()

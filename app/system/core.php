@@ -775,6 +775,10 @@ class Request
 	{
 		return self::getVar('server','HTTP_X_REQUESTED_WITH')=='XMLHttpRequest';
 	}
+	public static function isPjax()
+	{
+        return array_key_exists('HTTP_X_PJAX', $_SERVER) && $_SERVER['HTTP_X_PJAX'];
+    }
 	public static function ua()
 	{
 		return self::getVar('server','HTTP_USER_AGENT');
