@@ -8,8 +8,6 @@ define('VIEW_PATH',APP_PATH.'view/');//视图路径
 define('CONTROLLER_PATH',APP_PATH.'controller/'); //控制器路径
 require LIB_PATH.'core.php';//载入核心
 
-define('CLI',1);//在CLI模式下也能运行
-
 define('MAX_URL_LENGTH',200); //URL最大长度限制
 define('REGEX_ROUTER',1);  //是否启用正则路由
 

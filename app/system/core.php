@@ -29,7 +29,7 @@ class app
 			set_error_handler('Error',2);///异常处理
 			error_reporting(0);
 		}
-		CLI&&self::runCli();
+		defined('STDIN')&&self::runCli();
 		if(!isset($GLOBALS['APP']['CLI']))
 		{
 			self::process(self::init());
@@ -174,21 +174,21 @@ class app
 	 */
 	private static function runCli()
 	{
-		if(substr(php_sapi_name(), 0, 3) == 'cli') //在CLI模式下
+		if(isset($GLOBALS['argc'])&&$GLOBALS['argc']>1)
 		{
-			if(!isset($GLOBALS['argc']))return;
-			set_time_limit(0);
-			if($GLOBALS['argc']>1)
-			{
-				$GLOBALS['APP']['CLI']=true;
-	    		foreach ($GLOBALS['argv'] as $key=>$uri)
-	    		{
-	    			if($key==0)continue;
-	    			$GLOBALS['APP']['router'][]=$uri;
-	    		}
-	      		self::runRouter($GLOBALS['APP']['router']);
-	      	}
-		}	
+			$GLOBALS['APP']['CLI']=true;
+    		foreach ($GLOBALS['argv'] as $key=>$uri)
+    		{
+    			if($key==0)continue;
+    			$GLOBALS['APP']['router'][]=$uri;
+    		}
+      		self::runRouter($GLOBALS['APP']['router']);
+      	}
+      	else
+      	{
+      		exit('CLI Mode Need controller and action !');
+      	}
+		
 
 	}
 	/**
@@ -234,6 +234,10 @@ class app
 
 	public static function  runRouter($router)
 	{
+		if(count($router)==1)
+		{
+			$router[]=DEFAULT_ACTION;
+		}
 		$GLOBALS['APP']['router']=$router;
 		if(is_object($router[1]))//含有回调的
 		{
@@ -250,7 +254,6 @@ class app
 	 */
 	private static function init()
 	{
-		isset($_SERVER['REQUEST_URI'])||exit('Use CLI Please Enable CLI Mode');
 		(strlen($_SERVER['REQUEST_URI'])>MAX_URL_LENGTH)&&Error('500','Request url too long ! ');
 		list($uri)=explode('?',$_SERVER['REQUEST_URI']);
 		$uri=='/favicon.ico'&&die;
