@@ -597,6 +597,7 @@ function template($file,$data=array())///加载模版
 		is_array($data)||empty($data)||Error('500','param to view '.$file.' show be an array');
 		empty($data)||extract($data);
 		include $file;
+		flush();
 	}
 	else
 	{
@@ -721,6 +722,22 @@ class Request
 		$data['refer']=self::refer();
 		if($key) return isset($data[$key])?$data[$key]:$default;
 		return $data;
+	}
+	public static function serverInfo($key=null,$default=null)
+	{
+		$info['server_ip']=gethostbyname($_SERVER["SERVER_NAME"]);///服务器IP
+        $info['max_exectime']=ini_get('max_execution_time');//最大执行时间
+        $info['max_upload']=ini_get('file_uploads')?ini_get('upload_max_filesize'):0;///最大上传
+        $info['php_vision']=PHP_VERSION;////php版本
+        $info['os']=PHP_OS;///操作系统类型
+        $info['run_mode']=php_sapi_name();//php 运行方式
+        $info['post_max_size']=ini_get('post_max_size');
+		if($key)
+		{
+			return isset($info[$key])?$info[$key]:$default;
+		}
+		return $info;
+
 	}
 	/**
 	 * 默认普通过滤,去除html标签,去除空格
@@ -911,6 +928,12 @@ class Validate
 					return array('code'=>-2,'msg'=>$msg);
 				}
 				break;
+			case 'eq':
+				if(self::$data[$key]!=$arr[1])
+				{
+					return array('code'=>-3,'msg'=>$msg);
+				}
+				break;
 			default:
 				return array('code'=>-5,'msg'=>'Error Rule');
 				break;
@@ -957,7 +980,7 @@ class Validate
 			$arr_i=array_keys(self::$rule[$key],$rule);
 			$i=$arr_i[0];
 			if(count(self::$rule[$key])!=count(self::$msg[$key]))$i++;
-			$msg=self::$msg[$key][$i];
+			$msg=isset(self::$msg[$key][$i])?self::$msg[$key][$i]:null;
 			return $msg;
 		}
 		else
@@ -1248,7 +1271,7 @@ function session_get($key=null,$default=null)
 }
 function session_set($key,$value=null)
 {
-	if(!isset($_SESSION))session_start();
+	session_start();
 	if(is_array($key))
 	{
 		foreach ($key as $k => $v)
@@ -1266,7 +1289,7 @@ function session_set($key,$value=null)
 }
 function session_del($key=null)
 {
-	if(!isset($_SESSION))session_start();
+	session_start();
 	if(is_array($key))
 	{
 		while(list($k,$v)=each($key))
