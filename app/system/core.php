@@ -725,7 +725,7 @@ class Request
 	}
 	public static function serverInfo($key=null,$default=null)
 	{
-		$info['server_ip']=gethostbyname($_SERVER["SERVER_NAME"]);///服务器IP
+		$info['server_ip']=gethostbyname(self::getVar('server',"SERVER_NAME"));///服务器IP
         $info['max_exectime']=ini_get('max_execution_time');//最大执行时间
         $info['max_upload']=ini_get('file_uploads')?ini_get('upload_max_filesize'):0;///最大上传
         $info['php_vision']=PHP_VERSION;////php版本

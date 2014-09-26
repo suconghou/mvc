@@ -1,72 +1,298 @@
 <?php
 /**
-* 监控服务器是否能够访问
-* 每当状态切换时发送提醒邮件
+* http server
+* socket server
+* 
+* run in cli
+* 
 * 
 */
 class server
 {
-	
-	private static $log;
-	private static $db;
-	public static $receiver='1126045770@qq.com';
 
-	function __construct()
+	private static $serverInfo;
+	private static $debug;
+	private static $msg;
+
+	private static $socket;
+
+	
+	function __construct($cfg=array())
 	{
-		self::$db=S('class/kvdb','tmp');
+		self::serverInfo();
+		self::init();
+	}
+
+	public function debug($debug='debug')
+	{
+		self::$debug=$debug;
+	}
+	public function httpServer($host='127.0.0.1',$port=8088,$dir=null)
+	{
+		if(is_null($dir))
+		{
+			$dir=APP_PATH;
+		}
+		self::$serverInfo['httpServerDir']=$dir;	
+		$this->_socket('http',$host,$port);
+	}
+	public function socketServer($host='127.0.0.1',$port=7272)
+	{
+		$this->_socket('socket',$host,$port);
+	}
+	public function ftpServer()
+	{
+
+	}
+	public function smtpServer()
+	{
+
 	}
 	/**
-	 * 添加要监控的服务器可访问地址
+	 * 多个 server 同时运行
 	 */
-	function serverOk($url)
+	public function server($servers=array())
 	{
-		$urls=is_array($url)?$url:array($url);
-		foreach ($urls as  $url)
+		foreach ($servers as $type => $v)
 		{
-			$key=md5($url);
-			$code=self::httpCode($url);
-			$lastCode=self::$db->get($key);
-			var_dump($code,$lastCode);
-			if(is_null($lastCode))
+			switch ($type)
 			{
-				self::$db->set($key,'200');
+				case 'http':
+					$this->httpServer($v['host'],$v['port'],$v['dir']);
+					break;
+				case 'socket':
+					# code...
+					break;
+				case 'ftp':
+					# code...
+					break;
+				case 'smtp':
+					# code...
+					break;
+				default:
+					# code...
+					break;
 			}
-			else if($lastCode!=$code) //状态不一致
+		}
+
+	}
+
+	private static function serverInfo()
+	{
+
+		Request::isCli()||self::log('error',"You may run in cli mode ");
+		self::$serverInfo=Request::serverInfo();
+	}
+
+	private static function init()
+	{
+
+
+	}
+
+	private static function a()
+	{
+
+	}
+
+	private function _httpServer($socket)
+	{
+		//获取http请求头和正文
+		$http=socket_read($socket, 8192);
+		$http=self::_http($http);
+		self::_fileServer($http['http']['path']);
+		die;
+		$msg = "<font color='red'>server send:welcome</font><br/>".$buf;
+		socket_write($socket, $msg,strlen($msg));
+		self::log('debug','received message'.$buf);
+		$buf='hello';
+		if (false === socket_write($socket, $buf, strlen($buf)))
+		{
+			self::log('error',"socket_write() failed : ".socket_strerror(socket_last_error(self::$socket['http'])),1);
+		}
+		else
+		{
+			self::log('debug','send response success');
+		}
+
+		
+	}
+	private function _socketServer($socket)
+	{
+		$msg = "<font color='red'>server send:socket welcoe</font><br/>";
+		socket_write($socket, $msg,strlen($msg));
+		$buf=socket_read($socket, 8192);
+		self::log('debug','received message'.$buf);
+		$buf='hello';
+
+		if (false === socket_write($socket, $buf, strlen($buf)))
+		{
+			self::log('error',"socket_write() failed : ".socket_strerror(socket_last_error(self::$socket['http'])),1);
+		}
+		else
+		{
+			self::log('debug','send response success');
+		}
+
+
+
+	}
+	private function _ftpServer()
+	{
+
+	}
+	private function _smtpServer()
+	{
+
+	}
+	private function _socket($type,$host,$port)
+	{
+		if( (self::$socket[$type]=socket_create(AF_INET, SOCK_STREAM, SOL_TCP))=== false)
+		{
+			self::log('error','socket_create() failed : '.socket_strerror(socket_last_error(self::$socket[$type])),1);
+		}
+
+		if(socket_bind(self::$socket[$type], $host, $port) === false)
+		{
+			self::log('error','socket_bind() failed : '.socket_strerror(socket_last_error(self::$socket[$type])),1);
+		}
+		if(socket_listen(self::$socket[$type], 5) === false)
+		{
+			self::log('error','socket_bind() failed : '.socket_strerror(socket_last_error(self::$socket[$type])),1);
+		}
+		self::log('debug','Begin to wait accept');
+		do
+		{
+			if(($socket = socket_accept(self::$socket[$type])) !== false)
 			{
-				self::$db->set($key,$code);
-				$state=$code?' 可以访问':' 不能访问';
-				self::$log.="检测到地址".$url.$state."<br>";
+				$server='_'.$type.'Server';
+				self::log('debug',"method {$server} begin to handle the request ");
+				$this->$server($socket);
+				socket_close($socket);
+			}
+			else
+			{
+				self::log('error','socket_accept() failed : '.socket_strerror(socket_last_error(self::$socket[$type])),1);
+
+			}
+		}
+		while(true);
+		socket_close(self::$socket[$type]);
+	}
+
+	function __call($name,$args)
+	{
+		self::log('error','Call Error Method '.$name.' In Class '.__CLASS__ , 1);
+	}
+	public static function __callStatic($name,$args)
+	{
+		self::log('error','Call Error Static Method '.$name.' In Class '.__CLASS__ , 1);
+	}
+	public static function log($type,$msg,$exit=false)
+	{
+		$level=self::$debug=='error'?array('error'):(self::$debug=='info'?array('error','info'):array('error','info','debug'));
+		if(in_array($type, $level))
+		{
+			$msg.="\r\n";
+			self::$msg=date('Y-m-d H:i:s')." ==> [ ".$type." ] ".$msg;
+			echo $msg;
+		}
+		$exit&&die;
+	}
+	 
+	/**
+	 * 解析http协议 
+	 */
+	private static function _http($http)
+	{
+		$http=explode("\n", $http);
+		foreach ($http as  $value)
+		{
+			$arr=explode(':',$value);
+			$len=count($arr);
+			if($len==1)
+			{
+				$arr[0]=trim($arr[0]);
+				if(empty($arr[0])) continue;
+				$firstLine=explode(' ',$arr[0]);
+				if(count($firstLine==3))
+				{
+					$data['http']['method']=$firstLine[0];
+					$data['http']['path']=$firstLine[1];
+					$data['http']['protocol']=$firstLine[2];
+				}
+				else
+				{
+					var_dump($firstLine);
+				}
+			}
+			else if($len==2)
+			{
+				$data['http'][$arr[0]]=$arr[1];
+				if($arr[0]=='Cookie') //解析cookie
+				{
+					$cookie=str_replace(';','&', $arr[1]);
+					parse_str($cookie,$data['cookie']);
+				}
+			}
+			else if($len==3)
+			{
+				$data['http'][$arr[0]]=$arr[1].':'.$arr[2];
+			}
+			else
+			{
+				$data['http'][$arr[0]]=$arr[1].':'.$arr[2].':'.$arr[3];
+			}
+		}
+		return isset($data['http'])?$data:array();
+		
+		
+	}
+
+	/**
+	 * 加载文件
+	 */
+	private static function _fileServer($path)
+	{
+		$defaultIndex=array('index.html','index.php');
+		$path=rtrim(self::$serverInfo['httpServerDir'],'/').$path;
+		if(substr($path,'-1')=='/')
+		{
+			foreach ($defaultIndex as $index)
+			{
+				$path.=$index;
+				if(is_file($path))
+				{
+					require $path;
+					break;
+				}
+				else
+				{
+
+					echo $path,'Not Exists !';
+
+				}
+			}
+		}
+		else
+		{
+			if(is_file($path))
+			{
+				require $path;
+				
+			}
+			else
+			{
+				echo $path,'Not Exists !';
 			}
 
 		}
-		echo self::$log;
-		self::msg();
-	}
+	
+	} 
 
-	private static function httpInfo($url)
+	function __destruct()
 	{
-		$ch=curl_init($url);
-		curl_setopt($ch, CURLOPT_HEADER, 1); 
-		curl_setopt($ch, CURLOPT_NOBODY, 1);
-		curl_setopt($ch, CURLOPT_TIMEOUT,3); //超时时长，单位秒    
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);  
-		curl_exec($ch);   
-		$res=curl_getinfo($ch);
-		curl_close($ch);  
-		return $res;
-	}
-	private static function httpCode($url)
-	{
-		$res=self::httpInfo($url);
-		return $res['http_code'];
-	}
-	private static function msg()
-	{
-		if(self::$log)
-		{
-			$title='监控提醒邮件';
-			sendMail(self::$receiver,$title,self::$log);
-		}
+		echo self::$msg;
 	}
 
 }
