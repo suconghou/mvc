@@ -98,31 +98,33 @@ class server
 	private function _httpServer($socket)
 	{
 		//获取http请求头和正文
-		$http=socket_read($socket, 8192);
-		$http=self::_http($http);
+		$request=socket_read($socket, 8192);
+		self::log('debug','received message'.$request);
+		$http=self::_http($request);
+		ob_start();
 		self::_fileServer($http['http']['path']);
-		die;
-		$msg = "<font color='red'>server send:welcome</font><br/>".$buf;
-		socket_write($socket, $msg,strlen($msg));
-		self::log('debug','received message'.$buf);
-		$buf='hello';
-		if (false === socket_write($socket, $buf, strlen($buf)))
+		$body=ob_get_contents();
+		$header=array('HTTP/1.1 200 OK','Content-Type:text/html; charset=utf-8');
+		$header=join($header,PHP_EOL).PHP_EOL.PHP_EOL;
+		if (false === socket_write($socket, $header.$body, strlen($header.$body)))
 		{
 			self::log('error',"socket_write() failed : ".socket_strerror(socket_last_error(self::$socket['http'])),1);
 		}
 		else
 		{
-			self::log('debug','send response success');
+			self::log('debug','send response success',1);
 		}
 
 		
 	}
 	private function _socketServer($socket)
 	{
+		$request=socket_read($socket, 8192);
+		self::log('debug','received message'.$request);
+		
 		$msg = "<font color='red'>server send:socket welcoe</font><br/>";
+		
 		socket_write($socket, $msg,strlen($msg));
-		$buf=socket_read($socket, 8192);
-		self::log('debug','received message'.$buf);
 		$buf='hello';
 
 		if (false === socket_write($socket, $buf, strlen($buf)))
@@ -188,25 +190,27 @@ class server
 	{
 		self::log('error','Call Error Static Method '.$name.' In Class '.__CLASS__ , 1);
 	}
-	public static function log($type,$msg,$exit=false)
+	public static function log($type,$msg,$show=false)
 	{
 		$level=self::$debug=='error'?array('error'):(self::$debug=='info'?array('error','info'):array('error','info','debug'));
 		if(in_array($type, $level))
 		{
 			$msg.="\r\n";
 			self::$msg=date('Y-m-d H:i:s')." ==> [ ".$type." ] ".$msg;
-			echo $msg;
+			if($show)
+			{
+				echo $msg;
+			}
 		}
-		$exit&&die;
 	}
 	 
 	/**
 	 * 解析http协议 
 	 */
-	private static function _http($http)
+	private static function _http($request)
 	{
-		$http=explode("\n", $http);
-		foreach ($http as  $value)
+		$request=explode("\n", $request);
+		foreach ($request as  $value)
 		{
 			$arr=explode(':',$value);
 			$len=count($arr);
@@ -254,23 +258,30 @@ class server
 	 */
 	private static function _fileServer($path)
 	{
+		self::log('debug','_fileServer Init');
 		$defaultIndex=array('index.html','index.php');
 		$path=rtrim(self::$serverInfo['httpServerDir'],'/').$path;
 		if(substr($path,'-1')=='/')
 		{
 			foreach ($defaultIndex as $index)
 			{
-				$path.=$index;
-				if(is_file($path))
+				$newpath=$path.$index;
+				if(is_file($newpath))
 				{
-					require $path;
+					if(substr($newpath,'-4')=='.php')
+					{
+						include $newpath;
+					}
+					else
+					{
+						readfile($newpath);					
+					}
 					break;
+					return;
 				}
 				else
 				{
-
-					echo $path,'Not Exists !';
-
+					self::log('error','file Not Found');
 				}
 			}
 		}
@@ -278,7 +289,14 @@ class server
 		{
 			if(is_file($path))
 			{
-				require $path;
+				if(substr($path,'-4')=='.php')
+				{
+					include $path;
+				}
+				else
+				{
+					readfile($path);
+				}
 				
 			}
 			else
@@ -295,4 +313,15 @@ class server
 		echo self::$msg;
 	}
 
+}
+
+
+function config($key,$value=null)
+{
+	static $config=array();
+	if(!is_null($value))
+	{
+		$config[$key]=$value;
+	}
+	return isset($config[$key])?$config[$key]:null;
 }
