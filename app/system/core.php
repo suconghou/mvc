@@ -196,15 +196,8 @@ class app
 	 */
 	private static function process($router)
 	{
-		if(is_object($router[1])) //含有回调函数缓存hash
-		{
-			$hash=APP_PATH.'cache/'.($router[0]).'.html';
-		}
-		else //普通路由缓存hash
-		{
-			$hash=APP_PATH.'cache/'.(implode('-',$router)).'.html';
-		}
-		if (is_file($hash))//存在缓存文件
+		$hash=is_object($router[1])?null:APP_PATH.'cache/'.md5(implode('-',$router)).'.html';
+		if ($hash&&is_file($hash))//存在缓存文件
 		{
 			$expires_time=filemtime($hash);
 			if(time()<$expires_time) ///缓存未过期
@@ -532,7 +525,7 @@ function V($view,$data=array(),$fileCacheMin=0)
 		if(isset($GLOBALS['APP']['cache']))//启用了缓存
 		{
 			$expires_time=intval(time()+$GLOBALS['APP']['cache']['time']);
-			if($GLOBALS['APP']['cache']['file'])//生成文件缓存
+			if($GLOBALS['APP']['cache']['file']&&!is_object($GLOBALS['APP']['router'][1]))//生成文件缓存
 			{
 				$contents=ob_get_contents();
 				$cache_file=APP_PATH.'cache/'.md5(implode('-',$GLOBALS['APP']['router'])).'.html';
@@ -546,9 +539,6 @@ function V($view,$data=array(),$fileCacheMin=0)
 			}
 			else//使用的是http缓存
 			{
-				header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
-				header("Cache-Control: max-age=".$GLOBALS['APP']['cache']['time']);
-				header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT'); 
 				ob_end_flush();
 				flush();
 			}
