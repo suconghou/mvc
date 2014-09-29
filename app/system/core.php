@@ -196,8 +196,13 @@ class app
 	 */
 	private static function process($router)
 	{
-		$hash=is_object($router[1])?null:APP_PATH.'cache/'.md5(implode('-',$router)).'.html';
-		if ($hash&&is_file($hash))//存在缓存文件
+		$router_arr=$router;
+		if(is_object($router_arr[1]))
+		{
+			unset($router_arr[1]);
+		}
+		$hash=APP_PATH.'cache/'.md5(implode('-',$router_arr)).'.html';
+		if (is_file($hash))//存在缓存文件
 		{
 			$expires_time=filemtime($hash);
 			if(time()<$expires_time) ///缓存未过期
@@ -502,7 +507,7 @@ function S($lib,$param=null)
 	}
 }
 //加载视图,传递参数,设置缓存
-function V($view,$data=array(),$fileCacheMin=0)
+function V($view,$data=array())
 {
 	if(defined('APP_TIME_SPEND'))
 	{
@@ -511,43 +516,41 @@ function V($view,$data=array(),$fileCacheMin=0)
 	$view_file=VIEW_PATH.$view.'.php';
 	if(is_file($view_file))
 	{
-		is_array($data)||empty($data)||Error('500','param to view '.$view_file.' show be an array');
-		empty($data)||extract($data);
+		if(is_array($data))
+		{
+			empty($data)||extract($data);
+		}
+		else
+		{
+			$GLOBALS['APP']['cache']['time']=intval($data)*60;
+			$GLOBALS['APP']['cache']['file']=intval($data)?true:false;		
+		}
 		GZIP?ob_start("ob_gzhandler"):ob_start();
 		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));//耗时
 		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-APP_START_MEMORY));
-		require $view_file;
-		if($fileCacheMin)
-		{
-			$GLOBALS['APP']['cache']['time']=$fileCacheMin*60;
-			$GLOBALS['APP']['cache']['file']=true;
-		}
-		if(isset($GLOBALS['APP']['cache']))//启用了缓存
+		include $view_file;
+		if(isset($GLOBALS['APP']['cache'])&&$GLOBALS['APP']['cache']['file'])//启用了缓存,并且启用了文件缓存
 		{
 			$expires_time=intval(time()+$GLOBALS['APP']['cache']['time']);
-			if($GLOBALS['APP']['cache']['file']&&!is_object($GLOBALS['APP']['router'][1]))//生成文件缓存
+			//生成文件缓存
+			$contents=ob_get_contents();
+			$router_arr=$GLOBALS['APP']['router'];
+			if(is_object($router_arr[1])) //过滤自定义闭包路由,闭包路由也可以使用文件缓存
 			{
-				$contents=ob_get_contents();
-				$cache_file=APP_PATH.'cache/'.md5(implode('-',$GLOBALS['APP']['router'])).'.html';
-				file_put_contents($cache_file,$contents);
-				touch($cache_file,$expires_time);
-				header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
-				header("Cache-Control: max-age=".$GLOBALS['APP']['cache']['time']);
-				header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT');   
-				ob_end_flush();
-				flush();
+				unset($router_arr[1]);
 			}
-			else//使用的是http缓存
-			{
-				ob_end_flush();
-				flush();
-			}
+			$cache_file=APP_PATH.'cache/'.md5(implode('-',$router_arr)).'.html';
+			file_put_contents($cache_file,$contents);
+			touch($cache_file,$expires_time);
+			ob_end_flush();
+			flush();
 		}
-		else
+		else //未启用缓存或http缓存,若为http缓存则在之前必有处理
 		{
 			ob_end_flush();
 			flush();
 		}
+
 	}
 	else
 	{
