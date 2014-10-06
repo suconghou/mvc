@@ -93,7 +93,7 @@ class app
 	/**
 	 * 正则路由,参数一正则,参数二数组形式的路由表或者回调函数
 	 */
-	public static function route($regex,$arr)
+	public static function route($regex,$arr=null)
 	{
 		if(REGEX_ROUTER)//启用了正则路由
 		{	
@@ -107,7 +107,7 @@ class app
 			}
 			else
 			{
-				Error(404,'error');
+				Error(404,'Regex Router param mising !');
 			}
 
 		}
@@ -391,7 +391,7 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 	}
 	http_response_code($code);
 	DEBUG&&app::log($str);
-	if(ERROR_PAGE_404&&ERROR_PAGE_500) //自定义了404和500
+	if(defined('ERROR_PAGE_404')&&defined('ERROR_PAGE_500')&&ERROR_PAGE_404&&ERROR_PAGE_500) //自定义了404和500
 	{
 		$errorRouter=array($GLOBALS['APP']['router'][0],$errno==404?ERROR_PAGE_404:ERROR_PAGE_500,$str);
 		$errorController=is_file(CONTROLLER_PATH.$errorRouter[0].'.php')?$errorRouter[0]:DEFAULT_CONTROLLER; 

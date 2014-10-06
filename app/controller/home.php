@@ -15,15 +15,7 @@ class home extends base
      	 V('mvc');
      
 	}
-	function test()
-	{
-		dump(Request::server());
-	}
-	function hello2()
-	{
-
-    	
-	}
+	
 
 
 
