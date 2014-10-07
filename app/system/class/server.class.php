@@ -2,8 +2,9 @@
 /**
 * http server
 * socket server
-* 
-* run in cli
+* ftp server
+* smtp server 
+* Run In Cli Mode
 * 
 * 
 */
@@ -21,12 +22,15 @@ class server
 	{
 		self::serverInfo();
 		self::init();
+		self::debug();
 	}
 
-	public function debug($debug='debug')
+	public static function debug($debug='debug')
 	{
 		self::$debug=$debug;
 	}
+
+	// 四大Server
 	public function httpServer($host='127.0.0.1',$port=8088,$dir=null)
 	{
 		if(is_null($dir))
@@ -48,10 +52,11 @@ class server
 	{
 
 	}
+
 	/**
 	 * 多个 server 同时运行
 	 */
-	public function server($servers=array())
+	public function servers($servers=array())
 	{
 		foreach ($servers as $type => $v)
 		{
@@ -95,14 +100,17 @@ class server
 
 	}
 
+	/**
+	 * 处理http请求并返回
+	 */
 	private function _httpServer($socket)
 	{
 		//获取http请求头和正文
 		$request=socket_read($socket, 8192);
-		self::log('debug','received message'.$request);
+		self::log('debug',"received message".PHP_EOL.$request,1);
 		$http=self::_http($request);
 		ob_start();
-		self::_fileServer($http['http']['path']);
+		self::_fileServer(isset($http['http']['path'])?$http['http']['path']:null);
 		$body=ob_get_contents();
 		$header=array('HTTP/1.1 200 OK','Content-Type:text/html; charset=utf-8');
 		$header=join($header,PHP_EOL).PHP_EOL.PHP_EOL;
@@ -120,20 +128,18 @@ class server
 	private function _socketServer($socket)
 	{
 		$request=socket_read($socket, 8192);
-		self::log('debug','received message'.$request);
+		self::log('debug','Received message : '.PHP_EOL.$request,1);
+		$data=self::_webSocket($request);
+		$header=self::computeSec($data['Sec-WebSocket-Key']);
 		
-		$msg = "<font color='red'>server send:socket welcoe</font><br/>";
-		
-		socket_write($socket, $msg,strlen($msg));
-		$buf='hello';
 
-		if (false === socket_write($socket, $buf, strlen($buf)))
+		if (false === socket_write($socket, $header, strlen($header)))
 		{
-			self::log('error',"socket_write() failed : ".socket_strerror(socket_last_error(self::$socket['http'])),1);
+			self::log('error',"socket_write() failed : ".socket_strerror(socket_last_error(self::$socket['socket'])),1);
 		}
 		else
 		{
-			self::log('debug','send response success');
+			self::log('debug','send response success'.PHP_EOL.$header,1);
 		}
 
 
@@ -147,6 +153,9 @@ class server
 	{
 
 	}
+	/**
+	 * 通用底层套接字处理
+	 */
 	private function _socket($type,$host,$port)
 	{
 		if( (self::$socket[$type]=socket_create(AF_INET, SOCK_STREAM, SOL_TCP))=== false)
@@ -168,7 +177,7 @@ class server
 			if(($socket = socket_accept(self::$socket[$type])) !== false)
 			{
 				$server='_'.$type.'Server';
-				self::log('debug',"method {$server} begin to handle the request ");
+				self::log('debug',"method {$server} begin to handle the request ",1);
 				$this->$server($socket);
 				socket_close($socket);
 			}
@@ -209,28 +218,28 @@ class server
 	 */
 	private static function _http($request)
 	{
-		$request=explode("\n", $request);
+		$request=explode(PHP_EOL, $request);
 		foreach ($request as  $value)
 		{
 			$arr=explode(':',$value);
 			$len=count($arr);
-			if($len==1)
+			if($len==1) //没有包含: ,可能为请求行
 			{
 				$arr[0]=trim($arr[0]);
 				if(empty($arr[0])) continue;
 				$firstLine=explode(' ',$arr[0]);
-				if(count($firstLine==3))
+				if(count($firstLine==3)) //是请求行
 				{
 					$data['http']['method']=$firstLine[0];
 					$data['http']['path']=$firstLine[1];
 					$data['http']['protocol']=$firstLine[2];
 				}
-				else
+				else //未包含: 并且也没有两个空格
 				{
 					var_dump($firstLine);
 				}
 			}
-			else if($len==2)
+			else if($len==2) //普通的键值对方式,请求header
 			{
 				$data['http'][$arr[0]]=$arr[1];
 				if($arr[0]=='Cookie') //解析cookie
@@ -239,11 +248,11 @@ class server
 					parse_str($cookie,$data['cookie']);
 				}
 			}
-			else if($len==3)
+			else if($len==3) //包含两个:,未知
 			{
 				$data['http'][$arr[0]]=$arr[1].':'.$arr[2];
 			}
-			else
+			else //包含3个或以上
 			{
 				$data['http'][$arr[0]]=$arr[1].':'.$arr[2].':'.$arr[3];
 			}
@@ -308,6 +317,63 @@ class server
 	
 	} 
 
+	/**
+	 * 解析websocket协议
+	 */
+	public static function _webSocket($request)
+	{
+		$web=array();
+		$arr=explode(PHP_EOL,$request);
+		foreach ($arr as  $line)
+		{
+			if(empty($line))continue;
+			$arr_header=explode(':', $line);
+			$size=count($arr_header);
+			// var_dump($arr_header);
+			if($size==1) //不含有:
+			{
+				$firstLine=explode(' ', $line);
+				if(count($firstLine)==3)
+				{
+					$web['method']=$firstLine[0];
+					$web['path']=$firstLine[1];
+					$web['protocol']=$firstLine[2];
+				}
+				else
+				{
+					var_dump('not contain : but contain not 2 space',$firstLine);
+				}
+			}
+			else if($size==2)
+			{
+				$web[$arr_header[0]]=$arr_header[1];
+			}
+			else if($size==3)
+			{
+				$web[$arr_header[0]]=$arr_header[1].':'.$arr_header[2];
+			}
+			else
+			{
+				var_dump('contain : unkunw num',$line);
+			}
+		}
+		return $web;
+
+	}
+
+	private static function computeSec($sec)
+	{
+		$sha=sha1($sec.'258EAFA5-E914-47DA-95CA-C5AB0DC85B11');
+		echo $sha;
+		$str=base64_encode($sha);
+
+		$header='HTTP/1.1 101 Switching Protocols'.PHP_EOL;
+		$header.='Upgrade: websocket'.PHP_EOL;
+		$header.='Connection: Upgrade'.PHP_EOL;
+		$header.='Sec-WebSocket-Accept: '.$str.PHP_EOL.PHP_EOL;
+		return $header;
+	}
+
 	function __destruct()
 	{
 		echo self::$msg;
@@ -316,7 +382,7 @@ class server
 }
 
 
-function config($key,$value=null)
+function _config($key,$value=null)
 {
 	static $config=array();
 	if(!is_null($value))

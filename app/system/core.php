@@ -507,7 +507,7 @@ function S($lib,$param=null)
 	}
 }
 //加载视图,传递参数,设置缓存
-function V($view,$data=array())
+function V($view,$data=array(),$fileCacheMin=0)
 {
 	if(defined('APP_TIME_SPEND'))
 	{
@@ -516,20 +516,17 @@ function V($view,$data=array())
 	$view_file=VIEW_PATH.$view.'.php';
 	if(is_file($view_file))
 	{
-		if(is_array($data))
+		(is_array($data)&&!empty($data))&&extract($data);
+		if($fileCacheMin)
 		{
-			empty($data)||extract($data);
-		}
-		else
-		{
-			$GLOBALS['APP']['cache']['time']=intval($data)*60;
-			$GLOBALS['APP']['cache']['file']=intval($data)?true:false;		
+			$GLOBALS['APP']['cache']['time']=intval($fileCacheMin*60);
+			$GLOBALS['APP']['cache']['file']=true;		
 		}
 		GZIP?ob_start("ob_gzhandler"):ob_start();
 		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));//耗时
 		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-APP_START_MEMORY));
 		include $view_file;
-		if(isset($GLOBALS['APP']['cache'])&&$GLOBALS['APP']['cache']['file'])//启用了缓存,并且启用了文件缓存
+		if(isset($GLOBALS['APP']['cache']['file'])&&$GLOBALS['APP']['cache']['file'])//启用了缓存,并且启用了文件缓存
 		{
 			$expires_time=intval(time()+$GLOBALS['APP']['cache']['time']);
 			//生成文件缓存
