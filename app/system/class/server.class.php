@@ -363,14 +363,12 @@ class server
 
 	private static function computeSec($sec)
 	{
-		$sha=sha1($sec.'258EAFA5-E914-47DA-95CA-C5AB0DC85B11');
-		echo $sha;
+		$sha=sha1($sec.'258EAFA5-E914-47DA-95CA-C5AB0DC85B11',1);
 		$str=base64_encode($sha);
-
 		$header='HTTP/1.1 101 Switching Protocols'.PHP_EOL;
 		$header.='Upgrade: websocket'.PHP_EOL;
 		$header.='Connection: Upgrade'.PHP_EOL;
-		$header.='Sec-WebSocket-Accept: '.$str.PHP_EOL.PHP_EOL;
+		$header.='Sec-WebSocket-Accept:'.$str.PHP_EOL.PHP_EOL.PHP_EOL;
 		return $header;
 	}
 
