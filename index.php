@@ -21,8 +21,8 @@ define('GZIP',1);  //是否开启GZIP,在SAE若出错请关闭
 define('DEBUG',2);
 
 //自定义404,500路由,若设定请确保必须存在,系统定义Error404,Error500
-define('ERROR_PAGE_404',''); //Error404
-define('ERROR_PAGE_500','');//Error500
+define('ERROR_PAGE_404','Error404'); //Error404
+define('ERROR_PAGE_500','Error500');//Error500
 
 //mysql数据库配置
 define('DB_HOST','127.0.0.1');
@@ -46,7 +46,6 @@ define('MAIL_NAME','系统邮件');
 
 ///添加一个正则路由,数组第一个为控制器,第二个为方法,前面的将作为该方法的第一个实参,以此类推
 
-app::route('\/([A-Z0-9]{40})\.torrent',array('home','a'));
 app::route('\/page\/(\d{1,9})\.html',array('page','id'));
 app::route('\/read\/(\d{1,9})\.html',array('read','id'));
 app::route('\/(\d{1,9})\.html',array('home','id'));
@@ -54,7 +53,11 @@ app::route('\/fm\/(\d{1,9}).fm',array('fm','id'));
 app::route('\/about',array('home','about'));
 
 //也可以添加自动加载,或者加载程序设置
-S('functions');
+S('functions');//加载扩展函数库
+
+//S('app_config');// 加载应用程序配置,你也可以将数据库,正则,smtp等配置信息移入应用设置文件
+// S('site/site1'); //Single File Site 模式
+// S('site/site2'); //Single File Site 模式
 
 //配置完,可以启动啦
 app::start();

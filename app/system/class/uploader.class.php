@@ -53,6 +53,9 @@ class uploader
 		}
 		
 	}
+	/**
+	 * Init Uploader
+	 */
 	function init()
 	{
 

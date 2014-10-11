@@ -1,3 +1,7 @@
+body{
+	font-family: "Microsoft Yahei","Monaco";
+
+}
 header>aside{
 	position: fixed;
 	left: 0;

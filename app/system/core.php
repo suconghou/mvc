@@ -393,8 +393,16 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 	DEBUG&&app::log($str);
 	if(defined('ERROR_PAGE_404')&&defined('ERROR_PAGE_500')&&ERROR_PAGE_404&&ERROR_PAGE_500) //自定义了404和500
 	{
-		$errorRouter=array($GLOBALS['APP']['router'][0],$errno==404?ERROR_PAGE_404:ERROR_PAGE_500,$str);
-		$errorController=is_file(CONTROLLER_PATH.$errorRouter[0].'.php')?$errorRouter[0]:DEFAULT_CONTROLLER; 
+		if(isset($GLOBALS['APP']['router'][0])&&is_file(CONTROLLER_PATH.$GLOBALS['APP']['router'][0].'.php'))
+		{
+			$errorController=$GLOBALS['APP']['router'][0];
+		}
+		else
+		{
+			$errorController=DEFAULT_CONTROLLER;
+		}
+		$errorRouter=array($errorController,$errno==404?ERROR_PAGE_404:ERROR_PAGE_500,$str);
+
 		if(method_exists($errorController,$errorRouter[1]))//当前已加载的控制器或默认控制器中含有ERROR处理
 		{
 			$GLOBALS['APP']['controller'][$errorController]=isset($GLOBALS['APP']['controller'][$errorController])?$GLOBALS['APP']['controller'][$errorController]:$errorController;
@@ -948,8 +956,8 @@ class Validate
 			case 'url':
 				if(!self::url($data)) return array('code'=>-4,'msg'=>$msg);
 				break;
-			case 'tel':
-				if(!self::tel($data)) return array('code'=>-5,'msg'=>$msg);
+			case 'phone':
+				if(!self::phone($data)) return array('code'=>-5,'msg'=>$msg);
 				break;
 			case 'ip':
 				if(!self::ip($data)) return array('code'=>-6,'msg'=>$msg);

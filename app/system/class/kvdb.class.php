@@ -43,9 +43,13 @@ class kvdb
 		{
 			self::$dbfile=APP_PATH.self::$dbfile;
 		}
-		else if($file=='tmp')
+		else if($file=='tmp') //使用零时文件
 		{	
 			self::$dbfile=sys_get_temp_dir().'/KVDB.DB'; 
+		}
+		else if($file=='sqlite')//使用sqlite
+		{
+
 		}
 		else //指定文件名
 		{
@@ -101,14 +105,14 @@ class kvdb
 	/**
 	 * 获取
 	 */
-	function get($key)
+	function get($key,$default=null)
 	{
-		return isset(self::$dbarr[$key])?self::$dbarr[$key]:null;
+		return isset(self::$dbarr[$key])?self::$dbarr[$key]:$default;
 	}
 	/**
 	 * 批量获取
 	 */
-	function mget($arr) 
+	function mget($arr,$default=null) 
 	{
 		if(empty(self::$dbarr))
 		{
@@ -117,7 +121,7 @@ class kvdb
 		$out=array();
 		foreach ($arr as $key)
 		{
-			$out[$key]=isset(self::$dbarr[$key])?self::$dbarr[$key]:null;
+			$out[$key]=isset(self::$dbarr[$key])?self::$dbarr[$key]:$default;
 		}
 		return $out;
 	}

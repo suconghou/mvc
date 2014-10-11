@@ -144,8 +144,15 @@ class curl
         return $result;
     }
     /**
+     * CURL 发送文件
+     */
+    static function sendFile($url,$file=null)
+    {
+        
+    }
+    /**
      * 内部规则 
-     * img  提取 http://XX.jpg  图片全地址
+     * img  提取 http://xxxx.jpg  图片全地址
      * src  提取 <img src=''  所有能够自己显示的图片
      * href 提取 <a href=''  所有连接
      * url  提取 http://    符合http:// 的地址
