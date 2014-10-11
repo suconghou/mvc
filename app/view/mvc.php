@@ -379,6 +379,7 @@
 				<p>$up->uploadQiniu($name) 上传到七牛,必须设定正确的密匙</p>
 				<p>$up->uploadTietu($name) 上传到贴出库,必须设定正确的密匙</p>
 				<p>$up->uploadKuaipan($name) 发送到快盘, 也是需要开发者密匙(密匙不断变化,需自己维护,见kuaipan.class.php)</p>
+				<p>$up->uploadUrl() 发送到其他地址</p>
 				<p>$up->sendToSae() 发送指定文件到SAE</p>
 				<p>$up->sendToQiniu() 发送指定文件到七牛</p>
 				<p>$up->sendToTietu() 发送指定文件到贴图库</p>

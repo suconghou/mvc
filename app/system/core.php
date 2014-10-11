@@ -1065,17 +1065,21 @@ class Validate
 /**
 * model 层,可以静态方式使用
 */
-class db 
+class db extends PDO 
 {
 	private  static $pdo;///单例模式
 
-	function __construct()
+	function __construct($dbType=null)
 	{
-		self::init();
+		self::init($dbType);
 	}
-	private static function init()
+	private static function init($dbType=null)
 	{
-		if(DB)//使用sqlite
+		if(is_null($dbType))
+		{
+			$dbType=defined('DB')&&DB?true:false;
+		}
+		if($dbType)//使用sqlite
 		{
 			try
 			{
@@ -1179,10 +1183,22 @@ class db
 		return self::$pdo->lastInsertId();
 	}
 	//返回原生的PDO对象
-	public static function getInstance()
+	public static function getInstance($current=true)
 	{
-		self::ready();
-		return self::$pdo;
+		if($current)
+		{
+			self::ready();
+			return self::$pdo;
+		}
+		else
+		{
+			$staticPdo=self::$pdo;
+			self::$pdo=null;
+			self::init(!(defined('DB')&&DB));//相反的
+			list($pdo,self::$pdo)=array(self::$pdo,$staticPdo);
+			return $pdo;
+		}
+
 	}
 	private static  function ready()
 	{
@@ -1200,7 +1216,6 @@ class db
 		self::$pdo=null;
 	}
 }//end class db
-
 
 
 if(!function_exists('http_response_code'))

@@ -127,6 +127,20 @@ class uploader
 		
 	}
 	/**
+	 * 上传到其他url
+	 */
+	function uploadUrl($name,$url)
+	{
+		$ret=$this->commonCheck($name);
+		if($ret['code']==0)
+		{
+			$data=array($name=>"@".realpath($_FILES[$name]['tmp_name']));
+			return self::postData($url,$data);
+		}
+		return $ret;
+
+	}
+	/**
 	 * 发送文件到sae,和文件类型,大小无关
 	 */
 	function sendToSae($filepath)

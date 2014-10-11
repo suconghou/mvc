@@ -49,18 +49,22 @@ class kvdb
 		}
 		else if($file=='sqlite')//使用sqlite
 		{
-
+			self::$dbfile=db::getInstance(false);
+			self::sqlite_init();
 		}
 		else //指定文件名
 		{
 			self::$dbfile=APP_PATH.$file;
 		}
-		if(!file_exists(self::$dbfile))
+		if(!is_object(self::$dbfile))
 		{
-			self::$dbarr=array('init_time'=>time());
-			self::write();
+			if(!file_exists(self::$dbfile))
+			{
+				self::$dbarr=array('init_time'=>time());
+				self::write();
+			}			
+			self::read();
 		}
-		self::read();
 	}
 	/**
 	 * 切换到或初始化一个数据库
@@ -79,12 +83,20 @@ class kvdb
 	 */
 	function set($key,$value)
 	{
-		if(empty(self::$dbarr))
+		if(is_object(self::$dbfile)) // sqlite
 		{
-			$this->flush();
+			return self::sqlite_set($key,$value);
 		}
-		self::$dbarr[$key]=$value;
-		self::write();
+		else
+		{
+			if(empty(self::$dbarr))
+			{
+				$this->flush();
+			}
+			self::$dbarr[$key]=$value;
+			self::write();
+		}
+
 	}
 	/**
 	 * 批量设置
@@ -107,7 +119,14 @@ class kvdb
 	 */
 	function get($key,$default=null)
 	{
-		return isset(self::$dbarr[$key])?self::$dbarr[$key]:$default;
+		if(is_object(self::$dbfile))
+		{
+			return self::sqlite_get($key,$default);
+		}
+		else
+		{
+			return isset(self::$dbarr[$key])?self::$dbarr[$key]:$default;
+		}
 	}
 	/**
 	 * 批量获取
@@ -130,28 +149,45 @@ class kvdb
 	 */
 	function del($key)
 	{
-		if(isset(self::$dbarr[$key]))
+		if(is_object(self::$dbfile)) //sqlite
 		{
-			unset(self::$dbarr[$key]);	
-			self::write();
+			return self::sqlite_del($key);
 		}
-		return true;
-		
+		else
+		{
+
+			if(isset(self::$dbarr[$key]))
+			{
+				unset(self::$dbarr[$key]);	
+				self::write();
+			}
+			return true;
+
+		}
 	}
 	/**
 	 * 批量删除
 	 */
 	function mdel($arr)
 	{
-		if(empty(self::$dbarr))
+		if(is_object(self::$dbfile))
 		{
-			$this->flush();
+			return self::sqlite_del($arr);
 		}
-		foreach ($arr as $key )
+		else
 		{
-			unset(self::$dbarr[$key]);
+			if(empty(self::$dbarr))
+			{
+				$this->flush();
+			}
+			foreach ($arr as $key )
+			{
+				unset(self::$dbarr[$key]);
+			}
+			self::write();
+
 		}
-		self::write();
+		
 
 	}
 	/**
@@ -159,8 +195,15 @@ class kvdb
 	 */
 	function flush()
 	{
-		self::$dbarr=array('init_time'=>time());
-		self::write();
+		if(is_object(self::$dbfile))
+		{
+			return self::sqlite_flush();
+		}
+		else
+		{
+			self::$dbarr=array('init_time'=>time());
+			self::write();
+		}
 	}
 	function gets($key=null) ///已XX开头的KEY, 为空则所有KEY
 	{
@@ -192,9 +235,58 @@ class kvdb
 		}
 		return isset($res)?$res:null;
 	}
+	private static function sqlite_init()
+	{
+		$sql="CREATE TABLE IF NOT EXISTS `kvdb` (`k` text NOT NULL  PRIMARY KEY,`v` text NOT NULL)";
+		return self::$dbfile->exec($sql);
+	}
+	private static function sqlite_set($key,$value)
+	{
+		$value=serialize($value);
+		if(self::sqlite_get($key))
+		{
+			$sql="UPDATE `kvdb` SET v='{$value}' WHERE k='{$key}' ";
+		}
+		else
+		{
+			$sql="INSERT INTO `kvdb` (k,v) VALUES('{$key}','{$value}') ";
+			
+		}
+		return self::$dbfile->exec($sql);
+
+	}
+	private static function sqlite_get($key,$default=null)
+	{
+		$sql="SELECT v FROM `kvdb` WHERE k='{$key}' ";
+		$rs=self::$dbfile->query($sql);
+		if(FALSE==$rs)return $default;
+		return unserialize($rs->fetchColumn());
+
+	}
+	private static function sqlite_del($key)
+	{
+		$key=is_array($key)?$key:array($key);
+		$keys='';
+		foreach ($key as $k)
+		{
+			$keys.="'".$k."',";
+		}
+		$keys=rtrim($keys,',');
+		$sql="DELETE FROM `kvdb` WHERE `k` IN ($keys)";
+		return self::$dbfile->exec($sql);
+	}
+	private static function sqlite_flush()
+	{
+		$sql="DELETE FROM `kvdb`";
+		return self::$dbfile->exec($sql);
+
+	}
 	function __destruct()
 	{
-		self::write();
+		if(!is_object(self::$dbfile))
+		{
+			self::write();
+		}
 	}
 
 }

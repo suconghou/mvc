@@ -136,19 +136,28 @@ class curl
      */
     static function get($url,$timeout=5)
     {
-        $ch=curl_init();
-        curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>$timeout,
-            CURLOPT_RETURNTRANSFER=>1,CURLOPT_HEADER=>0));
+        $ch=curl_init($url);
+        curl_setopt_array($ch, array(CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>$timeout, CURLOPT_RETURNTRANSFER=>1,CURLOPT_HEADER=>0));
         $result=curl_exec($ch);
         curl_close($ch);
         return $result;
     }
     /**
      * CURL 发送文件
+     * $data = array("username" => $username,"password"  => $password,"file"  => "@".realpath("1.jpg") );
      */
-    static function sendFile($url,$file=null)
+    static function sendFile($url,$post_data,$timeout=20)
     {
-        
+        $curl = curl_init($url);
+        curl_setopt($curl, CURLOPT_POST, 1 );
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0 );
+        curl_setopt($curl, CURLOPT_POSTFIELDS,$post_data);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_TIMEOUT, $timeout);
+        $result = curl_exec($curl);
+        $error = curl_error($curl);
+        return $error ? $error : $result;
+
     }
     /**
      * 内部规则 
