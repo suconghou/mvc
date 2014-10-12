@@ -23,11 +23,14 @@
 *  数据列表
 *  getList($table,$column,$page=1,$order='desc',$per=20,$where=null)
 * 
-*  使用缓存会缓存
-*  缓存存储的键为md5($table.$id)
-*  $db->cache(1)->查询操作, 开启缓存,可能带来数据不一致
-*  $db->cache(0)->查询操作, 跳过缓存,取真实数据(默认)
-*  $db->cache(0/1,60); 设置缓存有效期, 
+*  按条件计数
+*  count($table,$where=array())
+*  使用缓存 $db->cache('on',10)->selectById($table,$id); 允许得到缓存结果
+*  $db->cache('off')->selectById($table,$id); 跳过缓存,直接使用数据库数据
+*  $db->delCache($table,$id) 手动删除一个表的id缓存
+*  $db->selectWhere() $db->getList() $db->count() 取得的缓存不能手动删除只能过期失效
+*  $db->deleteById() $db->updateById() $db->deleteWhere() $db->updateWhere() 会自动判断删除缓存,保持数据一致
+*  
 *
 *  该类只提供继承,不能直接实例化
 */
@@ -39,22 +42,9 @@ abstract class database extends db
 	private static $cacheTime=600;  //600秒缓存时间
 	const cacheType='memcache';  //memcache,redis,file,三者其中之一
 
-	private $data;
-	private $table;
-	private $id;
-	private $update;
-
-	/**
-	 * 带有参数的实例化,会生成数据模型
-	 */
-	function __construct($table=null,$id=null)
+	function __construct()
 	{
-		if($table&&$id) //手动实例化,生成数据模型
-		{
-			$this->data[$table]=$this->selectById($table,$id);
-			$this->table=$table;
-			$this->id=$id;
-		}
+		
 	}
 	/**
 	 *  可调用的缓存开关,第一次开启缓存时会初始化cacher
@@ -69,18 +59,38 @@ abstract class database extends db
 		{
 			self::$cacheTime=$cacheTime;
 		}
-		self::$use=(bool)$on;
+		if($on=='off'||!$on)
+		{
+			self::$use=false;
+		}
+		else
+		{
+			self::$use=true;
+		}
 		return $this;
+	}
+	/**
+	 * 清除某个cache值
+	 */
+	function delCache($table,$id)
+	{
+		if(self::$cache&&self::$use)
+		{
+			$key=$table.intval($id);
+			return self::$cache->del($key);
+		}
+		return false;
 	}
 	/**
 	 * 根据ID获得某个表的一行数据
 	 */
 	function selectById($table,$id,$column='*')
 	{
+		$id=intval($id);
 		$sql="SELECT {$column} FROM `{$table}` WHERE id='{$id}' ";
 		if(self::$use)
 		{
-			$key=md5($table.$id);
+			$key=$table.$id;
 			$data=self::$cache->get($key);
 			if($data)
 			{
@@ -95,7 +105,6 @@ abstract class database extends db
 		}
 		else
 		{
-
 			return $this->getLine($sql);
 		}
 	}
@@ -104,12 +113,9 @@ abstract class database extends db
 	 */
 	function deleteById($table,$id)
 	{
+		$id=intval($id);
 		$sql="DELETE FROM `{$table}` WHERE id={$id} ";
-		if(self::$use)
-		{
-			$key=md5($table.$id);
-			self::$cache->del($key);
-		}
+		$this->delCache($table,$id);
 		return $this->runSql($sql);
 	}
 	/**
@@ -117,6 +123,7 @@ abstract class database extends db
 	 */
 	function updateById($table,$id,$data)
 	{
+		$id=intval($id);
 		$v=array();
 		foreach ($data as $key => $value)
 		{
@@ -124,11 +131,7 @@ abstract class database extends db
 		}
 		$strv=implode(',',$v);  
 		$sql="UPDATE `{$table}` SET {$strv} WHERE id ='{$id}' ";
-		if(self::$use)
-		{
-			$key=md5($table.$id);
-			self::$cache->del($key);
-		}
+		$this->delCache($table,$id);
 		return $this->runSql($sql);
 	}
 	/**
@@ -150,9 +153,9 @@ abstract class database extends db
 		}
 		return false;
 	}
-	// end 四种基本类型
+	// END selectById, updateById, deleteById, insertData 四种基本类型
 	///缓存结果不能更新直到过期
-	function selectWhere($table,$where=null,$column='*')
+	function selectWhere($table,$where=null,$orderlimit=null,$column='*')
 	{	
 		if($where)
 		{
@@ -163,9 +166,13 @@ abstract class database extends db
 			$strk=null;
 			$strk.=implode(" AND ",$k);
 			$sql="SELECT {$column} FROM `{$table}` WHERE ({$strk}) ";
+			if($orderlimit)
+			{
+				$sql.=$orderlimit;
+			}
 			if(self::$use)
 			{
-				$key=md5($table,$strk);
+				$key=md5($sql);
 				$data=self::$cache->get($key);
 				if($data)
 				{
@@ -186,6 +193,25 @@ abstract class database extends db
 		else
 		{
 			$sql="SELECT {$column} FROM `{$table}` ";
+			if($orderlimit)
+			{
+				$sql.=$orderlimit;
+			}
+			if(self::$use)
+			{
+				$key=md5($sql);
+				$data=self::$cache->get($key);
+				if($data)
+				{
+					return $data;
+				}
+				else
+				{
+					$data=$this->getData($sql);
+					self::$cache->set($key,$data,self::$cacheTime);
+					return $data;
+				}
+			}
 			return $this->getData($sql);
 		}
 		
@@ -210,10 +236,9 @@ abstract class database extends db
 		{
 			$sql="DELETE  FROM `{$table}` ";
 		}
-		if(isset($where['id'])&&self::$use)
+		if(isset($where['id']))
 		{
-			$key=md5($table.$where['id']);
-			self::$cache->del($key);
+			$this->delCache($table,$where['id']);
 		}
 		return $this->runSql($sql);
 
@@ -225,51 +250,144 @@ abstract class database extends db
 	{
 		foreach ($where as $key => $value) 
 		{
-
 			$k[]='(`'.$key.'`="'.$value.'")';
-
 		}
 		foreach ($data as $key => $value) 
 		{
-
 			$v[]=$key.'='."'".$value."'";
-
-		}
-		if(isset($where['id'])&&self::$use)
-		{
-			$key=md5($table.$where['id']);
-			self::$cache->del($key);
 		}
 		$strk.=implode(" AND ",$k);
 		$strv.=implode(' , ',$v);
 		$sql="UPDATE `{$table}` SET {$strv} WHERE ({$strk})";
+		if(isset($where['id']))
+		{
+			$this->delCache($table,$where['id']);
+		}
 		return $this->runSql($sql);
 	}
-	// end 三种基本条件
+	// END selectWhere deleteWhere updateWhere 三种基本条件
 
+	/***
+	 * 批量添加
+	 *
+		$data=array(
+				array('name'=>'s10','pass'=>'p1','email'=>'121200'),
+				array('name'=>'s20','pass'=>'p2','email'=>'1200'),
+				array('name'=>'s3','pass'=>'p3','email'=>'12774')
+				);
+
+	**/
 	function multInsert($table,$dataArr)
 	{
+		$pdo=$this->getInstance();
+		$pdo->beginTransaction();
+		try
+		{
+			$columns=array_keys($dataArr[0]);
+			$columnStr=implode(',',$columns);
+			$valueStr=implode(',:', $columns);
+			$sql="INSERT INTO `{$table}` ({$columnStr}) VALUES (:{$valueStr})";
+			$stmt = $pdo->prepare($sql);
+			foreach ($columns as $k)
+			{
+				$stmt->bindParam(":{$k}", $$k);
+			}
+			foreach ($dataArr as $i=>$item)
+			{
+				foreach ($item as $k => $v)
+				{
+					$$k=$v;
+				}
+				$stmt->execute();
+				if($stmt->rowCount()<1)
+				{
+					throw new PDOException;
+				}
+			}
+			$pdo->commit();
+		}
+		catch(PDOException $e)
+		{
+			 $pdo->rollback();
+			 $error=$e->getMessage();
+			 app::log($error);
+			 $pdo = null;
+			 return false;
+		}
+		return true;
 
 	}
+	/***
+	 * 批量更新   
+		$updata=array(
+					'18'=>array('name'=>'name18','pass'=>'11'),
+					'19'=>array('name'=>'name19','pass'=>'22')
+				);
+	 **/
 	function multUpdate($table,$idArr)
 	{
+		$pdo=$this->getInstance();
+		$pdo->beginTransaction();
+		try
+		{
+			$keys=array_keys(current($idArr));
+			foreach ($keys as $k) 
+			{
+				$v[]=$k.'='.":".$k."";
+			}
+			$strv=implode(',', $v);
+			$sql="UPDATE `{$table}` SET {$strv} WHERE id=:id";
+			$stmt = $pdo->prepare($sql);
+			foreach ($keys as $k)
+			{
+				$stmt->bindParam(":{$k}", $$k);
+			}
+			$stmt->bindParam(":id", $id);
+			foreach ($idArr as $id => $item)
+			{
+				foreach ($item as $k => $v)
+				{
+					$$k=$v;
+				}
+				$stmt->execute();
+			}
+			$pdo->commit();
+		}
+		catch(PDOException $e)
+		{
+			 $pdo->rollback();
+			 $error=$e->getMessage();
+			 app::log($error);
+			 $pdo = null;
+			 return false;
+		}
+		return true;
 
 	}
+	/**
+	 * 批量删除
+	 */
 	function multDelete($table,$idArr)
 	{
-
+		$str='';
+		foreach ($idArr as $id)
+		{
+			$str.="'{$id}',";
+		}
+		$str=rtrim($str,',');
+		$sql="DELETE FROM `{$table}` WHERE id IN ({$str})";
+		return $this->runSql($sql);
 	}
+	//END multInsert multUpdate multDelete 三种批量操作
+
 	/**
 	 * 将某个表的某个字段自增1
 	 */
 	function incrById($table,$column,$id,$num=1)
 	{
+		$id=intval($id);
 		$sql="UPDATE `{$table}` SET {$column}={$column}+{$num} WHERE id={$id} ";
-		if(self::$use)
-		{
-			$key=md5($table.$id);
-			self::$cache->del($key);
-		}
+		$this->delCache($table,$id);
 		return $this->runSql($sql);
 	}
 
@@ -278,43 +396,108 @@ abstract class database extends db
 	 */
 	function decrById($table,$column,$id,$num=1)
 	{
+		$id=intval($id);
 		$sql="UPDATE `{$table}` SET {$column}={$column}-{$num} WHERE id={$id} ";
-		if(self::$use)
-		{
-			$key=md5($table.$id);
-			self::$cache->del($key);
-		}
+		$this->delCache($table,$id);
 		return $this->runSql($sql);
 	}
 	/**
-	 * 获得某个表的按某字段排序的分页内容以及总页数,不缓存
+	 * 获得某个表的某条件下按某字段排序的指定页的SELECT内容以及该条件下的总页数,缓存只能过期自动删除
 	 */
-	function getList($table,$page=1,$where=null,$column='id',$order='desc',$per=20,$selectCloumn='*')
+	function getList($table,$page=1,$where=array(),$column='id',$order='desc',$per=20,$selectCloumn='*')
 	{
-		$offset=($page-1)*$per;
+		$offset=max(0,($page-1)*$per);
 		if(is_array($where))
 		{
 			foreach ($where as $key => $value) 
 			{
-
 				$k[]='(`'.$key.'`="'.$value.'")';
-
 			}
 			$strk=null;
 			$strk.=implode(" AND ",$k);
-			$sql="SELECT {$selectCloumn} FROM `{$table}` WHERE  ({$strk})  ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
-			$list=$this->getData($sql);
-			$sql="SELECT COUNT(1) FROM `{$table}` WHERE  ({$strk})  ";
-			$page=ceil($this->getVar($sql)/$per);
+			$l="SELECT {$selectCloumn} FROM `{$table}` WHERE  ({$strk})  ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
+			$p="SELECT COUNT(1) FROM `{$table}` WHERE  ({$strk})  ";
+			if(self::$use)
+			{
+				$key=md5($l);
+				$data=self::$cache->get($key);
+				if($data)
+				{
+					return $data;
+				}
+				else
+				{
+					$list=$this->getData($l);
+					$page=ceil($this->getVar($p)/$per);
+					$data=array('list'=>$list,'page'=>$page);
+					self::$cache->set($key,$data,self::$cacheTime);
+					return $data;
+				}
+			}
+			$list=$this->getData($l);
+			$page=ceil($this->getVar($p)/$per);
+			$data=array('list'=>$list,'page'=>$page);
+			return $data;
 		}
 		else
 		{
-			$sql="SELECT {$selectCloumn} FROM `{$table}` ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
-			$list=$this->getData($sql);
-			$sql="SELECT COUNT(1) FROM `{$table}` ";
-			$page=ceil($this->getVar($sql)/$per);
+			$l="SELECT {$selectCloumn} FROM `{$table}` ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
+			$p="SELECT COUNT(1) FROM `{$table}` ";
+			if(self::$use)
+			{
+				$key=md5($l);
+				$data=self::$cache->get($key);
+				if($data)
+				{
+					return $data;
+				}
+				else
+				{
+					$list=$this->getData($l);
+					$page=ceil($this->getVar($p)/$per);
+					$data=array('list'=>$list,'page'=>$page);
+					self::$cache->set($key,$data,self::$cacheTime);
+					return $data;
+				}
+			}
+			$list=$this->getData($l);
+			$page=ceil($this->getVar($p)/$per);
+			return array('list'=>$list,'page'=>$page);
 		}
-		return array('list'=>$list,'page'=>$page);
+	}
+	/**
+	 * 对某条件计数
+	 */
+	function count($table,$where=null)
+	{
+		if($where)
+		{
+			foreach ($where as $key => $value) 
+			{
+				$k[]='(`'.$key.'`="'.$value.'")';
+			}
+			$strk=null;
+			$strk.=implode(" AND ",$k);
+			$where=" WHERE ({$strk}) ";
+		}
+		$sql="SELECT COUNT(1) FROM `".$table."` {$where} ";
+		if(self::$use)
+		{
+			$key=md5($sql);
+			$data=self::$cache->get($key);
+			if($data)
+			{
+				return $data;
+			}
+			else
+			{
+				$data=$this->getVar($sql);
+				self::$cache->set($key,$data,$cacheTime);
+				return $data;
+			}
+		}
+		return $this->getVar($sql);
+		
 	}
 	
 

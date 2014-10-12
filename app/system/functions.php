@@ -142,21 +142,22 @@ function gbk2utf8($str)
 { 
     $charset = mb_detect_encoding($str,array('UTF-8','GBK','GB2312')); 
     $charset = strtolower($charset); 
-    if('cp936' == $charset){ 
+    if('cp936' == $charset)
+    { 
         $charset='GBK'; 
     } 
-    if("utf-8" != $charset){ 
+    if("utf-8" != $charset)
+    { 
         $str = iconv($charset,"UTF-8//IGNORE",$str); 
     } 
     return $str; 
 }
-function str_to_utf8 ($str)
+function strToUtf8 ($str)
 { 
-    
-    if (mb_detect_encoding($str, 'UTF-8', true) === false) { 
-    $str = utf8_encode($str); 
+    if (mb_detect_encoding($str, 'UTF-8', true) === false)
+    { 
+        $str = utf8_encode($str); 
     }
-
     return $str;
 }
 
@@ -177,27 +178,38 @@ function rgb2hex($r,$g,$b)
 function dump($var, $echo=true, $label=null, $strict=true)
 {
     $label = ($label === null) ? '' : rtrim($label) . ' ';
-    if (!$strict) {
-        if (ini_get('html_errors')) {
+    if (!$strict)
+    {
+        if (ini_get('html_errors'))
+        {
             $output = print_r($var, true);
             $output = '<pre>' . $label . htmlspecialchars($output, ENT_QUOTES) . '</pre>';
-        } else {
+        }
+        else
+        {
             $output = $label . print_r($var, true);
         }
-    } else {
+    }
+    else
+    {
         ob_start();
         var_dump($var);
         $output = ob_get_clean();
-        if (!extension_loaded('xdebug')) {
+        if (!extension_loaded('xdebug'))
+        {
             $output = preg_replace('/\]\=\>\n(\s+)/m', '] => ', $output);
             $output = '<pre>' . $label . htmlspecialchars($output, ENT_QUOTES) . '</pre>';
         }
     }
-    if ($echo) {
+    if ($echo)
+    {
         echo($output);
         return null;
-    }else
+    }
+    else
+    {
         return $output;
+    }
 }
 //可以指定前缀
 function createUuid($prefix = "",$split="")

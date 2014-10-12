@@ -797,6 +797,10 @@ class Request
 	{
         return array_key_exists('HTTP_X_PJAX', $_SERVER) && $_SERVER['HTTP_X_PJAX'];
     }
+    public static function isPost()
+    {
+    	return strtolower(self::getVar('server','REQUEST_METHOD')) == 'post';
+    }
 	public static function ua()
 	{
 		return self::getVar('server','HTTP_USER_AGENT');

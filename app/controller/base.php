@@ -10,6 +10,7 @@
 * 非POST过滤
 * 开启ajax跨域
 * 自定义过滤条件
+* 辅助函数
 * 在其他控制器中调用 $this->ip()->refer()->session()->post()->get()->defender();
 */
 class base 
@@ -28,19 +29,20 @@ class base
 	
 	function __construct()
 	{
+		if(baseUrl(0)==__CLASS__)die; //此控制器不能通过URl访问
 		$this->auto()->defender(); //开启自动过滤
 	}
-
+	function index(){}
 	/**
 	 * 可以设置,自动过滤的内容
 	 */
 	private function auto()
 	{
-		if(baseUrl(0)==__CLASS__)die;
 
-		$ip=array('188.0.0.1');
-		$refer=array('http://127.0.0.1');
-		$this->frequency(8)->refer($refer);
+		$ip=array('127.0.0.10'); //设定自动过滤IP
+		$refer=array('http://127.0.0.1'); //设定自动过滤refer
+
+		$this->frequency(8)->refer($refer)->ip($ip);
 		
 		return $this; 
 	}
@@ -57,6 +59,25 @@ class base
 		{
 			header('Access-Control-Allow-Origin:*');
 		}
+	}
+	/**
+	 * 是否已登录用户,登陆返回其中信息,否则返回json或跳转
+	 */
+	function isLogin($user='USERID',$addr='/')
+	{
+		$ret=$this->session($user)->defender(true); //没有此SESSION则返回错误信息而不是直接过滤
+		if($ret) //没有此SESSION
+		{
+			if(Request::isAjax())
+			{
+				exit(json_encode(array('code'=>-1,'msg'=>'please login !')));
+			}
+			else
+			{
+				redirect($addr);
+			}
+		}
+		return session_get($user);
 	}
 	/**
 	 * 阻断非CLI请求
@@ -125,7 +146,6 @@ class base
 		}
 		if(self::$ajax)
 		{
-			var_dump($info);
 			if(!$info['ajax'])
 			{
 				$hit['ajax']=&$info['ajax'];
@@ -253,14 +273,13 @@ class base
 	}
 	/**
 	 * 命中预定设置
-	 * @param $hit , 因何原因
+	 * @param $hit , 因何原因,是一个数组
 	 */
 	private function block($hit)
 	{
-		var_dump('禁止',$hit);
 		list($k,$v)=each($hit);
 		http_response_code(403);
-		exit;	
+		exit('禁止'.$k.$v);	
 	}
 	/**
 	 * 超过最高频次设置

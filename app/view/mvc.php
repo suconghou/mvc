@@ -15,20 +15,20 @@
 		<aside>
 			<nav>
 				<ul>
-					<li><a href="">开始使用</a></li>
-					<li><a href="">SMVC</a></li>
-					<li><a href="">关于debug</a></li>
-					<li><a href="">控制器模型增强</a></li>
-					<li><a href="">增强的控制器</a></li>
-					<li><a href="">S加载和M加载</a></li>
-					<li><a href="">缓存</a></li>
-					<li><a href="">任务转向</a></li>
-					<li><a href="">异步</a></li>
-					<li><a href="">CLI模式</a></li>
-					<li><a href="">Request请求</a></li>
-					<li><a href="">Validate静态类</a></li>
-					<li><a href="">session处理</a></li>
-					<li><a href="">注意</a></li>
+					<li><a href="#begin">开始使用</a></li>
+					<li><a href="#smvc">SMVC</a></li>
+					<li><a href="#debug">关于debug</a></li>
+					<li><a href="#en">控制器模型增强</a></li>
+					<li><a href="#enc">增强的控制器</a></li>
+					<li><a href="#enm">S加载和M加载</a></li>
+					<li><a href="#cache">缓存</a></li>
+					<li><a href="#redirect">任务转向</a></li>
+					<li><a href="#async">异步</a></li>
+					<li><a href="#cli">CLI模式</a></li>
+					<li><a href="#request">Request请求</a></li>
+					<li><a href="#validate">Validate静态类</a></li>
+					<li><a href="#session">session处理</a></li>
+					<li><a href="#attention">注意</a></li>
 				</ul>
 			</nav>
 		</aside>
@@ -36,7 +36,7 @@
     <div id='wrapper'>
         
         <section>
-        	<h1 class="danger">开始使用</h1>
+        	<h1 class="danger" id="begin">开始使用</h1>
         	<p class="info">快捷的MVC开发框架,媲美原生的使用方式</p>
         	<blockquote>
         		<ul>
@@ -91,7 +91,7 @@
         	</p>
         </section>
         <section>
-        	<h1 class="danger">SMVC</h1>
+        	<h1 class="danger" id="smvc">SMVC</h1>
         	<p>S() 即可加载app/system 路径下的文件,或者下一级目录的文件 ,可加载普通php文件,也可加载.class.php文件,后者必须存在以文件名命名的类</p>
         	<p>M() 可加载app/model 目录下的文件,该文件必须是以文件名命名的类文件,作为模型</p>
         	<p>V() 为加载视图,目录为app/view 下,一个方法内只能使用一次,如需多次使用,可用template替换</p>
@@ -100,7 +100,7 @@
         	<p>加载不存在的文件,会抛出异常</p>
         </section>
         <section>
-        	<h1 class="danger">关于debug</h1>
+        	<h1 class="danger" id="debug">关于debug</h1>
         	<p>开启参数debug,即可启用debug模式 </p>
         	<p>DEBUG三个等级0,1,2</p>
         	<p>0不自动记录错误日志,非敏感模式,不显示错误详情,建议上线后稳定时使用</p>
@@ -113,7 +113,7 @@
         	<p>若定义异常路由,请确保该路由确实存在,也可以继承base获得,也可以自定义或者重写继承过来的</p>
         </section>
 		<section>
-			<h1 class="danger">控制器模型增强</h1>
+			<h1 class="danger" id="en">控制器模型增强</h1>
 			<p>虽然系统仅需三个文件便可运行</p>
 			<p>但是任然建议使用系统自带的增强工具</p>
 			<p>编写自己的模型时可以直接继承db类,db类存在于core.php中,是基本的数据库操作方式</p>
@@ -131,7 +131,7 @@
 			<p class="danger">注意:模型可以随意继承,但不要丢失与db或database的联系</p>
 		</section>
 		<section>
-			<h1 class="danger">增强的控制器</h1>
+			<h1 class="danger" id="enc">增强的控制器</h1>
 			<p>继承base控制器可获得增强的过滤和其他辅助功能</p>
 			<p>可以再base里的构造函数内添加全局的自动过滤</p>
 			<p>也可以在单独的控制器类进行使用过滤</p>
@@ -140,14 +140,14 @@
 			<p>详细使用,不一一叙述</p>
 		</section>
 		<section>
-			<h1 class="danger">增强的模型</h1>
+			<h1 class="danger" id="enm">增强的模型</h1>
 			<p>继承database可获得增强的数据库操作方式</p>
 			<p>可以使用数据库缓存,可以使用memcache方式,redis方式,并且带自动缓存系统,可选择使用缓存数据或不经过缓存</p>
 			<p>返璞归真,原生的类库使用方式</p>
 			<p>详细用法,见代码自懂</p>
 		</section>
 		<section>
-			<h1 class="danger">S加载和M加载</h1>
+			<h1 class="danger" id="sm">S加载和M加载</h1>
 			<p>S加载的基路径为app/sysyem/</p>
 			<p>S若加载的是类,可以直接使用 <code>S('类名')->方法</code> 也可以<code>$a=S('类名');$a->方法</code></p>
 			<p>当然前提是类和方法都存在</p>
@@ -166,7 +166,7 @@
 			<p>template可随意使用,但是不处理缓存,不处理计时功能</p>
 		</section>
 		<section>
-			<h1 class="danger">使用正则路由</h1>
+			<h1 class="danger" id="regex">使用正则路由</h1>
 			<p>在index.php入口文件内可以添加正则路由,形式为</p>
 			<p>使用正则路由,请在配置文件(入口文件index.php)内启用正则路由</p>
 			<p>app::route('\/post\/(\d+)\.html',array('home','post'));</p>
@@ -182,7 +182,7 @@
 
 		</section>
 		<section>
-			<h1 class="danger">Single File Site 模式 </h1>
+			<h1 class="danger" id="sfs">Single File Site 模式 </h1>
 			<p>可能你不想要将代码如此分散,不想使用众多控制器与模型,只想简简单单</p>
 			<p>可能你有代码洁癖,想要随意切换网站,随时增删模块</p>
 			<p>那么 <code>Single File Site</code>模式来帮你</p>
@@ -194,7 +194,7 @@
 
 		</section>
 		<section>
-			<h1 class="danger">缓存</h1>
+			<h1 class="danger" id="cache">缓存</h1>
 			<p>有两种方式使用缓存</p>
 			<p><code>C(60)</code>代表使用http缓存60分钟</p>
 			<p><code>C(60,true)</code>代表使用文件缓存60分钟</p>
@@ -218,7 +218,7 @@
 			
 		</section>
 		<section>
-			<h1 class="danger">任务转向</h1>
+			<h1 class="danger" id="redirect">任务转向</h1>
 			<p>使用<code>app:run(Array)</code>即可内部转到其他控制器里的方法执行,而不带来URL上的变化</p>
 			<p>使用<code>app::run('方法名')</code>即转到当前控制器的方法内执行</p>
 			<p>这样,相当于使用<code>$this->方法名</code>但是,不能执行私有方法</p>
@@ -230,7 +230,7 @@
 			<p>参数二为延时,参数三为永久重定向或临时</p>
 		</section>
 		<section>
-			<h1 class="danger">异步</h1>
+			<h1 class="danger" id="async">异步</h1>
 			<p>这是一种伪异步方式</p>
 			<p>使用<code>app::async()</code>即可,参数可以是数组或者一个完整URL</p>
 			<p>参数为数组是异步执行系统中的一个控制器中的方法</p>
@@ -243,13 +243,13 @@
 			<p>此函数执行即把所有数据发送到浏览器并断开,以后的执行与浏览器无关也不会输出到浏览器</p>
 		</section>
 		<section>
-			<h1 class="danger">CLI模式</h1>
+			<h1 class="danger" id="cli">CLI模式</h1>
 			<p>系统支持CLI模式,无需任何操作便可运行于CLI模式下</p>
 			<p>CLI模式直接执行<code>php index.php 控制器 方法 (参数1,参数2...)</code>即可</p>
 			<p>注意:CLI模式下没有默认的方法,需在index.php后输入 控制器 方法</p>
 		</section>
 		<section>
-			<h1 class="danger">Request请求处理类</h1>
+			<h1 class="danger" id="request">Request请求处理类</h1>
 			<p>静态类Request可以获得各种系统环境数据和超全局变量数据</p>
 			<p>Request::post() 获取所有post数据,键值对数组返回</p>
 			<p>Request::post('username',$default) 获取$_POST['username']值若没有,则返回$default</p>
@@ -269,7 +269,7 @@
 
 		</section>
 		<section>
-			<h1 class="danger">Validate数据验证类</h1>
+			<h1 class="danger" id="validate">Validate数据验证类</h1>
 			<p>提供对数据的基本验证</p>
 			<blockquote>
 				<p class="success">
@@ -308,7 +308,7 @@
 			</div>
 		</section>
 		<section>
-			<h1 class="danger">session处理</h1>
+			<h1 class="danger" id="session">session处理</h1>
 			<p class="info">系统封装的session函数,对于session的处理很有帮助</p>
 			<blockquote>
 				<p><code>session_set($key,$value)</code> 设置session,$value可以为array,这样会自动进行json_encode操作,
@@ -323,7 +323,7 @@
 			
 		</section>
 		<section>
-			<h1 class="danger">注意</h1>
+			<h1 class="danger" id="attention">注意</h1>
 			<blockquote>
 			<ol>
 				<li>在继承一个类时,如果同时存在以此命名的控制器和模型,则会继承模型,建议控制器和模型不要有重名</li>
