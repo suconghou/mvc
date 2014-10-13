@@ -370,6 +370,84 @@ class app
 
 	}
 
+
+	public static function set($key,$value=null,$host=null)
+	{
+		if(is_null($host))
+		{
+			$host='global';
+		}
+		$current_id=session_id();
+		if(is_null($key)&&is_null($value))
+		{
+			session_write_close();
+			session_id($host);
+			session_start();
+			session_destroy();
+			session_id($current_id);
+		    session_start();
+			
+		}
+		else if(is_string($key))
+		{
+		    session_write_close();
+		    session_id($host);
+		    session_start();
+		    if(is_null($value))
+		    {
+		    	unset($_SESSION[$key]);
+		    }
+		    else
+		    {
+		    	$_SESSION[$key]=serialize($value);
+		    }
+		    session_write_close();
+		    session_id($current_id);
+		    session_start();
+		}
+	   
+	}
+	public static function get($key,$host=null)
+	{
+		if(is_null($host))
+		{
+			$host='global';
+		}
+	    is_session_started()||session_start();
+	    $current_id=session_id();
+	    session_write_close();
+	    session_id($host);
+	    session_start();
+	    $value=null;
+	    if(is_array($key))
+	    {
+	    	if(empty($key))
+	    	{
+	    		foreach ($_SESSION as $k => $v)
+	    		{
+	    			$value[$k]=unserialize($v);
+	    		}
+	    	}
+	    	else
+	    	{
+	    		foreach ($key as $k)
+				{
+					$value[$k]=isset($_SESSION[$k])?unserialize($_SESSION[$k]):null;
+				}
+	    	}
+		}
+		else if(is_string($key))
+		{
+	    	$value=isset($_SESSION[$key])?unserialize($_SESSION[$key]):null;
+		}
+	    session_write_close();
+	    session_id($current_id);
+	    session_start();
+	    return $value;
+	}
+
+
+
 }
 // End of class app
 
@@ -1336,80 +1414,7 @@ function session_del($key=null)
 		return session_destroy();
 	}
 }
-function set($key,$value=null,$host=null)
-{
-	if(is_null($host))
-	{
-		$host='global';
-	}
-	$current_id=session_id();
-	if(is_null($key)&&is_null($value))
-	{
-		session_write_close();
-		session_id($host);
-		session_start();
-		session_destroy();
-		session_id($current_id);
-	    session_start();
-		
-	}
-	else if(is_string($key))
-	{
-	    session_write_close();
-	    session_id($host);
-	    session_start();
-	    if(is_null($value))
-	    {
-	    	unset($_SESSION[$key]);
-	    }
-	    else
-	    {
-	    	$_SESSION[$key]=serialize($value);
-	    }
-	    session_write_close();
-	    session_id($current_id);
-	    session_start();
-	}
-   
-}
-function get($key,$host=null)
-{
-	if(is_null($host))
-	{
-		$host='global';
-	}
-    is_session_started()||session_start();
-    $current_id=session_id();
-    session_write_close();
-    session_id($host);
-    session_start();
-    $value=null;
-    if(is_array($key))
-    {
-    	if(empty($key))
-    	{
-    		foreach ($_SESSION as $k => $v)
-    		{
-    			$value[$k]=unserialize($v);
-    		}
-    	}
-    	else
-    	{
-    		foreach ($key as $k)
-			{
-				$value[$k]=isset($_SESSION[$k])?unserialize($_SESSION[$k]):null;
-			}
-    	}
-	}
-	else if(is_string($key))
-	{
-    	$value=isset($_SESSION[$key])?unserialize($_SESSION[$key]):null;
-	}
-    session_write_close();
-    session_id($current_id);
-    session_start();
-    return $value;
-}
+
 function byteFormat($size,$dec=2)
 {
 	$size=abs($size);
