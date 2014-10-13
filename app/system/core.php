@@ -1336,7 +1336,7 @@ function session_del($key=null)
 		return session_destroy();
 	}
 }
-function set($key,$value,$host=null)
+function set($key,$value=null,$host=null)
 {
 	if(is_null($host))
 	{
@@ -1358,7 +1358,14 @@ function set($key,$value,$host=null)
 	    session_write_close();
 	    session_id($host);
 	    session_start();
-	    $_SESSION[$key]=serialize($value);
+	    if(is_null($value))
+	    {
+	    	unset($_SESSION[$key]);
+	    }
+	    else
+	    {
+	    	$_SESSION[$key]=serialize($value);
+	    }
 	    session_write_close();
 	    session_id($current_id);
 	    session_start();
