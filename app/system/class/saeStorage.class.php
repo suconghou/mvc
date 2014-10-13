@@ -5,7 +5,7 @@
 * 取出,首先在kv里查找,没有的话,到storage里查找,也没有则输出默认
 * 关于后缀名,STOR必须带上
 */
-class sae_storage
+class saeStorage
 {
     private static $kv;
     private static $stor;

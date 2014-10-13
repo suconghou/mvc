@@ -42,7 +42,7 @@ class base
 		$ip=array('127.0.0.10'); //设定自动过滤IP
 		$refer=array('http://127.0.0.1'); //设定自动过滤refer
 
-		$this->frequency(8)->refer($refer)->ip($ip);
+		$this->frequency(5,1)->refer($refer)->ip($ip);
 		
 		return $this; 
 	}
@@ -125,10 +125,12 @@ class base
 	}
 	/**
 	 * 关联数组,或者一个整数 $f['5']=20; 5秒20次 , 次数不宜设置太大
+	 * $ip 限定此IP的频次还是此浏览器(session)频次,依据IP可以防止抓取
 	 */
-	function frequency($arr=15)
+	function frequency($arr=15,$ip=false)
 	{
 		self::$frequency=is_array($arr)?$arr:array('5'=>$arr);
+		$this->frequencyIp=$ip;
 		return $this;
 	}
 	function defender($ret=false) //过滤动作
@@ -216,11 +218,17 @@ class base
 		}
 		if(self::$frequency)
 		{
-		
+			is_session_started()||session_start();
+			if($this->frequencyIp) //依据IP
+			{
+				$this->current_id=session_id();
+	    		session_write_close();
+				$host=md5(Request::ip());
+	    		session_id($host);
+			}
 			$ssid='frequency';
 			$data=json_decode(session_get($ssid),1);
 			$data[$ssid][]=APP_START_TIME;
-
 			list($k,$v)=each(self::$frequency);
 			$size=count($data[$ssid]);
 			if($size>$v)
@@ -230,7 +238,7 @@ class base
 				{
 					$data['block']=APP_START_TIME+self::$blockTime; ///超出限制
 				}
-				if($size>($k+1)*($v+1))
+				if($size>$k*$v+20)
 				{
 					unset($data[$ssid]);
 				}
@@ -245,12 +253,23 @@ class base
 				{
 					session_set($ssid,$data);
 					$t=intval($data['block']-APP_START_TIME);
-					$this->frequencyBlock($t);
+					if($this->frequencyIp)
+					{
+						session_write_close();
+						session_id($this->current_id); //还原
+						session_start();
+					}
+					$this->frequencyBlock($t); //执行拦截
 					exit;
 				}
 			}
-			session_set($ssid,$data);
-		
+			session_set($ssid,$data); //未达到拦截要求,记录数据
+			if($this->frequencyIp)
+			{
+				session_write_close();
+				session_id($this->current_id); //还原
+				session_start();
+			}
 			
 			
 		}

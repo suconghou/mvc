@@ -662,7 +662,7 @@ class Request
 	}
 	public static function session($key=null,$default=null)
 	{
-		if(!isset($_SESSION))session_start();
+		is_session_started()||session_start();
 		if($key)
 		{
 			return self::getVar('session',$key,$default);
@@ -1270,6 +1270,17 @@ function __autoload($class)
 	}
 }
 // session 系列函数
+function is_session_started()
+{
+	if (version_compare(phpversion(), '5.4.0', '>='))
+	{
+            return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
+    }
+    else
+    {
+            return session_id() === '' ? FALSE : TRUE;
+	}
+}
 function session_get($key=null,$default=null)
 {
 	if(is_array($key))
@@ -1301,7 +1312,6 @@ function session_set($key,$value=null)
 	{ 
 		$_SESSION[$key]=is_array($value)?json_encode($value):$value;
 		return session_write_close();
-
 	}
 }
 function session_del($key=null)
@@ -1325,6 +1335,73 @@ function session_del($key=null)
 	{
 		return session_destroy();
 	}
+}
+function set($key,$value,$host=null)
+{
+	if(is_null($host))
+	{
+		$host='global';
+	}
+	$current_id=session_id();
+	if(is_null($key)&&is_null($value))
+	{
+		session_write_close();
+		session_id($host);
+		session_start();
+		session_destroy();
+		session_id($current_id);
+	    session_start();
+		
+	}
+	else if(is_string($key))
+	{
+	    session_write_close();
+	    session_id($host);
+	    session_start();
+	    $_SESSION[$key]=serialize($value);
+	    session_write_close();
+	    session_id($current_id);
+	    session_start();
+	}
+   
+}
+function get($key,$host=null)
+{
+	if(is_null($host))
+	{
+		$host='global';
+	}
+    is_session_started()||session_start();
+    $current_id=session_id();
+    session_write_close();
+    session_id($host);
+    session_start();
+    $value=null;
+    if(is_array($key))
+    {
+    	if(empty($key))
+    	{
+    		foreach ($_SESSION as $k => $v)
+    		{
+    			$value[$k]=unserialize($v);
+    		}
+    	}
+    	else
+    	{
+    		foreach ($key as $k)
+			{
+				$value[$k]=isset($_SESSION[$k])?unserialize($_SESSION[$k]):null;
+			}
+    	}
+	}
+	else if(is_string($key))
+	{
+    	$value=isset($_SESSION[$key])?unserialize($_SESSION[$key]):null;
+	}
+    session_write_close();
+    session_id($current_id);
+    session_start();
+    return $value;
 }
 function byteFormat($size,$dec=2)
 {

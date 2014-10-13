@@ -4,7 +4,7 @@
 * 酷我音乐调用
 */
 
-class kuwomusic 
+class kuwoMusic 
 {
 	static $q=null;//搜索词
 	static $type='aac|mp3';///默认搜索的类型

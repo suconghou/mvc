@@ -89,8 +89,24 @@ class layout
 		return $h;
 
 	}
-	static function pager($total,$per=10,$class=null)
+	static function pager($link='?p=',$total=5,$current=1,$step=1,$class='pager',$id=null)
 	{
+		$class=$class?" class=\"{$class}\" ":null;
+		$id=$id?" id=\"{$id}\" ":null;
+		$html="<div{$class}{$id}><ul>";
+		$start=1; 
+		while($start <=$total)
+		{ 
+			$aclass=$start==$current?"active":null;
+			$pageText=$start;
+			if($pageText==1) $pageText='首页';
+			if($pageText==$total) $pageText='尾页 ';
+			$html.="<li>".anchor($link.$start,$pageText,$aclass)."</li>";	
+			$start=$start+$step;
+		}
+		$html.="</ul></div>";
+		return $html;
+
 		
 	}
 
@@ -117,10 +133,31 @@ class layout
 		
 
 	}
-	static function lists()
+	/**
+	 * 遍历二维数组,形成ul>li模式或ul>li>a模式
+	 */
+	static function lists($list,$class=null,$id=null,$liclass=null)
 	{
-		
-
+		$class=$class?" class=\"{$class}\" ":null;
+		$id=$id?" id=\"{$id}\" ":null;
+		$liclass=$liclass?" class=\"{$liclass}\" ":null;
+		$html="<ul {$class}{$id}>";
+		foreach ($list as $key => $v)
+		{
+			$link="/bbs/t/{$v['id']}";
+			$title=$v['title'];
+			$li="<li{$liclass}><a href=\"{$link}\">{$title}</a></li>";
+			$html.=$li;
+		}
+		$html.="</ul>";
+		return $html;
+	}
+	/**
+	 * 加载其他布局文件
+	 */
+	static function load($file,$data=array())
+	{
+		template('layout/'.$file,$data);
 	}
 
 }

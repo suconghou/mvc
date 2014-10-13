@@ -7,7 +7,7 @@
 * 流程 init-->sendmsg
 *          -->自动回复
 */
-class qqroubot
+class qqRoubot
 {
 	private static $qq;
 	private static $sid;	
