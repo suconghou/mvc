@@ -11,14 +11,17 @@ class polling
 	{
 		if(is_array($cfg))
 		{
-			// self::$timeout['time']=isset($cfg['timeout'])?$cfg['timeout']:Request::serverInfo('max_exectime')/2;
-			self::$timeout['time']=5;
-			
+			self::$timeout['time']=isset($cfg['timeout'])?$cfg['timeout']:Request::serverInfo('max_exectime')/100;
+		}
+		else
+		{
+			self::$timeout['time']=8;
 		}
 		$this->init();
 	}
 	function init()
 	{
+
 	}
 	/**
 	 * 添加事件
@@ -40,7 +43,6 @@ class polling
 	 */
 	function timeout($fun)
 	{
-		
 		self::$timeout['fun']=$fun;
 		$this->timer(1);
 		return $this;
@@ -57,7 +59,6 @@ class polling
 		}
 		else
 		{
-			var_dump(headers_sent());
 			session_set($key,1);
 		}
 		return $this;
@@ -68,7 +69,7 @@ class polling
 	 */
 	function loop($time=1)
 	{
-		$this->timer($time);
+		$this->timer($time);die;
 		return $this;
 	}
 
@@ -76,51 +77,28 @@ class polling
 	{
 		$i=0;
 		$count=self::count();
-		$t=1;
-		$funEvent=null;
-		while ($i<self::$timeout)
+		$t=intval($time*1000000/$count);
+		while ($i<self::$timeout['time'])
 		{
-			if(is_null($funEvent))
+			foreach (self::$events['global'] as $event => $fun)
 			{
-				foreach (self::$events['global'] as $event => $fun)
+				if($this->globalEvent($event))
 				{
-					if($this->globalEvent($event))
-					{
-						$funEvent=$fun;
-						break;
-					}
-					usleep(1000);
+					exit($fun());
 				}
+				usleep($t);
 			}
-			else
-			{
-				break;
-			}
-			
-			if(is_null($funEvent))
-			{
-				foreach (self::$events['session'] as $event => $fun)
-				{	
-					var_dump(Request::session());
-					$ok=$this->sessionEvent($event);
-					echo "string{$event}===>>{$ok}<br>";
-					if($ok)
-					{
-						$funEvent=$fun;
-						break;
-					}
-					usleep(1000);
+			foreach (self::$events['session'] as $event => $fun)
+			{	
+				if($this->sessionEvent($event))
+				{
+					exit($fun());
 				}
+				usleep($t);
 			}
-			else
-			{
-				break;
-			}
-			$i++;
+			$i=$i+$time;
 		}
 		return self::timeoutEvent();
-
-
 
 	}
 	private static function count()
@@ -140,14 +118,13 @@ class polling
 	private static function timeoutEvent()
 	{
 		$fun=self::$timeout['fun'];
-		return $fun();
+		exit($fun());
 	}
 	private function sessionEvent($event)
 	{
 		$key='event-'.$event;
 		if(Request::session($key))
 		{
-			var_dump(Request::session($key));
 			session_set($key,0);
 			return true;
 		}
