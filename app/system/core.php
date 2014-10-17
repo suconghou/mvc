@@ -101,7 +101,7 @@ class app
 			}
 			else
 			{
-				Error(404,'Regex Router param mising !');
+				Error(404,'Regex Router Param Mising !');
 			}
 
 		}
@@ -180,7 +180,7 @@ class app
       	}
       	else
       	{
-      		exit('CLI Mode Need controller and action !');
+      		exit('CLI Mode Need Both Controller And Action !');
       	}
 		
 
@@ -313,7 +313,7 @@ class app
 		}
 		else
 		{
-			$url=Validate::url($router)?$router:Error(500,'Async needs a  url or an array ');
+			$url=Validate::url($router)?$router:Error(500,'Async Need A Url Or An Array ');
 		}
 		if($curl)
 		{
@@ -532,9 +532,9 @@ function M($model,$param=null)
 	else
 	{
 		$model_file=MODEL_PATH.$model.'.php';
-		is_file($model_file)||Error('500','load model '.$m.' failed , mdoel file '.$model_file.' does not exists ');
+		is_file($model_file)||Error('500','Load Model '.$m.' Failed , Mdoel File '.$model_file.' Not Found ! ');
 		require $model_file;
-		class_exists($m)||Error('500','model file '.$model_file .' does not contain class '.$m);
+		class_exists($m)||Error('500','Model File '.$model_file .' Does Not Contain Class '.$m);
 		if($param)
 		{
 			$GLOBALS['APP']['model'][$m]=new $m($param);///对模型实例化
@@ -563,7 +563,7 @@ function S($lib,$param=null)
 		if(is_file($class_file))///是类库文件
 		{
 			require $class_file;
-			class_exists($l)||Error('500','library file '.$class_file .' does not contain class '.$l);
+			class_exists($l)||Error('500','Library File '.$class_file .' Does Not Contain Class '.$l);
 			if($param)
 			{
 				$GLOBALS['APP']['lib'][$l]=new $l($param);///对模型实例化
@@ -582,7 +582,7 @@ function S($lib,$param=null)
 		}
 		else
 		{
-			Error('500','load  library '.$l.' failed ,file '.$file.' or '.$class_file.' does not exists ');
+			Error('500','Load  Library '.$l.' Failed ,File '.$file.' Or '.$class_file.' Not Found ! ');
 		}
 	}
 }
@@ -591,7 +591,7 @@ function V($view,$data=array(),$fileCacheMin=0)
 {
 	if(defined('APP_TIME_SPEND'))
 	{
-		Error('500','You have already loaded a view,function V can not used twice in a method !');
+		Error('500','Function V Can Only Use Once , Use template Instead ! ');
 	}
 	$view_file=VIEW_PATH.$view.'.php';
 	if(is_file($view_file))
@@ -631,7 +631,7 @@ function V($view,$data=array(),$fileCacheMin=0)
 	}
 	else
 	{
-		Error('404','view file '.$view_file.' does not exists ');
+		Error('404','View File '.$view_file.' Not Found ! ');
 	}
 
 }
@@ -664,14 +664,14 @@ function template($file,$data=array())///加载模版
 	$file=VIEW_PATH.$file.'.php';
 	if(is_file($file))
 	{
-		is_array($data)||empty($data)||Error('500','param to view '.$file.' show be an array');
+		is_array($data)||empty($data)||Error('500','Param To View '.$file.' Show Be An Array');
 		empty($data)||extract($data);
 		include $file;
 		flush();
 	}
 	else
 	{
-		Error('404','template file '.$file.' not exists !');
+		Error('404','Template File '.$file.' Not Found !');
 	}
 }
 
@@ -1169,7 +1169,7 @@ class db extends PDO
 			}
 			catch ( Exception $e )
 			{
-            	Error('500','connect sqlite database error ! '.$e->getMessage());
+            	Error('500','Open Sqlite Database Error ! '.$e->getMessage());
         	}
 		}
 		else///使用mysql
@@ -1185,7 +1185,7 @@ class db extends PDO
 			}
 			catch ( Exception $e )
 			{
-           	 	Error('500','connect mysql database error ! '.$e->getMessage());
+           	 	Error('500','Connect Mysql Database Error ! '.$e->getMessage());
         	}
 		}
 
@@ -1201,7 +1201,7 @@ class db extends PDO
 		}
 		catch (PDOException $e)
 		{
-			Error('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
+			Error('500','Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
 		}
 		
 		
@@ -1218,7 +1218,7 @@ class db extends PDO
 		}
 		catch (PDOException $e)
 		{
-			Error('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
+			Error('500','Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
 		}
 	}
 	//运行Sql,以数组方式返回结果集第一条记录
@@ -1233,7 +1233,7 @@ class db extends PDO
 		}
 		catch (PDOException $e)
 		{
-			Error('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
+			Error('500','Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
 		}
 
 	}
@@ -1249,7 +1249,7 @@ class db extends PDO
 		}
 		catch (PDOException $e)
 		{
-			Error('500','run sql [ '.$sql.' ] error :<br> '.$e->getMessage());
+			Error('500','Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
 		}
 
 	}
