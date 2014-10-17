@@ -58,7 +58,7 @@ class app
 		{
 			$controllerFile=$controllerDir.'/'.$router[1].'.php';
 			if(is_file($controllerFile))
-			{			
+			{
 				$controllerName=$router[1];
 				$action=isset($router[2])?$router[2]:DEFAULT_ACTION;
 				$param=3;
@@ -66,28 +66,22 @@ class app
 			}
 			else
 			{
-				Error('404','the controller file '.$controllerFile.' does not exists');
+				Error('404','Request Controller File '.$controllerFile.' Not Found ! ');
 			}
 			
 		}
 		else
 		{
-			Error('404','the controller file '.$controller.' does not exists');
+			Error('404','Request Controller File '.$controller.' Not Found ! ');
 		}
-		if(class_exists($controllerName))
+		
+		method_exists($controllerName,$action)||Error('404','Request Controller Class '.$controllerName.' Does Not Contain Method '.$action);
+		$GLOBALS['APP']['controller'][$controllerName]=isset($GLOBALS['APP']['controller'][$controllerName])?$GLOBALS['APP']['controller'][$controllerName]:$controllerName;
+		if(!$GLOBALS['APP']['controller'][$controllerName] instanceof $controllerName)
 		{
-			method_exists($controllerName,$action)||Error('404','class '.$controllerName.' does not contain method '.$action);
-			$GLOBALS['APP']['controller'][$controllerName]=isset($GLOBALS['APP']['controller'][$controllerName])?$GLOBALS['APP']['controller'][$controllerName]:$controllerName;
-			if(!$GLOBALS['APP']['controller'][$controllerName] instanceof $controllerName)
-			{
-				$GLOBALS['APP']['controller'][$controllerName]=new $controllerName();///实例化控制器	
-			}
-			return call_user_func_array(array($GLOBALS['APP']['controller'][$controllerName],$action), array_slice($router,$param));//传入参数
+			$GLOBALS['APP']['controller'][$controllerName]=new $controllerName();///实例化控制器	
 		}
-		else
-		{
-			Error('404','the contoller file '.$controllerFile.' does not contain the class '.$controllerName);
-		}
+		return call_user_func_array(array($GLOBALS['APP']['controller'][$controllerName],$action), array_slice($router,$param));//传入参数
 
 	}
 	/**
@@ -1334,17 +1328,17 @@ function __autoload($class)
 	$model_file=MODEL_PATH.$class.'.php';	
 	if(is_file($model_file))
 	{
-		require $model_file;
-		class_exists($class)||Error('500','Autoload file '.$model_file.' successfully,but not found class '.$class);
+		require_once $model_file;
+		class_exists($class)||Error('500','Load File '.$model_file.' Succeed,But Not Found Class '.$class);
 	}
 	else if(is_file($controller_file))
 	{
-		require $controller_file;
-		class_exists($class)||Error('500','Autoload file '.$controller_file.' successfully,but not found class '.$class);
+		require_once $controller_file;
+		class_exists($class)||Error('500','Load File '.$controller_file.' Succeed,But Not Found Class '.$class);
 	}
 	else
 	{
-		Error('500','Can not autoload class file '.$class.'.php');
+		Error('500','Can Not Load Class '.$class);
 	}
 }
 // session 系列函数
