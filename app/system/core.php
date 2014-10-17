@@ -276,11 +276,11 @@ class app
 		{
 			$router=self::commonRouter($uri);
 		}
-		if(empty($router[0])) // http://127.0.0.1 的情况
+		if(empty($router[0])) 
 		{
 			$router=array(DEFAULT_CONTROLLER,DEFAULT_ACTION);
 		}
-		else if(empty($router[1])) //  http://127.0.0.1/home 的情况
+		else if(empty($router[1])) 
 		{
 			if(preg_match('/^\w+$/i',$router[0]))
 			{
@@ -288,18 +288,18 @@ class app
 			}
 			else
 			{
-				Error('404','Error controller name ! ');
+				Error('404','Request Controller '.$router[0].' Error ! ');
 			}
 		}
 		else //控制器和动作全部需要过滤
 		{
 			if(!preg_match('/^\w+$/i',$router[0]))
 			{
-				Error('404','Error controller name ! ');
+				Error('404','Request Controller '.$router[0].' Error ! ');
 			}
 			if(!preg_match('/^\w+$/i',$router[1]))
 			{
-				Error('404','Error action name ! ');
+				Error('404','Request Action '.$router[0].'=>'.$router[1].' Error ! ');
 			}
 		}
 		return $router;
