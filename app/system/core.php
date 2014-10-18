@@ -872,6 +872,23 @@ class Request
     {
     	return strtolower(self::getVar('server','REQUEST_METHOD')) == 'post';
     }
+    public static function isRobot()
+    {
+		$agent=self::getVar('server','HTTP_USER_AGENT');
+	    $pattern='/(spider|bot|slurp|crawler)/i';
+	    return preg_match($pattern, strtolower($agent));
+    }
+    public static function isMoblie()
+    {
+	 	$agent=self::getVar('server','HTTP_USER_AGENT');
+	    $regex_match="/(nokia|iphone|android|motorola|^mot\-|softbank|foma|docomo|kddi|up\.browser|up\.link|";
+	    $regex_match.="htc|dopod|blazer|netfront|helio|hosin|huawei|novarra|CoolPad|webos|techfaith|palmsource|";
+	    $regex_match.="blackberry|alcatel|amoi|ktouch|nexian|samsung|^sam\-|s[cg]h|^lge|ericsson|philips|sagem|wellcom|bunjalloo|maui|";
+	    $regex_match.="symbian|smartphone|midp|wap|phone|windows ce|iemobile|^spice|^bird|^zte\-|longcos|pantech|gionee|^sie\-|portalmmm|";
+	    $regex_match.="jig\s browser|hiptop|^ucweb|^benq|haier|^lct|opera\s*mobi|opera\*mini|320x320|240x320|176x220";
+	    $regex_match.=")/i";
+	    return preg_match($regex_match, strtolower($agent));
+    }
 	public static function ua()
 	{
 		return self::getVar('server','HTTP_USER_AGENT');
@@ -907,6 +924,10 @@ class Request
 				break;
 		}
 
+	}
+	public static function __callStatic($method,$args)
+	{
+		Error('500','Call Error Static Method '.$method.' In Class '.__CLASS__);
 	}
 }
 
@@ -1283,9 +1304,13 @@ class db extends PDO
 			self::init();
 		}
 	}
-	function __call($name,$args)
+	public function __call($method,$args)
 	{
-		Error('500','Call Error Method '.$name.' In Class '.__CLASS__);
+		Error('500','Call Error Method '.$method.' In Class '.__CLASS__);
+	}
+	public static function __callStatic($method,$args)
+	{
+		Error('500','Call Error Static Method '.$method.' In Class '.__CLASS__);
 	}
 	function __destruct()
 	{
