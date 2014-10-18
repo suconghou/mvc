@@ -4,7 +4,7 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.8
+ * @version 1.81
  */
 /**
 * APP 主要控制类
@@ -106,10 +106,10 @@ class app
 
 		}
 	}
-	public static function log($msg)
+	public static function log($msg,$type='DEBUG')
 	{
 		$path=APP_PATH.'log/'.date('Y-m-d').'.log';
-		$msg=date('Y-m-d H:i:s',time()).' ==> '.$msg.PHP_EOL;
+		$msg=strtoupper($type).'-'.date('Y-m-d H:i:s').' ==> '.$msg.PHP_EOL;
 		if(is_writable(APP_PATH.'log'))
 		{
 			if(!function_exists('error_log'))
@@ -119,7 +119,11 @@ class app
 					file_put_contents($path,$msg,FILE_APPEND); 
 				}
 			}
-			error_log($msg,3,$path);
+			//error消息和开发模式,测试模式全部记录
+			if(strtoupper($type)=='ERROR'||DEBUG==1||DEBUG==2)
+			{
+				error_log($msg,3,$path);
+			}
 		}
 	}
 	/**
@@ -142,8 +146,7 @@ class app
 					}
 					else //算出控制器
 					{
-						$router=array_merge($item[1],$matches);
-						return $router;
+						return array_merge($item[1],$matches);
 					}
 				}
 			}
@@ -213,13 +216,20 @@ class app
 			}
 			else //缓存已过期
 			{
-				unlink($hash);  ///删除过期文件
-				self::runRouter($router);
+				try
+				{
+					unlink($hash);  ///删除过期文件
+				}
+				catch(Exception $e)
+				{
+					app::log($e->getMessage(),'ERROR');
+				}
+				return self::runRouter($router);
 			}
 		}
 		else
 		{
-			self::runRouter($router);
+			return self::runRouter($router);
 		}
 
 	}
@@ -237,7 +247,7 @@ class app
 		}
 		else
 		{
-			app::run($router);
+			return app::run($router);
 		}
 		
 	}
@@ -365,82 +375,73 @@ class app
 	}
 
 
-	public static function set($key,$value=null,$host=null)
+	public static function set($key,$value)
 	{
-		if(is_null($host))
+		try
 		{
-			$host='global';
+			$file=sys_get_temp_dir().'/appcache';
+			if(file_exists($file))
+			{
+				$data=unserialize(file_get_contents($file));
+			}
+			$data[$key]=$value;
+			file_put_contents($file,serialize($data));
+			return true;	
 		}
-		$current_id=session_id();
-		if(is_null($key)&&is_null($value))
+		catch(Exception $e)
 		{
-			session_write_close();
-			session_id($host);
-			session_start();
-			session_destroy();
-			session_id($current_id);
-		    session_start();
-			
+			app::log($e->getMessage(),'ERROR');
+			return false;
 		}
-		else if(is_string($key))
-		{
-		    session_write_close();
-		    session_id($host);
-		    session_start();
-		    if(is_null($value))
-		    {
-		    	unset($_SESSION[$key]);
-		    }
-		    else
-		    {
-		    	$_SESSION[$key]=serialize($value);
-		    }
-		    session_write_close();
-		    session_id($current_id);
-		    session_start();
-		}
-	   
+		    
+
 	}
-	public static function get($key,$host=null)
+	public static function get($key,$default=null)
 	{
-		if(is_null($host))
+		try
 		{
-			$host='global';
+			$file=sys_get_temp_dir().'/appcache';
+			if(file_exists($file))
+			{
+				$data=unserialize(file_get_contents($file));
+				return isset($data[$key])?$data[$key]:$default;
+			}
+			return $default;
 		}
-	    is_session_started()||session_start();
-	    $current_id=session_id();
-	    session_write_close();
-	    session_id($host);
-	    session_start();
-	    $value=null;
-	    if(is_array($key))
-	    {
-	    	if(empty($key))
-	    	{
-	    		foreach ($_SESSION as $k => $v)
-	    		{
-	    			$value[$k]=unserialize($v);
-	    		}
-	    	}
-	    	else
-	    	{
-	    		foreach ($key as $k)
+		catch(Exception $e)
+		{
+			app::log($e->getMessage(),'ERROR');
+			return false;
+		}
+
+	}
+	public static function del($key=null)
+	{
+		try
+		{
+			$file=sys_get_temp_dir().'/appcache';
+			if(is_null($key))
+			{
+				return file_exists($file)&&unlink($file);
+			}
+			else
+			{
+				if(file_exists($file))
 				{
-					$value[$k]=isset($_SESSION[$k])?unserialize($_SESSION[$k]):null;
+					$data=unserialize(file_get_contents($file));
+					unset($data[$key]);
+					return file_put_contents($file, serialize($data))?true:false;
 				}
-	    	}
+				return true;
+			}
 		}
-		else if(is_string($key))
+		catch(Exception $e)
 		{
-	    	$value=isset($_SESSION[$key])?unserialize($_SESSION[$key]):null;
+			app::log($e->getMessage(),'ERROR');
+			return false;
 		}
-	    session_write_close();
-	    session_id($current_id);
-	    session_start();
-	    return $value;
+
 	}
-
-
 
 }
 // End of class app
@@ -449,7 +450,6 @@ class app
 //异常处理 404 500等
 function Error($errno, $errstr, $errfile=null, $errline=null)
 {
-
 
 	if($errno==404||$errno==500)
 	{
@@ -462,7 +462,7 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 		$code=500;
 	}
 	http_response_code($code);
-	DEBUG&&app::log($str);
+	DEBUG&&app::log($str,'ERROR');
 	if(defined('ERROR_PAGE_404')&&defined('ERROR_PAGE_500')&&ERROR_PAGE_404&&ERROR_PAGE_500) //自定义了404和500
 	{
 		if(isset($GLOBALS['APP']['router'][0])&&is_file(CONTROLLER_PATH.$GLOBALS['APP']['router'][0].'.php'))
@@ -734,7 +734,6 @@ class Request
 	}
 	public static function session($key=null,$default=null)
 	{
-		is_session_started()||session_start();
 		if($key)
 		{
 			return self::getVar('session',$key,$default);
@@ -898,6 +897,7 @@ class Request
 				return isset($_SERVER[$var])?self::clean($_SERVER[$var]):$default;
 				break;
 			case 'session': ///此处为获取session的方式
+				is_session_started()||session_start();
 				$session=isset($_SESSION[$var])?$_SESSION[$var]:$default;
 				session_write_close();
 				return $session;
@@ -1378,13 +1378,12 @@ function session_set($key,$value=null)
 		{
 			$_SESSION[$k]=is_array($v)?json_encode($v):$v;
 		}
-		return session_write_close();
 	}
 	else
 	{ 
 		$_SESSION[$key]=is_array($value)?json_encode($value):$value;
-		return session_write_close();
 	}
+	return session_write_close();
 }
 function session_del($key=null)
 {
@@ -1395,18 +1394,16 @@ function session_del($key=null)
 		{
 			unset($_SESSION[$v]);
 		}
-		return session_write_close();
-		
 	}
 	else if($key)
 	{
 		unset($_SESSION[$key]);
-		return session_write_close();
 	}
 	else
 	{
-		return session_destroy();
+		return session_unset();
 	}
+	return session_write_close();
 }
 
 function byteFormat($size,$dec=2)
@@ -1442,12 +1439,10 @@ function dateFormat($time)
 function redirect($url,$seconds=0,$code=302)
 {
 	http_response_code($code);
-	header("Refresh: {$seconds}; url={$url}");
-	exit;
+	exit(header("Refresh: {$seconds}; url={$url}"));
 }
 function baseUrl($path=null)
 {
-	
 	if(is_string($path))
 	{
 		$path='/'.ltrim($path, '/');
@@ -1585,7 +1580,7 @@ function sendMail($mail_to, $mail_subject, $mail_message)
 	}
 	catch(Exception $e)
 	{
-		app::log($e->getMessage());
+		app::log($e->getMessage(),'ERROR');
 		return false;
 	}
 	

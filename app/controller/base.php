@@ -271,7 +271,6 @@ class base
 				session_start();
 			}
 			
-			
 		}
 		block:		
 		if(isset($hit))
