@@ -2,6 +2,10 @@
 
 /**
 * 酷我音乐调用
+* search 搜索歌曲或歌手
+* quicklink 歌曲名直接返回音乐地址
+* $url=S('class/kuwoMusic')->quicklink('神武笑春风','mp3');
+* $url=='404'||redirect($url);
 */
 
 class kuwoMusic 
@@ -19,8 +23,7 @@ class kuwoMusic
 		$rn=self::$rn;
 		$url="http://search.kuwo.cn/r.s?all={$q}&rformat=json&encoding=utf8&pn={$page}&rn={$rn}";
 		$str=file_get_contents($url);
-		$out=str_replace("'",'"',$str);
-		
+		$out=str_replace("'",'"',$str); //json数据不认识
 		return $out;
 	}
 	///由ID获得真实地址
@@ -50,16 +53,11 @@ class kuwoMusic
 	{
 		$res=$this->search($q,$i);
 		$json=json_decode($res);
-		if(!$res)
-		{
-			return '404';
-		}
-		if(!$json)
+		if(!$res||!$json||!isset($json->abslist))
 		{
 			return '404';
 		}
 		$ids=$json->abslist;
-		if(!$ids)return '404';
 		$id=$ids[$i]->MUSICRID;
 		return $this->getlink($id,$type);
 	}

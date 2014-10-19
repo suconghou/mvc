@@ -9,7 +9,8 @@ class saeStorage
 {
     private static $kv;
     private static $stor;
-    private static $size=4194304; //超过多少字节存入到storage中,默认为4M,KV最大存储4M
+    private static $kvSize=4194304; //超过多少字节存入到storage中,默认为4M,KV最大存储4M
+    private static $maxUploadSize=10485760; // 10M,最大上传
 
     function __construct()
     {
@@ -72,7 +73,7 @@ class saeStorage
     {
          $gz=gzcompress($bindata);
          $key=md5($gz);
-         if(strlen($gz)>=self::$size)
+         if(strlen($gz)>=self::$kvSize)
          {
             return $this->stor_push($key,$bindata,$type)?$key:false;
          }
@@ -88,8 +89,8 @@ class saeStorage
         $gz=$this->get($key);
         if($gz)//在KV中命中
         {
-            
-            $bindata=$gz?gzuncompress($gz):null;
+            $data=gzuncompress($gz);
+            $bindata=$data?$data:null;
            
             return $bindata;
         }
@@ -233,20 +234,19 @@ class saeStorage
 
     }
     /**
-     * 上传接口
+     * 上传接口,参数:文件表单名
      * 上传文件到SAE, 注意上传的文件表单名为file ,并且不能切割上传
      */
-    public function uploadHandler()
+    public function uploadHandler($file='file')
     {
         header('Access-Control-Allow-Origin:*');
-        define('MAXSIZE',1024*1024*10); ///最大能够上传的 10M
-        if(!isset($_FILES['file']))
+        if(!isset($_FILES[$file]))
         {
             $data['code']=-2;
             $data['msg']='no file upload ';
             echo json_encode($data);
         }
-        else if($_FILES['file']['size']>MAXSIZE)
+        else if($_FILES[$file]['size']>=self::$maxUploadSize)
         {
             $data['code']=-3;
             $data['msg']='文件超过最大限定!';
@@ -254,9 +254,9 @@ class saeStorage
         }
         else
         {
-            $arr=explode('.', $_FILES['file']['name']);
+            $arr=explode('.', $_FILES[$file]['name']);
             $default= end($arr); ///上传时的扩展名
-            $contents=file_get_contents($_FILES['file']['tmp_name']);
+            $contents=file_get_contents($_FILES[$file]['tmp_name']);
             $type=$this->getType($contents,$default); ///获取文件类型,获取不到采用上传时的类型
             $hash=$this->push($contents,$type); ////装载入数据仓库
             if($hash)

@@ -360,16 +360,32 @@ class server
 		return $web;
 
 	}
-
-	private static function computeSec($sec)
+	/**
+	 * websocket 握手
+	 */
+	private static function checkHandshake($sec)
 	{
-		$sha=sha1($sec.'258EAFA5-E914-47DA-95CA-C5AB0DC85B11',1);
-		$str=base64_encode($sha);
-		$header='HTTP/1.1 101 Switching Protocols'.PHP_EOL;
-		$header.='Upgrade: websocket'.PHP_EOL;
-		$header.='Connection: Upgrade'.PHP_EOL;
-		$header.='Sec-WebSocket-Accept:'.$str.PHP_EOL.PHP_EOL.PHP_EOL;
-		return $header;
+		$key = base64_encode(sha1($sec."258EAFA5-E914-47DA-95CA-C5AB0DC85B11",true));
+		// 握手返回的数据
+		$message = "HTTP/1.1 101 Switching Protocols\r\n";
+		$message .= "Upgrade: websocket\r\n";
+		$message .= "Sec-WebSocket-Version: 13\r\n";
+		$message .= "Connection: Upgrade\r\n";
+		$message .= "Sec-WebSocket-Accept: " . $key . "\r\n\r\n";
+		// 发送数据包到客户端 完成握手
+		self::sendToCurrentClient($message);
+	}
+	public static function sendToCurrentClient($data)
+	{
+		
+	} 
+	public static function sendToAll($data,$client)
+	{
+
+	}
+	public static function sendToClient($data,$client)
+	{
+
 	}
 
 	function __destruct()
