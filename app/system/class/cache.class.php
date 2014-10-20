@@ -73,7 +73,8 @@ class cache
 			$init=array('FileCacheInit'=>time());
 			file_put_contents(self::$fileCache,serialize($init));
 		}
-		self::$fileArr=unserialize(file_get_contents(self::$fileCache));
+		$data=unserialize(file_get_contents(self::$fileCache));
+		self::$fileArr=$data?$data:null;
 		self::$cacheType='file';
 
 	}
@@ -265,7 +266,8 @@ class cache
 	}
 	private static function redisGet($key)
 	{
-		return unserialize(self::$cache->get($key));
+		$data=unserialize(self::$cache->get($key));
+		return $data?$data:null;
 	}
 	private static function fileSet($key,$value,$expire=86400)
 	{
