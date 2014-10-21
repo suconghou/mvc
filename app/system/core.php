@@ -690,7 +690,7 @@ function template($file,$data=array())///加载模版
 	$file=VIEW_PATH.$file.'.php';
 	if(is_file($file))
 	{
-		is_array($data)||empty($data)||Error('500','Param To View '.$file.' Show Be An Array');
+		is_array($data)||empty($data)||Error('500','Param To View '.$file.' Must Be An Array');
 		empty($data)||extract($data);
 		include $file;
 		flush();
