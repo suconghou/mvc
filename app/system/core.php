@@ -561,13 +561,13 @@ function M($model,$param=null)
 		is_file($model_file)||Error('500','Load Model '.$m.' Failed , Mdoel File '.$model_file.' Not Found ! ');
 		require $model_file;
 		class_exists($m)||Error('500','Model File '.$model_file .' Does Not Contain Class '.$m);
-		if($param)
+		if(is_null($param))
 		{
-			$GLOBALS['APP']['model'][$m]=new $m($param);///对模型实例化
+			$GLOBALS['APP']['model'][$m]=new $m();
 		}
 		else
 		{
-			$GLOBALS['APP']['model'][$m]=new $m();///对模型实例化
+			$GLOBALS['APP']['model'][$m]=new $m($param);
 		}
 		return $GLOBALS['APP']['model'][$m];
 	}
@@ -590,13 +590,13 @@ function S($lib,$param=null)
 		{
 			require $class_file;
 			class_exists($l)||Error('500','Library File '.$class_file .' Does Not Contain Class '.$l);
-			if($param)
+			if(is_null($param))
 			{
-				$GLOBALS['APP']['lib'][$l]=new $l($param);///对模型实例化
+				$GLOBALS['APP']['lib'][$l]=new $l();
 			}
 			else
 			{
-				$GLOBALS['APP']['lib'][$l]=new $l();///对模型实例化
+				$GLOBALS['APP']['lib'][$l]=new $l($param);
 			}
 			return $GLOBALS['APP']['lib'][$l];
 
