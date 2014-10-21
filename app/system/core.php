@@ -11,6 +11,7 @@
 */
 class app
 {
+	private static $global;
 	/**
 	 * 启动入口
 	 */
@@ -374,12 +375,28 @@ class app
 
 	}
 
+	/**
+	 * 
+	 */
+	public static function getItem($key,$default=null)
+	{
+		return isset(self::$global[$key])?self::$global[$key]:$default;
+	}
+	public static function setItem($key,$value)
+	{
+		self::$global[$key]=$value;
+		return self::$global;
+	}
 
 	public static function set($key,$value)
 	{
 		try
-		{
-			$file=sys_get_temp_dir().'/appcache';
+		{	
+			if(!$file=self::getItem('sys-filecache'))
+			{
+				$file=sys_get_temp_dir().'/'.date('Ymd');
+				self::setItem('sys-filecache',$file);
+			}
 			if(file_exists($file))
 			{
 				$data=unserialize(file_get_contents($file));
@@ -400,7 +417,12 @@ class app
 	{
 		try
 		{
-			$file=sys_get_temp_dir().'/appcache';
+			
+			if(!$file=self::getItem('sys-filecache'))
+			{
+				$file=sys_get_temp_dir().'/'.date('Ymd');
+				self::setItem('sys-filecache',$file);
+			}
 			if(file_exists($file))
 			{
 				$data=unserialize(file_get_contents($file));
@@ -419,7 +441,11 @@ class app
 	{
 		try
 		{
-			$file=sys_get_temp_dir().'/appcache';
+			if(!$file=self::getItem('sys-filecache'))
+			{
+				$file=sys_get_temp_dir().'/'.date('Ymd');
+				self::setItem('sys-filecache',$file);
+			}
 			if(is_null($key))
 			{
 				return file_exists($file)&&unlink($file);
