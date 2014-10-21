@@ -51,13 +51,15 @@ class kuwoMusic
 	}
 	function quicklink($q,$type=null,$i=0)
 	{
-		$res=$this->search($q,$i);
+		$res=$this->search($q);
 		$json=json_decode($res);
 		if(!$res||!$json||!isset($json->abslist))
 		{
 			return '404';
 		}
 		$ids=$json->abslist;
+		$num=count($ids);
+		$i=max(min(intval($i),$num-1),0);
 		$id=$ids[$i]->MUSICRID;
 		return $this->getlink($id,$type);
 	}

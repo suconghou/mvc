@@ -760,6 +760,7 @@ class Request
 	}
 	public static function session($key=null,$default=null)
 	{
+		is_session_started()||session_start();
 		if($key)
 		{
 			return self::getVar('session',$key,$default);
@@ -940,7 +941,6 @@ class Request
 				return isset($_SERVER[$var])?self::clean($_SERVER[$var]):$default;
 				break;
 			case 'session': ///此处为获取session的方式
-				is_session_started()||session_start();
 				$session=isset($_SESSION[$var])?$_SESSION[$var]:$default;
 				session_write_close();
 				return $session;
