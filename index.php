@@ -46,8 +46,6 @@ define('SQLITE',APP_PATH.'data.db');
 //配置使用何种数据库,0为mysql,1为sqlite
 define('DB',0);
 
-
-
 ///添加一个正则路由,数组第一个为控制器,第二个为方法,前面的将作为该方法的第一个实参,以此类推
 
 app::route('\/page\/(\d{1,9})\.html',array('page','id'));
