@@ -19,12 +19,15 @@
 *  单字段自增,自减
 *  incrById($table,$column,$id,$num=1)
 *  decrById($table,$column,$id,$num=1)
-*  
+*  搜索  
+*  searchByColumn($table,$column,$search)
+*  searchByTable($table,$cloumn,$search)
 *  数据列表
 *  getList($table,$column,$page=1,$order='desc',$per=20,$where=null)
 * 
 *  按条件计数
 *  count($table,$where=array())
+*
 *  使用缓存 $db->cache('on',10)->selectById($table,$id); 允许得到缓存结果
 *  $db->cache('off')->selectById($table,$id); 跳过缓存,直接使用数据库数据
 *  $db->delCache($table,$id) 手动删除一个表的id缓存
@@ -401,6 +404,36 @@ abstract class database extends db
 		$this->delCache($table,$id);
 		return $this->runSql($sql);
 	}
+
+	/**
+	 * 按栏目搜索
+	 */
+	function searchByColumn($table,$column,$search,$selectCloumn='*',$num=50)
+	{
+		$sql="SELECT {$selectCloumn} FROM `{$table}` WHERE {$column} LIKE  '%{$search}%' LIMIT {$num}";
+		if(self::$use)
+		{
+			$key=md5($sql);
+			$data=self::$cache->get($key);
+			if($data)
+			{
+				return $data;
+			}
+			else
+			{
+				$data=$this->getData($sql);
+				self::$cache->set($key,$data,self::$cacheTime);
+				return $data;
+			}
+
+		}
+		else
+		{
+			return $this->getData($sql);
+			
+		}
+	}
+
 	/**
 	 * 获得某个表的某条件下按某字段排序的指定页的SELECT内容以及该条件下的总页数,缓存只能过期自动删除
 	 */
