@@ -39,33 +39,34 @@ class kupan
   {
         $post_string="grant_type=authorization_code&client_id=".self::$client_id."&client_secret=".self::$client_secret."&code=".self::$code."&redirect_uri=".self::$backurl;
         $token_url='http://auth.kanbox.com/0/token';
-        return json_decode($this->post($token_url,$post_string));
+        return json_decode($this->post($token_url,$post_string),true);
   }
   ///以后可以采用ref_token, 最常使用
   function get_token_byref()
   {
     $post_string="grant_type=refresh_token&client_id=".self::$client_id."&client_secret=".self::$client_secret."&refresh_token=".self::$refresh_token;
     $ref_url="https://auth.kanbox.com/0/token";
-    return json_decode($this->post($ref_url,$post_string));
+    return json_decode($this->post($ref_url,$post_string),true);
   }
   //进一步的封装
   function token()
   {
     $ret=$this->get_token_byref();
-    return $ret->access_token;
+    $access_token=isset($ret['access_token'])?$ret['access_token']:implode(' ',$ret);
+    return $access_token;
   }
   //下面操作函数
   function info()
   {
     $url="https://api.kanbox.com/0/info?bearer_token=".self::$token;
-    return json_decode(file_get_contents($url));
+    return json_decode(file_get_contents($url),true);
   }
 
 
   function lists($path=null)
   {
     $url="https://api.kanbox.com/0/list{$path}?bearer_token=".self::$token;
-    return json_decode(file_get_contents($url));
+    return json_decode(file_get_contents($url),true);
   }
 
   function download($path,$full=null)
@@ -93,25 +94,25 @@ class kupan
   function delete($path)
   {
     $url="https://api.kanbox.com/0/delete{$path}?bearer_token=".self::$token;
-    return json_decode(file_get_contents($url));
+    return json_decode(file_get_contents($url),true);
 
   }
 
   function move($path,$new_path)//有问题
   {
     $url="https://api.kanbox.com/0/move{$path}?destination_path={$new_path}&bearer_token=".self::$token;
-    return json_decode(file_get_contents($url));
+    return json_decode(file_get_contents($url),true);
   }
   function copys($path,$new_path)
   {
     $url="https://api.kanbox.com/0/copy{$path}?destination_path={$new_path}&bearer_token=".self::$token;
-    return json_decode(file_get_contents($url));
+    return json_decode(file_get_contents($url),true);
   }
 
   function create_folder($path)
   {
     $url="https://api.kanbox.com/0/create_folder{$path}?bearer_token=".self::$token;
-    return json_decode(file_get_contents($url));
+    return json_decode(file_get_contents($url),true);
 
   }
   static function set_token($token)

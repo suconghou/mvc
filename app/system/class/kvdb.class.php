@@ -27,7 +27,8 @@ class kvdb
 	///从文本读入内存
 	private static function read()
 	{
-		self::$dbarr=unserialize(file_get_contents(self::$dbfile));
+		$data=unserialize(file_get_contents(self::$dbfile));
+		self::$dbarr=$data?$data:null;
 	}
 	//存入文本
 	private static function write()
@@ -260,7 +261,8 @@ class kvdb
 		$sql="SELECT v FROM `kvdb` WHERE k='{$key}' ";
 		$rs=self::$dbfile->query($sql);
 		if(FALSE==$rs)return $default;
-		return unserialize($rs->fetchColumn());
+		$data=unserialize($rs->fetchColumn());
+		return $data?$data:null; 
 
 	}
 	private static function sqlite_del($key)

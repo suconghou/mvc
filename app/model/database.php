@@ -128,9 +128,11 @@ abstract class database extends db
 	{
 		$id=intval($id);
 		$v=array();
+		$pdo=$this->getInstance();
 		foreach ($data as $key => $value)
 		{
-			 $v[]=$key.'='."'".$value."'";
+			$value=$pdo->quote($value);
+			$v[]=$key.'='.$value;
 		}
 		$strv=implode(',',$v);  
 		$sql="UPDATE `{$table}` SET {$strv} WHERE id ='{$id}' ";
@@ -142,10 +144,11 @@ abstract class database extends db
 	 */
 	function insertData($table,$data)
 	{
+		$pdo=$this->getInstance();
 		foreach ($data as $key => $value)
 		{
-			  $k[]='`'.$key.'`';
-			  $v[]='"'.$value.'"';
+			$k[]='`'.$key.'`';
+			$v[]=$pdo->quote($value);
 		}
 		$strv=implode(',',$v);    
 		$strk=implode(",",$k);
@@ -162,9 +165,11 @@ abstract class database extends db
 	{	
 		if($where)
 		{
+			$pdo=$this->getInstance();
 			foreach ($where as $key => $value) 
 			{
-				$k[]='(`'.$key.'`="'.$value.'")';
+				$value=$pdo->quote($value);
+				$k[]='(`'.$key.'`='.$value.')';
 			}
 			$strk=null;
 			$strk.=implode(" AND ",$k);
@@ -226,12 +231,13 @@ abstract class database extends db
 	{
 		if($where)
 		{
+			$pdo=$this->getInstance();
 			foreach ($where as $key => $value) 
 			{
-
-				$k[]='(`'.$key.'`="'.$value.'")';
-
+				$value=$pdo->quote($value);
+				$k[]='(`'.$key.'`='.$value.')';
 			}
+			$strk='';
 			$strk.=implode(" AND ",$k);
 			$sql="DELETE  FROM `{$table}` WHERE ({$strk}) ";
 		}
@@ -251,14 +257,17 @@ abstract class database extends db
 	 */
 	function updateWhere($table,$where,$data)
 	{
+		$pdo=$this->getInstance();
 		foreach ($where as $key => $value) 
 		{
-			$k[]='(`'.$key.'`="'.$value.'")';
+			$value=$pdo->quote($value);
+			$k[]='(`'.$key.'`='.$value.')';
 		}
 		foreach ($data as $key => $value) 
 		{
 			$v[]=$key.'='."'".$value."'";
 		}
+		$strk=$strv='';
 		$strk.=implode(" AND ",$k);
 		$strv.=implode(' , ',$v);
 		$sql="UPDATE `{$table}` SET {$strv} WHERE ({$strk})";
@@ -442,9 +451,11 @@ abstract class database extends db
 		$offset=max(0,($page-1)*$per);
 		if(is_array($where))
 		{
+			$pdo=$this->getInstance();
 			foreach ($where as $key => $value) 
 			{
-				$k[]='(`'.$key.'`="'.$value.'")';
+				$value=$pdo->quote($value);
+				$k[]='(`'.$key.'`='.$value.')';
 			}
 			$strk=null;
 			$strk.=implode(" AND ",$k);

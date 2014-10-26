@@ -707,52 +707,52 @@ function template($file,$data=array())///加载模版
 class Request
 {
 	
-	public static function post($key=null,$default=null)
+	public static function post($key=null,$default=null,$clean=false)
 	{
 		if($key)
 		{
-			return self::getVar('post',$key,$default);
+			return self::getVar('post',$key,$default,$clean);
 		}
 		else
 		{
 			$data=array();
 			foreach ($_POST as $key => $value)
 			{
-				$data[$key]=self::getVar('post',$key);
+				$data[$key]=self::getVar('post',$key,$default,$clean);
 			}
 			return $data;
 		}
 
 	}
-	public static function get($key=null,$default=null)
+	public static function get($key=null,$default=null,$clean=false)
 	{
 		if($key)
 		{
-			return self::getVar('get',$key,$default);
+			return self::getVar('get',$key,$default,$clean);
 		}
 		else
 		{
 			$data=array();
 			foreach ($_GET as $key => $value)
 			{
-				$data[$key]=self::getVar('get',$key);
+				$data[$key]=self::getVar('get',$key,$default,$clean);
 			}
 			return $data;
 		}
 
 	}
-	public static function cookie($key=null,$default=null)
+	public static function cookie($key=null,$default=null,$clean=false)
 	{
 		if($key)
 		{
-			return self::getVar('cookie',$key,$default);
+			return self::getVar('cookie',$key,$default,$clean);
 		}
 		else
 		{
 			$data=array();
 			foreach ($_COOKIE as $key => $value)
 			{
-				$data[$key]=self::getVar('cookie',$key);
+				$data[$key]=self::getVar('cookie',$key,$default,$clean);
 			}
 			return $data;
 		}
@@ -837,16 +837,16 @@ class Request
 	}
 	/**
 	 * 默认普通过滤,去除html标签,去除空格
-	 * $type='1' 去除中文
-	 * $type=''
-	 * $type=''
-	 * $type=''
+	 * $type null 默认 去除xss
+	 * $type 1 去除中文
+	 * $type 2 
+	 * $type 3
 	 */
-	public static function clean($val,$type=null,$all=null)
+	public static function clean($val,$type=null)
 	{
 		if(is_null($type))
 		{
-			return trim((strip_tags($val)));
+			return $val;
 		}
 		else
 		{
@@ -859,10 +859,10 @@ class Request
 					$out=preg_replace('','', $val);
 					break;
 				default:
-					$out=$val;
+					$out=strip_tags($val);
 					break;
 			}
-			return $all?trim(strip_tags($out)):$out;
+			return trim($out);
 		}
 
 	}
@@ -924,21 +924,63 @@ class Request
 	{
 		return self::getvar('server','HTTP_REFERER');
 	}
-	private static function getVar($type,$var,$default=null)
+	public static function filterPost($rule,$callback=null,$clean=false)
+	{
+		foreach ($rule as $key => $value)
+		{
+			$allowed[]=is_numeric($key)?$value:$key;			
+		}
+		$post=self::filter($_POST,$allowed,$clean);
+		Validate::addRules($rule);
+		return Validate::check($post,$callback);
+	}
+	public static function filterGet($rule,$callback=null,$clean=false)
+	{
+		foreach ($rule as $key => $value)
+		{
+			$allowed[]=is_numeric($key)?$value:$key;
+		}
+		$get=self::filter($_GET,$allowed,$clean);
+		Validate::addRules($rule);
+		return Validate::check($get,$callback);
+	}
+	private static function filter($input,$allowed,$clean=false)
+	{
+		foreach(array_keys($input) as $key )
+	    {
+	        if ( !in_array($key,$allowed) )
+	        {
+	             unset($input[$key]);
+	        }
+	        if($clean)
+	        {
+	        	$input[$key]=self::clean($input[$key]);
+	        }
+	    }
+	    foreach ($allowed as $item)
+	    {
+	    	if(!isset($input[$item]))
+	    	{
+	    		$input[$item]=null;
+	    	}
+	    }
+	    return $input;
+	}
+	private static function getVar($type,$var,$default=null,$clean=false)
 	{
 		switch ($type)
 		{
 			case 'post':
-				return isset($_POST[$var])?self::clean($_POST[$var]):$default;
+				return isset($_POST[$var])?($clean?self::clean($_POST[$var]):$_POST[$var]):$default;
 				break;
 			case 'get':
-				return isset($_GET[$var])?self::clean($_GET[$var]):$default;
+				return isset($_GET[$var])?($clean?self::clean($_GET[$var]):$_GET[$var]):$default;
 				break;
 			case 'cookie':
-				return isset($_COOKIE[$var])?self::clean($_COOKIE[$var]):$default;
+				return isset($_COOKIE[$var])?($clean?self::clean($_COOKIE[$var]):$_COOKIE[$var]):$default;
 				break;
 			case 'server':
-				return isset($_SERVER[$var])?self::clean($_SERVER[$var]):$default;
+				return isset($_SERVER[$var])?$_SERVER[$var]:$default;
 				break;
 			case 'session': ///此处为获取session的方式
 				$session=isset($_SESSION[$var])?$_SESSION[$var]:$default;
@@ -965,180 +1007,160 @@ class Validate
 	private static $rule;
 	private static $msg;
 	private static $data;
-	/**
-	 * 按照先前的规则校验,校验完,清除本次校验规则以待下次校验
-	 */
-	public static function check($data)
+
+	public static function check($data,$callback=null)
 	{
-		self::$data=$data;
-		if(empty(self::$rule))return false;
-		foreach (self::$rule as $key=>$rule) //遍历所有规则,得到字段,规则,规则可以为空
+		try
 		{
-			//1.必须字段检测
-			$ret=self::requireFilter($key); //数据中必须存在该字段
-			if($ret['code']==0) //必须性监测通过
-			{	
-				if(!empty($rule[0])) //设定了规则//2.解析规则
-				{
-					foreach ($rule as  $v) //$v 规则关键字
-					{
-						if(preg_match('/^\/.*\/$/',$v)) //正则规则
-						{
-							if(!preg_match($v, self::$data[$key]))
-							return self::destruct(array('code'=>-1,'msg'=>self::getErrMsg($key,$v)));
-						}
-						else if(stripos($v,'=')) //含有变量的规则
-						{
-							$ret=self::mixedFilter($key,explode('=', $v));
-							if($ret['code']!=0) return self::destruct($ret);
-						}
-						else //普通规则
-						{
-							$ret=self::singleFilter($key,$v);
-							if($ret['code']!=0)
-							{
-								return self::destruct($ret);
-
-							} 
-						}
-					}
-				}
-
-			}
-			else
+			self::$data=$data;
+			self::$rule=self::$rule?self::$rule:array();
+			foreach (self::$rule as $key => $rules)
 			{
-				return self::destruct($ret);
-			}
+				foreach ($rules as $ruleNum => $rule)
+				{
+					self::checker($key,$rule,$ruleNum);
+				}
+			}	
 		}
-		return self::destruct(array('code'=>0));
-	}
-	/**
-	 * 必须字段检测
-	 */
-	private static function requireFilter($key)
-	{
-		if(isset(self::$data[$key])&&!empty(self::$data[$key]))
+		catch(Exception $e)
 		{
-			return array('code'=>0);
+			if($callback)
+			{
+				$data=json_encode(array('code'=>$e->getCode(),'msg'=>$e->getMessage()));
+				$callback($data,$e);
+			}
+			self::$data=self::$rule=self::$msg=null;
+			return false;
+		}
+		self::$data=self::$rule=self::$msg=null;
+		return $data;
+	}
+
+	private static function checker($key,$rule,$ruleNum)
+	{
+		$msg=self::$msg[$key][$ruleNum];
+		if(stripos($rule,'='))
+		{
+			self::mixedFilter($key,explode('=', $rule),$msg);
+		} 
+		else if(preg_match('/^\/.*\/$/',$rule))
+		{
+			$item=isset(self::$data[$key])?self::$data[$key]:null;
+			if(!preg_match($rule,$item))
+			{
+				throw new Exception($msg, 100);
+			}
 		}
 		else
 		{
-			$err=self::getErrMsg($key,null);
-			return array('code'=>-1,'msg'=>$err);
+			self::typeFilter($key,$rule,$msg);
+		}
+	}
+
+	private static function typeFilter($key,$type,$msg)
+	{
+		$item=isset(self::$data[$key])?self::$data[$key]:null;
+		switch ($type)
+		{
+			case 'require':
+				if(empty($item))
+				{
+					throw new Exception($msg, 11);
+				}
+				break;
+			case 'email':
+				if(!self::email($item))
+				{
+					throw new Exception($msg, 12);
+				}
+				break;
+			case 'username':
+				if(!self::username($item))
+				{
+					throw new Exception($msg, 13);
+				}
+				break;
+			case 'password':
+				if(!self::password($item))
+				{
+					throw new Exception($msg, 14);
+				}
+				break;
+			case 'phone':
+				if(!self::phone($item))
+				{
+					throw new Exception($msg, 15);
+				}
+				break;
+			case 'url':
+				if(!self::url($item))
+				{
+					throw new Exception($msg, 16);
+				}
+				break;
+			case 'ip':
+				if(!self::ip($item))
+				{
+					throw new Exception($msg, 17);
+				}
+				break;
+			case 'idcard':
+				if(!self::idcard($item))
+				{
+					throw new Exception($msg, 18);
+				}
+				break;
+			default:
+				throw new Exception("Error Type Rule {$type}", 404);
+				break;
 		}
 
 	}
-	private static function lengthFilter()
+	private static function mixedFilter($key,$mixed,$msg)
 	{
-
-	}
-	private static function mixedFilter($key,$arr)
-	{
-		$msg=self::getErrMsg($key,$arr[0].'='.$arr[1]);
-		switch ($arr[0])
+		$item=isset(self::$data[$key])?self::$data[$key]:null;
+		switch ($mixed[0])
 		{
-			case 'min-length':
-				if(strlen(self::$data[$key])<$arr[1])
+			case 'minlength':
+				if(strlen($item)<$mixed[1])
 				{
-					return array('code'=>-1,'msg'=>$msg);
+					throw new Exception($msg, 21);
 				}
 				break;
-			case 'max-length':
-				if(strlen(self::$data[$key])>$arr[1])
+			case 'maxlength':
+				if(strlen($item)>$mixed[1])
 				{
-					return array('code'=>-2,'msg'=>$msg);
+					throw new Exception($msg, 22);
 				}
 				break;
 			case 'eq':
-				if(self::$data[$key]!=$arr[1])
+				if($item!=$mixed[1])
 				{
-					return array('code'=>-3,'msg'=>$msg);
+					throw new Exception($msg, 23);
 				}
 				break;
 			default:
-				return array('code'=>-5,'msg'=>'Error Rule');
+				throw new Exception("Error Mixed Rule {$mixed[0]}", 500);
 				break;
 		}
-		return array('code'=>0);
-	}
-	private static function singleFilter($key,$rule)
-	{
-		$msg=self::getErrMsg($key,$rule);
-		$data=self::$data[$key];
-		switch ($rule)
-		{
-			case 'email':
-				if(!self::email($data)) return array('code'=>-1,'msg'=>$msg);
-				break;
-			case 'username':
-				if(!self::username($data)) return array('code'=>-2,'msg'=>$msg);
-				break;
-			case 'password':
-				if(!self::password($data)) return array('code'=>-3,'msg'=>$msg);
-				break;
-			case 'url':
-				if(!self::url($data)) return array('code'=>-4,'msg'=>$msg);
-				break;
-			case 'phone':
-				if(!self::phone($data)) return array('code'=>-5,'msg'=>$msg);
-				break;
-			case 'ip':
-				if(!self::ip($data)) return array('code'=>-6,'msg'=>$msg);
-				break;
-			case 'idcard':
-				if(!self::idcard($data)) return array('code'=>-7,'msg'=>$msg);
-				break;
-			default:
-				return array('code'=>-9,'msg'=>'Error Rule');
-				break;
-		}
-		return array('code'=>0);
-	}
-	private static function getErrMsg($key,$rule=null)
-	{
-		if($rule)
-		{
-			$arr_i=array_keys(self::$rule[$key],$rule);
-			$i=$arr_i[0];
-			if(count(self::$rule[$key])!=count(self::$msg[$key]))$i++;
-			$msg=isset(self::$msg[$key][$i])?self::$msg[$key][$i]:null;
-			return $msg;
-		}
-		else
-		{
-			if(count(self::$rule[$key])==count(self::$msg[$key]))
-			{
-				$err=self::$msg[$key][0]&&!self::$rule[$key][0]?self::$msg[$key][0]:'字段'.$key.'为必填项';
-			}
-			else
-			{
-				$err=self::$msg[$key][0]?self::$msg[$key][0]:'字段'.$key.'为必填项';
-			}
-			return $err;
-		}
-
-
-	}
-	private static function destruct($msg)
-	{
-		self::$rule=null;
-		self::$msg=null;
-		self::$data=null;
-		return $msg;
 	}
 	/**
 	 * 添加过滤规则
 	 */
-	public static function addRule($key,$msg=null,$rule=null)
+	public static function addRule($key,$msg,$rule)
 	{
 		self::$rule[$key]=explode('|',$rule);
 		self::$msg[$key]=explode('|', $msg);
 	}
-	public static function addRules($arr=array())
+	public static function addRules($arr)
 	{
-		foreach ($arr as $key)
+		foreach ($arr as $key=>$item)
 		{
-			self::addRule($key);
+			$item=explode('@', $item);
+			if(count($item)==2)
+			{
+				self::addRule($key,$item[0],$item[1]);
+			}
 		}
 	}
 	public static function email($email)
@@ -1180,7 +1202,7 @@ class Validate
 	//自定义正则验证
 	public static function this($pattern,$subject)
 	{
-		return preg_match('/^'.$pattern.'$/', $subject);
+		return preg_match($pattern, $subject);
 	}
 
 }
