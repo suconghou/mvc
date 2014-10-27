@@ -209,7 +209,7 @@ function dump($var, $echo=true, $label=null, $strict=true)
     }
 }
 //可以指定前缀
-function createUuid($prefix = "",$split="")
+function createUuid($prefix ='',$split='')
 { 
     $str = md5(uniqid(mt_rand(), true));
     $uuid = substr($str, 0, 8).$split ;
@@ -219,3 +219,53 @@ function createUuid($prefix = "",$split="")
     $uuid .= substr($str, 20, 12);
     return $prefix . $uuid;
 }
+/** 
+ * 10进制转为62进制 
+ *  
+ * @param integer $n 10进制数值 
+ * @return string 62进制 
+ */ 
+function dec62($n)
+{  
+    $base = 62;  
+    $index = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';  
+    $ret = '';  
+    for($t = floor(log10($n) / log10($base)); $t >= 0; $t --)
+    {  
+        $a = floor($n / pow($base, $t));  
+        $ret .= substr($index, $a, 1);  
+        $n -= $a * pow($base, $t);  
+    }  
+    return $ret;  
+}
+/** 
+ * 62进制转为10进制 
+ * 
+ * @param integer $n 62进制 
+ * @return string 10进制 
+ */ 
+function dec10($s)
+{  
+    $base = 62;  
+    $index = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';  
+    $ret = 0;  
+    $len = strlen($s) - 1;  
+    for($t = 0; $t <= $len; $t ++)
+    {  
+        $ret += strpos($index, substr($s, $t, 1)) * pow($base, $len - $t);  
+    }  
+    return $ret;
+}
+
+/**
+* 生成16位纯数字订单号
+* 最大支持时间到 2056-12-31 23:59:59
+*
+* @access public
+* @return string
+*/
+function getOrderSN()
+{
+    return (date('y') + date('m') + date('d')) . str_pad((time() - strtotime(date('Y-m-d'))), 5, 0, STR_PAD_LEFT) . substr(microtime(), 2, 6) . sprintf('%03d', rand(0, 999));
+}
+
