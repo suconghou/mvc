@@ -177,8 +177,18 @@ class app
 			$GLOBALS['APP']['CLI']=true;
     		foreach ($GLOBALS['argv'] as $key=>$uri)
     		{
-    			if($key==0)continue;
-    			$GLOBALS['APP']['router'][]=$uri;
+    			if($key==0)
+    			{	
+    				continue;
+    			}
+    			else if($key==1&&count($u=explode('/', $uri))==2)
+    			{
+    				$GLOBALS['APP']['router']=$u;
+    			}
+    			else
+    			{
+    				$GLOBALS['APP']['router'][]=$uri;
+    			}
     		}
       		self::runRouter($GLOBALS['APP']['router']);
       	}
