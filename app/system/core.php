@@ -257,7 +257,7 @@ class app
 	 */
 	private static function init()
 	{
-		(strlen($_SERVER['REQUEST_URI'])>MAX_URL_LENGTH)&&Error('500','Request url too long ! ');
+		(strlen($_SERVER['REQUEST_URI'])>MAX_URL_LENGTH)&&Error('414','Request uri too long ! ');
 		list($uri)=explode('?',$_SERVER['REQUEST_URI']);
 		$uri=='/favicon.ico'&&die;
 		if(strpos($uri, $_SERVER['SCRIPT_NAME'])!==FALSE)
@@ -477,7 +477,7 @@ class app
 function Error($errno, $errstr, $errfile=null, $errline=null)
 {
 
-	if($errno==404||$errno==500)
+	if(in_array($errno,array(400,403,404,414,500,502,503,504)))
 	{
 		$str="ERROR({$errno}) {$errstr}";
 		$code=$errno;
@@ -1377,27 +1377,17 @@ if(!function_exists('http_response_code'))
 {
 	function http_response_code($code)
 	{
-		$nginx=(php_sapi_name()=='cgi-fcgi')?true:false;
-		switch ($code)
+		$header=(substr(php_sapi_name(),0,3)=='cgi')?'Status: ':'HTTP/1.1 ';
+		static $headers=array(
+							200	=> 'OK', 201	=> 'Created', 202	=> 'Accepted', 203	=> 'Non-Authoritative Information', 204	=> 'No Content', 205	=> 'Reset Content', 206	=> 'Partial Content',
+							300	=> 'Multiple Choices', 301	=> 'Moved Permanently', 302	=> 'Found', 304	=> 'Not Modified', 305	=> 'Use Proxy', 307	=> 'Temporary Redirect',
+							400	=> 'Bad Request', 401	=> 'Unauthorized', 403	=> 'Forbidden', 404	=> 'Not Found', 405	=> 'Method Not Allowed', 406	=> 'Not Acceptable', 407	=> 'Proxy Authentication Required', 408	=> 'Request Timeout', 409	=> 'Conflict', 410	=> 'Gone', 411	=> 'Length Required', 412	=> 'Precondition Failed', 413	=> 'Request Entity Too Large', 414	=> 'Request-URI Too Long', 415	=> 'Unsupported Media Type', 416	=> 'Requested Range Not Satisfiable', 417	=> 'Expectation Failed',
+							500	=> 'Internal Server Error', 501	=> 'Not Implemented', 502	=> 'Bad Gateway', 503	=> 'Service Unavailable', 504	=> 'Gateway Timeout', 505	=> 'HTTP Version Not Supported'
+							);
+		if(isset($headers[$code]))
 		{
-			case '301':
-			$nginx?header('status: 301 Moved Permanently'):header('HTTP/1.1 301 Moved Permanently');
-			break;
-			case '302':
-			$nginx?header('status: 302 Moved Temporarily'):header('HTTP/1.1 302 Moved Temporarily');
-			break;
-			case '304':
-			$nginx?header('status: 304 Not Modified'):header('HTTP/1.1 304 Not Modified');
-			break;
-			case '403':
-			$nginx?header('status: 403 Forbidden'):header('HTTP/1.1 403 Forbidden');
-			break;			
-			case '404':
-			$nginx?header('status: 404 Not Found'):header('HTTP/1.1 404 Not Found');
-			break;
-			case '500':
-			$nginx?header('status: 500 Internal Server Error'):header('HTTP/1.1 500 Internal Server Error');	
-			break;
+			$text=$headers[$code];
+			header("{$header} {$code} {$text}", TRUE, $code);
 		}
 	}
 }
