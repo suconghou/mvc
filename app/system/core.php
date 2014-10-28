@@ -184,7 +184,7 @@ class app
       	}
       	else
       	{
-      		exit('CLI Mode Need Both Controller And Action !');
+      		exit('CLI Mode Need Both Controller And Action !'.PHP_EOL);
       	}
 		
 
@@ -521,6 +521,7 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 		$h1=&$str;
 		$i=count($trace)-1;
 		$li=null;
+		$ln=isset($GLOBALS['APP']['CLI'])?PHP_EOL:'</p><p>';
 		while($i>=0)
 		{
 			if(!isset($trace[$i]['file']))
@@ -529,18 +530,23 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 			}
 			$trace[$i]['class']=isset($trace[$i]['class'])?$trace[$i]['class']:null;
 			$trace[$i]['type']=isset($trace[$i]['type'])?$trace[$i]['type']:null;
-			$li.='<p>'.$trace[$i]['file'].'=>'.$trace[$i]['class'].$trace[$i]['type'].$trace[$i]['function'].'() on line '.$trace[$i]['line'].'</p>';
+			$li.=$trace[$i]['file'].'=>'.$trace[$i]['class'].$trace[$i]['type'].$trace[$i]['function'].'() on line '.$trace[$i]['line'].$ln;
 			$i--;
 		}
 		if(DEBUG!=2)
 		{
-			$h1='Oops ! Something Error,Error Code:'.$errno;
-			$li='<p>If you are administartor,See the log for more information ! </p><p>Else please contact the administartor ! </p>';
+			$h1="Oops ! Something Error,Error Code:{$errno}";
+			$li="See the log for more information ! {$ln}";
 		}
-		$html='<div style="margin:2% auto;width:80%;box-shadow:0px 0px 8px #555;padding:2%;font:14px Monaco,Comic Sans MS">';
-		$html.='<b>'.$h1.'</b>'.$li;
-		$html.="</div>";
-		exit($html);
+		if(isset($GLOBALS['APP']['CLI']))
+		{
+			$error=$h1.PHP_EOL.$li;
+		}
+		else
+		{
+			$error="<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;'><p>{$h1}{$ln}{$li}</p></div>";
+		}
+		exit($error);
 	}
 
 }
