@@ -37,12 +37,11 @@ class image
    */
   public function  vcode($num=4,$font=null,$gb=null)
   {
-
-    $size=22;
-    $fontSize=26;
-    $font='./styles/font/type-ra.ttf';
+    $size=20;
+    $fontSize=20;
+    $font='./static/font/MONACO.TTF';
     $this->vcode=self::random($num);
-    $width=$size*$num+$size;
+    $width=$size*$num;
     $height=($size+$fontSize)/1.2;
     if(is_null($font))
     {
@@ -52,15 +51,16 @@ class image
     $bg = ImageColorAllocate($im, isset($gb[0])?$gb[0]:rand(200,255),isset($gb[1])?$gb[1]:rand(200,255),isset($gb[2])?$gb[2]:rand(200,255)); // 定义背景颜色
     for ($i=0; $i <$num ; $i++)
     { 
-      $randcolor = ImageColorAllocate($im,rand(0,255),rand(0,255),rand(0,255)); // 生成随机颜色
-      $offset=$i==0?(mt_rand(1,$size/2)):($i*$size+mt_rand(1,$i));
+      $a=rand(1,255);
+      $randcolor = ImageColorAllocate($im,$a,255-$a,rand(1,255)); // 生成随机颜色
+      $offset=$i==0?(mt_rand(1,$size/2)):($i*$size);
       if(is_numeric($font))
       {
         imagestring($im,$font,$offset,mt_rand(1,$size), $this->vcode[$i], $randcolor);
       }
       else
       {
-         imagettftext($im,$fontSize,mt_rand(-$size,$size),$offset,mt_rand($size,$size*2),$randcolor,$font,$this->vcode[$i]);  
+         imagettftext($im,$fontSize,mt_rand(-$size/2,$size/2),$offset,mt_rand(min($height,$fontSize),max($height,$fontSize)),$randcolor,$font,$this->vcode[$i]);  
       }
     }
 
@@ -68,7 +68,7 @@ class image
     for ($i=0,$len=$height+$width; $i <$len ; $i++)
     { 
       $randcolor = ImageColorAllocate($im,rand(50,255),rand(50,255),rand(50,255));
-      if($i%67==0)
+      if($i%57==0)
       {
         imageline($im,rand(1,$width),rand(1,$height),rand(1,$width),rand(1,$height),$randcolor);
       }
@@ -76,7 +76,7 @@ class image
       {
         imagesetpixel($im, rand(1,$width) , rand(1,$height), $randcolor); // 画像素点函数
       }
-      else if(!is_numeric($font)&&$i%17==0)
+      else if(!is_numeric($font)&&$i%7==0)
       {
         imagestring($im,1,rand(1,$width) , rand(1,$height),chr(rand(1,127)), $randcolor);
       }
