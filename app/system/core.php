@@ -1361,6 +1361,10 @@ class db extends PDO
 		}
 
 	}
+	public static function quote($srt)
+	{
+		return self::$pdo->quote($str);
+	}
 	private static  function ready()
 	{
 		if(!self::$pdo)

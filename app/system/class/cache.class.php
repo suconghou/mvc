@@ -43,7 +43,10 @@ class cache
 				break;
 		}	
 	}
-
+	function __call($name,$args)
+	{
+		return call_user_func_array(array(self::$cache,$name), $args);
+	}
 	private static  function initMemcache()
 	{
 		if(function_exists('memcache_init'))
