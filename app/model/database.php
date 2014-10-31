@@ -128,10 +128,9 @@ abstract class database extends db
 	{
 		$id=intval($id);
 		$v=array();
-		$pdo=$this->getInstance();
 		foreach ($data as $key => $value)
 		{
-			$value=$pdo->quote($value);
+			$value=$this->quote($value);
 			$v[]=$key.'='.$value;
 		}
 		$strv=implode(',',$v);  
@@ -144,11 +143,10 @@ abstract class database extends db
 	 */
 	function insertData($table,$data)
 	{
-		$pdo=$this->getInstance();
 		foreach ($data as $key => $value)
 		{
 			$k[]='`'.$key.'`';
-			$v[]=$pdo->quote($value);
+			$v[]=$this->quote($value);
 		}
 		$strv=implode(',',$v);    
 		$strk=implode(",",$k);
@@ -165,10 +163,9 @@ abstract class database extends db
 	{	
 		if($where)
 		{
-			$pdo=$this->getInstance();
 			foreach ($where as $key => $value) 
 			{
-				$value=$pdo->quote($value);
+				$value=$this->quote($value);
 				$k[]='(`'.$key.'`='.$value.')';
 			}
 			$strk=null;
@@ -231,10 +228,9 @@ abstract class database extends db
 	{
 		if($where)
 		{
-			$pdo=$this->getInstance();
 			foreach ($where as $key => $value) 
 			{
-				$value=$pdo->quote($value);
+				$value=$this->quote($value);
 				$k[]='(`'.$key.'`='.$value.')';
 			}
 			$strk='';
@@ -257,10 +253,9 @@ abstract class database extends db
 	 */
 	function updateWhere($table,$where,$data)
 	{
-		$pdo=$this->getInstance();
 		foreach ($where as $key => $value) 
 		{
-			$value=$pdo->quote($value);
+			$value=$this->quote($value);
 			$k[]='(`'.$key.'`='.$value.')';
 		}
 		foreach ($data as $key => $value) 
@@ -289,7 +284,7 @@ abstract class database extends db
 				);
 
 	**/
-	function multInsert($table,$dataArr)
+	function multInsert($table,$dataArr,$callback=null)
 	{
 		$pdo=$this->getInstance();
 		$pdo->beginTransaction();
@@ -322,8 +317,14 @@ abstract class database extends db
 		{
 			 $pdo->rollback();
 			 $error=$e->getMessage();
-			 app::log($error);
-			 $pdo = null;
+			 if($callback)
+			 {
+			 	$callback($error,$e);
+			 }
+			 else
+			 {
+				 app::log($error);
+			 }
 			 return false;
 		}
 		return true;
@@ -336,7 +337,7 @@ abstract class database extends db
 					'19'=>array('name'=>'name19','pass'=>'22')
 				);
 	 **/
-	function multUpdate($table,$idArr)
+	function multUpdate($table,$idArr,$callback=null)
 	{
 		$pdo=$this->getInstance();
 		$pdo->beginTransaction();
@@ -369,8 +370,14 @@ abstract class database extends db
 		{
 			 $pdo->rollback();
 			 $error=$e->getMessage();
-			 app::log($error);
-			 $pdo = null;
+			 if($callback)
+			 {
+			 	$callback($error,$e);
+			 }
+			 else
+			 {
+			 	app::log($error);
+			 }
 			 return false;
 		}
 		return true;
