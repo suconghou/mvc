@@ -20,17 +20,9 @@ a{text-decoration: none;color: #000;}
 ul {margin: 0;padding-left: 0; text-align: left; list-style: none;}
 
 /*通用*/
-.content{
-	max-width: 1000px;
-	width: 80%;
-	height: auto;
-	margin: 0 auto;	
-}
-p{
-	*margin: 12px 0;
-}
-/*滚动条*/
-
+.content{max-width: 1000px; width: 80%; height: auto; margin: 0 auto; }
+p{*margin: 12px 0; }
+ /*滚动条*/
 ::-webkit-scrollbar { width:10px; margin-right:2px; }
 ::-webkit-scrollbar-track-piece { background-color:#F5F5F5; border-left:1px solid #D2D2D2; }
 ::-webkit-scrollbar-thumb { background:#CBCBCB; width:10px; }
@@ -39,55 +31,31 @@ p{
 
 /*布局*/
 
-/*栅格*/
-.full{
-width: 100%;
-}
-.half{
-width: 50%;
-}
-.third{
-width: 33.33%;
-}
-.two-thirds{
-width: 66.66%;
-}
-.fourth{
-width: 25%;
-}
-.three-fourths{
-width: 75%;
-}
-.full .half,.full .third,.full .two-thirds,.full .fourth,.full .three-fourths{
-float: left;
-}
-.full:before, .full:after {content: " "; display: table; } .full:after {clear: both; } .full {*zoom: 1; }
-.center{
-text-align: center;
-margin: auto;
-}
-.iblock{
-	display: inline-block;
-	*display:inline;
-	*zoom:1;
-}
-.block{
-	display: block;
-}
-.floatl{
-	float: left !important;
-}
-.floatr{
-	float: right !important;
-}
+/*栅格与辅助*/
+.full{width: 100%; }
+.half{width: 50%; }
+.third{width: 33.33%; }
+.two-thirds{width: 66.66%; }
+.fourth{width: 25%; }
+.three-fourths{width: 75%; }
+.full .half,.full .third,.full .two-thirds,.full .fourth,.full .three-fourths{float: left; }
+.full:before, .full:after {content: " "; display: table; }
+.full:after {clear: both; }
+.full {*zoom: 1; }
+.center{ margin-left: auto;margin-right: auto; }
+.align-center{text-align: center;}
+.align-right{text-align: right;}
+.iblock{display: inline-block; *display:inline; *zoom:1; }
+.block{display: block; }
+.floatl{float: left !important;}
+.floatr{float: right !important;}
+/*显示省略号*/
+.less{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 
 
 /*按钮*/
 button.success,button.danger,button.info,button.warning,a.btn{
-	-webkit-appearance: button;
-	-moz-appearance: button;
-	appearance: button;
 	border: none;
 	padding: 6px 16px;
 	-moz-user-select: none; -webkit-user-select: none; -ms-user-select: none;
@@ -147,7 +115,7 @@ button.warning:hover,a.warning:hover{
 
 
 /*输入框*/
-input{
+input[type='text'],input[type='password'],input[type='num'],input[type='email'],input[type='url']{
  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);-webkit-tap-highlight-color: transparent;
   width: 100%;
   height: 22px;padding:4px  0;text-indent: 10px; *display: block;
@@ -156,12 +124,13 @@ input{
   margin: 0;text-indent: 0.8rem;
   font-size: 16px;
   margin-right: 20px;
-  -webkit-transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1) 0s;
-  -o-transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1) 0s;
-  transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1) 0s;
 
 }
-
+input.transition,textarea.transition{
+	-webkit-transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1) 0s;
+	-o-transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1) 0s;
+	transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1) 0s;
+}
 textarea{
 	width: 100%;
 	text-indent:10px;
@@ -169,9 +138,6 @@ textarea{
 	padding: 10px 0;
 	display:block; /*fix IE7 偏移*/
 	font-size: 16px;
-	-webkit-transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1) 0s;
-  	-o-transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1) 0s;
-  	transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1) 0s;
 }
 
 textarea.success,input.success
@@ -199,26 +165,12 @@ textarea:focus,input:focus
 }
 
 /*字体颜色填充*/
-/*显示省略号*/
-.less{
-	white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-i,p,span,b{
-	font-family: "Microsoft Yahei";
-}
-p.success,i.success,b.success,h1.success,h2.success,h3.success,code.success{
-  color: #2c7;
-}
-p.danger,i.danger,b.danger,h1.danger,h2.danger,h3.danger,code.danger{
-  color: #e33;
-}
-p.info,i.info,b.info,h1.info,h2.info,h3.info,code.info{
-  color:#0ae;
-}
-p.warning,i.warning,b.warning,h1.warning,h2.warning,h3.warning,code.warning{
-  color: #f60;
-}
 
+i,p,span,b{font-family: "Microsoft YaHei"; }
+p.success,i.success,b.success,h1.success,h2.success,h3.success,code.success{color: #2c7; }
+p.danger,i.danger,b.danger,h1.danger,h2.danger,h3.danger,code.danger{color: #e33; }
+p.info,i.info,b.info,h1.info,h2.info,h3.info,code.info{color:#0ae; }
+p.warning,i.warning,b.warning,h1.warning,h2.warning,h3.warning,code.warning{color: #f60; }
 
 /*提示框*/
 
@@ -272,8 +224,7 @@ div.danger.alert >h1,div.danger.alert >h2,div.danger.alert >h3{
 .circle{-moz-border-radius:50%;-webkit-border-radius:50%;border-radius:50%;}
 
 /*标签*/
-span.success,span.danger,span.info,span.warning
-{
+span.success,span.danger,span.info,span.warning{
   padding: 4px 6px;font-weight: bold;
   display: inline-block;
   *display: inline;
@@ -282,22 +233,10 @@ span.success,span.danger,span.info,span.warning
   cursor: pointer;
   margin: 0 2px;
 }
-span.success
-{
-  background-color: #2c7;
-}
-span.danger
-{
-   background-color: #e33;
-}
-span.info
-{
-background-color: #0ae;
-}
-span.warning
-{
-background-color: #f60;
-}
+span.success{background-color: #2c7; }
+span.danger{background-color: #e33; }
+span.info {background-color: #0ae; }
+span.warning {background-color: #f60;}
 
 
 /*分页*/
@@ -416,15 +355,15 @@ ul.location{
 	text-indent: 5px;
 }
 ul.location>li{
-display: inline-block;
-*display: inline;
-*zoom: 1;
-color: #666;
+	display: inline-block;
+	*display: inline;
+	*zoom: 1;
+	color: #666;
 }
 ul.location>li+li:before {
-padding-right: 3px;
-color: #ccc;
-content: "/\00a0";
+	padding-right: 3px;
+	color: #ccc;
+	content: "/\00a0";
 }
 ul.location>li>a{
 	color: #428bca;
@@ -465,23 +404,12 @@ nav.nav.fixed{
 	right: 0;
 	box-shadow: 0 0 1px #333;
 }
-nav.nav.success{
-	background-color: #2c7;
-}
-nav.nav.info{
-	background-color: #0ae;
-}
-nav.nav.warning{
-	background-color: #f60;
-}
-nav.nav.danger{
-	background-color: #e33;
-}
-nav.nav.success a,nav.nav.info a,nav.nav.warning a,nav.nav.danger a{
-color: #000;
-}
-nav.nav.success a:hover,nav.nav.info a:hover,nav.nav.warning a:hover,nav.nav.danger a:hover, nav.nav a.active
-{
+nav.nav.success{background-color: #2c7; }
+nav.nav.info{background-color: #0ae; }
+nav.nav.warning{background-color: #f60; }
+nav.nav.danger{background-color: #e33; }
+nav.nav.success a,nav.nav.info a,nav.nav.warning a,nav.nav.danger a{color: #000; }
+nav.nav.success a:hover,nav.nav.info a:hover,nav.nav.warning a:hover,nav.nav.danger a:hover, nav.nav a.active{
 background-color: rgba(1,1,1,0.4);
 color: #fff;
 }
@@ -490,36 +418,40 @@ color: #fff;
 /*面板*/
 div.panel.success{
 	border: 1px solid #2c7;
+	background-color: #dff0d8;
 }
 div.panel.info{
 	border: 1px solid #0ae;
+	background-color: #d9edf7;
 }
 div.panel.warning{
 	border: 1px solid #f60;
+	background-color: #fcf8e3;
 }
 div.panel.danger{
 	border: 1px solid #e33;
+	background-color: #f2dede;
 }
 div.panel.success>div.header{
-border-bottom:1px solid #2c7; 	
-color: #2c7;
+	border-bottom:1px solid #2c7; 	
+	color: #2c7;
 }
 div.panel.info>div.header{
-border-bottom:1px solid #0ae; 	
-color: #0ae;
+	border-bottom:1px solid #0ae; 	
+	color: #0ae;
 }
 div.panel.warning>div.header{
-border-bottom:1px solid #f60; 	
-color: #f60;
+	border-bottom:1px solid #f60; 	
+	color: #f60;
 }
 div.panel.danger>div.header{
-border-bottom:1px solid #e33; 
-color: #e33;
+	border-bottom:1px solid #e33; 
+	color: #e33;
 }
 div.panel>div.header{
-text-indent: 10px;
-height: 40px;
-line-height: 40px;
+	text-indent: 10px;
+	height: 40px;
+	line-height: 40px;
 }
 div.panel>div.body{
 	padding: 20px 10px;
@@ -533,14 +465,14 @@ div.panel.round,div.panel.radius{
 
 /*引用*/
 blockquote {
-font-size: 15px;
-padding: 4px 8px;
-background-color: #EFEFEF;
-margin: 0;
-border-left: 5px double #CCC;
+	font-size: 15px;
+	padding: 4px 8px;
+	background-color: #EFEFEF;
+	margin: 0;
+	border-left: 5px double #CCC;
 }
 blockquote p,blockquote{
-font-family: "Segoe UI",Arial,Helvetica,"Microsoft Jhenghei",sans-serif;
+	font-family: "Segoe UI",Arial,Helvetica,"Microsoft Jhenghei",sans-serif;
 }
 blockquote ul{
 	list-style: initial;
@@ -550,14 +482,14 @@ blockquote ul{
 
 /*代码*/
 code{
-background-color: #ddd;
-box-sizing: border-box;
-color: #222;
-display: inline;
-font-family: Consolas, 'Liberation Mono', Menlo, Courier, monospace;
-font-size: 14px;
-line-height: 21px;
-padding: 3px 6px;
+	background-color: #ddd;
+	box-sizing: border-box;
+	color: #222;
+	display: inline;
+	font-family: Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+	font-size: 14px;
+	line-height: 21px;
+	padding: 3px 6px;
 
 }
 
@@ -594,9 +526,11 @@ table.table tr.success,table.table td.success{
 }
 table.table tr.info,table.table td.info{
 	background-color: #d9edf7;
-}table.table tr.warning,table.table td.warning{
+}
+table.table tr.warning,table.table td.warning{
 	background-color:#fcf8e3;
-}table.table tr.danger,table.table td.danger{
+}
+table.table tr.danger,table.table td.danger{
 	background-color: #f2dede;
 }
 table.table  tr:hover {
