@@ -1040,10 +1040,14 @@ class Validate
 		}
 		catch(Exception $e)
 		{
-			if($callback)
+			$data=json_encode(array('code'=>$e->getCode(),'msg'=>$e->getMessage()));
+			if(is_object($callback))
 			{
-				$data=json_encode(array('code'=>$e->getCode(),'msg'=>$e->getMessage()));
 				$callback($data,$e);
+			}
+			else if($callback)
+			{
+				exit($data);
 			}
 			self::$data=self::$rule=self::$msg=null;
 			return false;
