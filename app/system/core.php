@@ -685,20 +685,13 @@ function C($time,$file=false)
 	///使用了http缓存,在此处捕获缓存
 	$expires_time=intval(time()+$GLOBALS['APP']['cache']['time']);
 	$last_expire = Request::server('HTTP_IF_MODIFIED_SINCE',0);
-	if($last_expire)
+	header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
+	header("Cache-Control: max-age=".$GLOBALS['APP']['cache']['time']);
+	header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT'); 
+	if($last_expire&&(strtotime($last_expire)+$GLOBALS['APP']['cache']['time'])>time())//命中缓存
 	{	
-		if((strtotime($last_expire)+$GLOBALS['APP']['cache']['time'])>time()) //命中缓存
-		{
-			exit(http_response_code(304));	
-		}
+		exit(http_response_code(304));	
 	}
-	else
-	{
-		header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
-		header("Cache-Control: max-age=".$GLOBALS['APP']['cache']['time']);
-		header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT'); 
-	}
-
 }
 
 function template($file,$data=array())///加载模版
