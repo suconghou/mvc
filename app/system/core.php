@@ -633,26 +633,27 @@ function S($lib,$param=null)
 	}
 }
 //加载视图,传递参数,设置缓存
-function V($view,$data=array(),$fileCacheMin=0)
+function V($loadViewFileName,$dataPassToView=array(),$fileCacheMinute=0)
 {
 	if(defined('APP_TIME_SPEND'))
 	{
 		Error('500','Function V Can Only Use Once , Use template Instead ! ');
 	}
-	$view_file=VIEW_PATH.$view.'.php';
-	if(is_file($view_file))
+	$loadViewFileName=VIEW_PATH.$loadViewFileName.'.php';
+	if(is_file($loadViewFileName))
 	{
-		(is_array($data)&&!empty($data))&&extract($data);
-		if($fileCacheMin)
+		if($fileCacheMinute||(is_numeric($dataPassToView)&&($dataPassToView>0)))
 		{
-			$GLOBALS['APP']['cache']['time']=intval($fileCacheMin*60);
+			$cacheTime=$fileCacheMinute?$fileCacheMinute:$dataPassToView;
+			$GLOBALS['APP']['cache']['time']=intval($cacheTime*60);
 			$GLOBALS['APP']['cache']['file']=true;		
 		}
 		GZIP?ob_start("ob_gzhandler"):ob_start();
 		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));//耗时
 		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-APP_START_MEMORY));
-		include $view_file;
-		if(isset($GLOBALS['APP']['cache']['file'])&&$GLOBALS['APP']['cache']['file'])//启用了缓存,并且启用了文件缓存
+		(is_array($dataPassToView)&&!empty($dataPassToView))&&extract($dataPassToView);
+		include $loadViewFileName;
+		if(!empty($GLOBALS['APP']['cache']['file']))//启用了缓存,并且启用了文件缓存
 		{
 			$expires_time=intval(time()+$GLOBALS['APP']['cache']['time']);
 			//生成文件缓存
@@ -677,7 +678,7 @@ function V($view,$data=array(),$fileCacheMin=0)
 	}
 	else
 	{
-		Error('404','View File '.$view_file.' Not Found ! ');
+		Error('404','View File '.$loadViewFileName.' Not Found ! ');
 	}
 
 }
