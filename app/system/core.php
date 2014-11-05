@@ -213,15 +213,19 @@ class app
 		if (is_file($hash))//存在缓存文件
 		{
 			$expires_time=filemtime($hash);
-			if(time()<$expires_time) ///缓存未过期
-			{		 
+			$now=time();
+			if($now<$expires_time) ///缓存未过期
+			{	
+				header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
+				header("Cache-Control: max-age=".($expires_time-$now));
 				if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']))
 				{
+					header('Last-Modified: ' . $_SERVER['HTTP_IF_MODIFIED_SINCE']);	 
 					exit(http_response_code(304));  
 				}
 				else
 				{	
-					header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT');   
+					header('Last-Modified: ' . gmdate('D, d M y H:i:s',$now). ' GMT');	 
 					exit(readfile($hash));
 				}
 			}
@@ -680,17 +684,27 @@ function V($view,$data=array(),$fileCacheMin=0)
 //缓存,第一个参数为缓存时间,第二个为是否文件缓存
 function C($time,$file=false)
 {
-	$GLOBALS['APP']['cache']['time']=$time*60;
+	$seconds=intval($time*60);
+	$GLOBALS['APP']['cache']['time']=$seconds;
 	$GLOBALS['APP']['cache']['file']=$file;
 	///使用了http缓存,在此处捕获缓存
-	$expires_time=intval(time()+$GLOBALS['APP']['cache']['time']);
+	$now=time();
+	$expires_time=time()+$seconds;
 	$last_expire = Request::server('HTTP_IF_MODIFIED_SINCE',0);
-	header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
-	header("Cache-Control: max-age=".$GLOBALS['APP']['cache']['time']);
-	header('Last-Modified: ' . gmdate('D, d M y H:i:s',time()). ' GMT'); 
-	if($last_expire&&(strtotime($last_expire)+$GLOBALS['APP']['cache']['time'])>time())//命中缓存
+	if($last_expire&&((strtotime($last_expire)+$seconds-$now)>0))
 	{	
+		$last_expire=strtotime($last_expire);
+		header("Expires: ".gmdate("D, d M Y H:i:s",$last_expire+$seconds)." GMT");
+		header("Cache-Control: max-age=".(($last_expire+$seconds)-$now));
+		header('Last-Modified: ' . gmdate('D, d M y H:i:s',$last_expire). ' GMT'); 
 		exit(http_response_code(304));	
+		
+	}
+	else
+	{
+		header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
+		header("Cache-Control: max-age=".$seconds);
+		header('Last-Modified: ' . gmdate('D, d M y H:i:s',$now). ' GMT'); 
 	}
 }
 
