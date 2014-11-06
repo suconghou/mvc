@@ -18,9 +18,13 @@ class layout
 	{
 
 	}
-	function __call($method,$x)
+	function __call($method,$args)
 	{
-		exit('Error Method '.$method.'  Called ! ');
+		Error(500,'Call Error Method '.$method.' In Class '.__CLASS__.' ! ');
+	}
+	static function __callStatic($method,$args)
+	{
+		Error(500,'Call Error Static Method '.$method.' In Class '.__CLASS__.'!');
 	}
 	/**
 	 * 生成加载css地址
@@ -158,6 +162,15 @@ class layout
 	static function load($file,$data=array())
 	{
 		template('layout/'.$file,$data);
+	}
+
+	static function easyList()
+	{
+		
+	}
+	static function easyPost($table,$id,$container=null,$class=null)
+	{
+		$html=' <div></div> ';
 	}
 
 }
