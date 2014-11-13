@@ -269,3 +269,19 @@ function getOrderSN()
     return (date('y') + date('m') + date('d')) . str_pad((time() - strtotime(date('Y-m-d'))), 5, 0, STR_PAD_LEFT) . substr(microtime(), 2, 6) . sprintf('%03d', rand(0, 999));
 }
 
+function array_delete($array,$item)
+{
+    if(is_array($item))
+    {
+        return array_diff($array, $item);
+    }
+    else
+    {
+        if(($key = array_search($item, $array)) !== false)
+        {
+            unset($array[$key]);
+        }
+        return $array;
+    }
+
+}
