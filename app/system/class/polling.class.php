@@ -52,7 +52,7 @@ class polling
 		}
 		else
 		{
-			session_set($key,1);
+			session($key,1);
 		}
 		return $this;
 
@@ -143,7 +143,7 @@ class polling
 		$key='event-'.$event;
 		if(Request::session($key))
 		{
-			session_set($key,0);
+			session($key,0);
 			return true;
 		}
 		return false;

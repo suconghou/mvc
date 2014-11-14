@@ -9,7 +9,6 @@ class home extends base
 	function __construct()
 	{
 		//可以添加权限控制,保护整个控制器
-		// session_get('LOGINED')||exit('login first');
 	}
 	/**
 	 * home 是默认的控制器

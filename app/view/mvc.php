@@ -211,7 +211,7 @@
 			<p class="success">如下,表示从session中取出用户机构ID,若没有此session值,则默认为1,然后从m_user模型中按机构ID取出用户列表,交由userlist视图渲染,并文件缓存10分钟</p>
 			<div class="alert success">
 				<p>
-					<code class='danger'>V('userlist',M('m_user')->userListByFid(session_get('FACILITY_ID',1)),10);</code>
+					<code class='danger'>V('userlist',M('m_user')->userListByFid(Request::session('FACILITY_ID',1)),10);</code>
 				</p>
 			</div>
 				
@@ -308,17 +308,12 @@
 			</div>
 		</section>
 		<section>
-			<h1 class="danger" id="session">session处理</h1>
-			<p class="info">系统封装的session函数,对于session的处理很有帮助</p>
+			<h1 class="danger" id="session">session,cookie,json</h1>
+			<p class="info">系统封装的session,cookie,json函数</p>
 			<blockquote>
-				<p><code>session_set($key,$value)</code> 设置session,$value可以为array,这样会自动进行json_encode操作,
-				但是获取时需要自己进行json_decode<br>
-				同时$key也可以为键值对这样可以批量设置session,批量设置中也会检测value是否为array,若是则json_encode操作</p>
-				<p><code>session_get($key,$default)</code>获取session, $key可以为array,若是则批量获取session以数组形式返回<br>
-				$default为没有设置该session时的默认值,默认为null</p>
-				<p><code>session_del($key)</code>删除一个session,若$key为null或不传递参数,则执行session_destroy操作<br>
-				$key可以为数组,则执行批量删除操作</p>
-				<p>从此再也不需要考虑<code>session_start</code>了,所有函数直接使用,自动检测session_start</p>	
+				<p>session()</p>
+				<p>cookie()</p>
+				<p>json()</p>
 			</blockquote>
 			
 		</section>

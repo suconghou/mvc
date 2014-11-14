@@ -784,7 +784,7 @@ class Request
 	}
 	public static function session($key=null,$default=null)
 	{
-		is_session_started()||session_start();
+		isset($_SESSION)||session_start();
 		if($key)
 		{
 			return self::getVar('session',$key,$default);
@@ -1007,9 +1007,7 @@ class Request
 				return isset($_SERVER[$var])?$_SERVER[$var]:$default;
 				break;
 			case 'session': ///此处为获取session的方式
-				$session=isset($_SESSION[$var])?$_SESSION[$var]:$default;
-				session_write_close();
-				return $session;
+				return isset($_SESSION[$var])?$_SESSION[$var]:$default;
 				break;
 			default:
 				return false;
@@ -1437,71 +1435,64 @@ function __autoload($class)
 		Error('500','Can Not Load Class '.$class);
 	}
 }
-// session 系列函数
-function is_session_started()
+function session($key,$val=null,$delete=false)
 {
-	if (version_compare(phpversion(), '5.4.0', '>='))
+	isset($_SESSION)||session_start();
+	if(is_null($val))
 	{
-            return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
-    }
-    else
-    {
-            return session_id() === '' ? FALSE : TRUE;
-	}
-}
-function session_get($key=null,$default=null)
-{
-	if(is_array($key))
-	{
-		$res=array();
-		foreach ($key as  $k)
+		if(is_array($key))
 		{
-			$res[$k]=Request::session($k,$default);
+			$res=array();
+			foreach ($key as  $k)
+			{
+				$res[$k]=Request::session($k);
+			}
+			return $res;
 		}
-		return $res;
-	}
-	else
-	{
-		return Request::session($key,$default);
-	}
-}
-function session_set($key,$value=null)
-{
-	session_start();
-	if(is_array($key))
-	{
-		foreach ($key as $k => $v)
+		else if($delete)
 		{
-			$_SESSION[$k]=is_array($v)?json_encode($v):$v;
+			unset($_SESSION[$key]);
+		}
+		else
+		{
+			return Request::session($key);
 		}
 	}
 	else
-	{ 
-		$_SESSION[$key]=is_array($value)?json_encode($value):$value;
-	}
-	return session_write_close();
-}
-function session_del($key=null)
-{
-	session_start();
-	if(is_array($key))
 	{
-		while(list($k,$v)=each($key))
-		{
-			unset($_SESSION[$v]);
-		}
+		$_SESSION[$key]=is_array($val)?json_encode($val):$val;
 	}
-	else if($key)
-	{
-		unset($_SESSION[$key]);
-	}
-	else
-	{
-		return session_unset();
-	}
-	return session_write_close();
-}
 
+}
+function cookie($key,$val=null,$expire=0)
+{
+	if(is_null($val))
+	{
+		if(is_array($key))
+		{
+			$res=array();
+			foreach ($$key as $k)
+			{
+				$res[$k]=isset($_COOKIE[$key])?$_COOKIE[$key]:null;
+			}
+			return $res;
+		}
+		else
+		{
+			return isset($_COOKIE[$key])?$_COOKIE[$key]:null;
+		}
+	}
+	else
+	{
+		setcookie($key,$val,$expire);
+	}
+
+}
+function json($data)
+{
+	is_array($data)||parse_str($data,$data);
+	exit(json_encode($data));
+}
 function byteFormat($size,$dec=2)
 {
 	$size=abs($size);
@@ -1530,7 +1521,6 @@ function dateFormat($time)
     }
 
 }
-
 //外部重定向,会立即结束脚本以发送header,内部重定向app::run(array);
 function redirect($url,$seconds=0,$code=302)
 {

@@ -168,8 +168,7 @@ abstract class database extends db
 				$value=$this->quote($value);
 				$k[]='(`'.$key.'`='.$value.')';
 			}
-			$strk=null;
-			$strk.=implode(" AND ",$k);
+			$strk=implode(" AND ",$k);
 			$sql="SELECT {$column} FROM `{$table}` WHERE ({$strk}) ";
 			if($orderlimit)
 			{
@@ -233,8 +232,7 @@ abstract class database extends db
 				$value=$this->quote($value);
 				$k[]='(`'.$key.'`='.$value.')';
 			}
-			$strk='';
-			$strk.=implode(" AND ",$k);
+			$strk=implode(" AND ",$k);
 			$sql="DELETE  FROM `{$table}` WHERE ({$strk}) ";
 		}
 		else
@@ -262,9 +260,8 @@ abstract class database extends db
 		{
 			$v[]=$key.'='."'".$value."'";
 		}
-		$strk=$strv='';
-		$strk.=implode(" AND ",$k);
-		$strv.=implode(' , ',$v);
+		$strk=implode(" AND ",$k);
+		$strv=implode(' , ',$v);
 		$sql="UPDATE `{$table}` SET {$strv} WHERE ({$strk})";
 		if(isset($where['id']))
 		{
@@ -420,7 +417,25 @@ abstract class database extends db
 		$this->delCache($table,$id);
 		return $this->runSql($sql);
 	}
+	function existId($table,$id,$select='*')
+	{
+		$sql="SELECT {$select} FROM `{$table}` WHERE id='{$id}' ";
+		$data=$this->getLine($sql);
+		return empty($data)?false:$data;
+	}
+	function existWhere($table,$where,$select='*')
+	{
+		foreach ($where as $key => $value) 
+		{
+			$value=$this->quote($value);
+			$k[]='(`'.$key.'`='.$value.')';
+		}
+		$strk=implode(" AND ",$k);
+		$sql="SELECT {$select} FROM `{$table}` WHERE ({$strk})";
+		$data=$this->getData($sql);
+		return empty($data)?false:$data;
 
+	}
 	/**
 	 * 按栏目搜索
 	 */
@@ -441,7 +456,6 @@ abstract class database extends db
 				self::$cache->set($key,$data,self::$cacheTime);
 				return $data;
 			}
-
 		}
 		else
 		{

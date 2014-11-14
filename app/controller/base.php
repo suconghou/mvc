@@ -30,18 +30,22 @@ class base
 	function __construct()
 	{
 		if(baseUrl(0)==__CLASS__)die; //此控制器不能通过URl访问
-		$this->globalIndex(); //全局钩子
-		$this->auto()->defender(); //全局自动过滤
+		$this->auto()->defender(); //开启自动过滤
+		$this->globalIndex(); //全局加载的
 	}
 	function index(){}
-
-	/**
-	 * 全局加载钩子
-	 */
 	function globalIndex()
 	{
-		
+		  $menu=config('topmenu');
+          if($user=isUserLogin())
+          {
+            array_pop($menu);
+            array_pop($menu);
+            $menu["/u/{$user['id']}"]=$user['name'];
+          }
+         config('topmenu',$menu); 
 	}
+
 	/**
 	 * 可以设置,自动过滤的内容
 	 */
@@ -52,8 +56,10 @@ class base
 			$ip=array('127.0.0.10'); //设定自动过滤IP
 			$refer=array('http://127.0.0.1'); //设定自动过滤refer
 			$this->frequency(5,1)->refer($refer)->ip($ip);
+
 		}
 	
+		
 		return $this; 
 	}
 	/**
@@ -87,7 +93,7 @@ class base
 				redirect($addr);
 			}
 		}
-		return session_get($user);
+		return session($user);
 	}
 	/**
 	 * 阻断非CLI请求
@@ -228,7 +234,7 @@ class base
 		}
 		if(self::$frequency)
 		{
-			is_session_started()||session_start();
+			session_start();
 			if($this->frequencyIp) //依据IP
 			{
 				$this->current_id=session_id();
@@ -237,7 +243,7 @@ class base
 	    		session_id($host);
 			}
 			$ssid='frequency';
-			$data=json_decode(session_get($ssid),1);
+			$data=json_decode(session($ssid),1);
 			$data[$ssid][]=APP_START_TIME;
 			list($k,$v)=each(self::$frequency);
 			$size=count($data[$ssid]);
@@ -261,7 +267,7 @@ class base
 				}
 				else
 				{
-					session_set($ssid,$data);
+					session($ssid,$data);
 					$t=intval($data['block']-APP_START_TIME);
 					if($this->frequencyIp)
 					{
@@ -273,7 +279,7 @@ class base
 					exit;
 				}
 			}
-			session_set($ssid,$data); //未达到拦截要求,记录数据
+			session($ssid,$data); //未达到拦截要求,记录数据
 			if($this->frequencyIp)
 			{
 				session_write_close();
@@ -327,6 +333,7 @@ class base
 	{
 		echo $msg;
 	}
+
 	#################################用户自定义扩展############################################
 	/**
 	 *  检查用户是否登录
@@ -344,5 +351,5 @@ class base
 		return $this->isLogin('ADMINID',$addr);
 	}
 
-
+	
 }
