@@ -8,13 +8,11 @@
 */
 class layout
 {
-
+	// 数据库 字段映射,一个表一个数组,第一个表名
+	private static $post=array('blog_post','id'=>'id','title'=>'title','content'=>'content','views'=>'hit','time'=>'date'); 
+	private static $cat=array();
 		
-	function __construct()
-	{
-		// var_dump($GLOBALS['APP']);
-	}
-	function init()
+	function __construct($cfg=array())
 	{
 
 	}
@@ -25,6 +23,10 @@ class layout
 	static function __callStatic($method,$args)
 	{
 		Error(500,'Call Error Static Method '.$method.' In Class '.__CLASS__.'!');
+	}
+	static function data($method,$param_arr=array())
+	{
+		return call_user_func(array('db',$method), $param_arr);
 	}
 	/**
 	 * 生成加载css地址
@@ -164,13 +166,40 @@ class layout
 		template('layout/'.$file,$data);
 	}
 
-	static function easyList()
+	static function easyList($page,$num=15,$container='.post-list',$orderby=' id desc ')
 	{
+		$offset=max(intval(($page-1)*$num),0);
+		$data=self::data('getData',"select * from ".self::$post[0]." order by {$orderby} limit {$offset},$num");
+		$data=$data?$data:array();
+		$con=substr($container,0,1)=='#'?" id='".substr($container,1)."' ":" class='".substr($container,1)."' ";
+		$html="<div {$con}><ul>";
+		foreach ($data as $key => $item)
+		{
+			$html.="<li>".$item[self::$post['title']]."<span class='list-meta'>".$item[self::$post['views']]." | ".date('Y-m-d',$item[self::$post['time']])."</span></li>";
+		}
+		$html.="</ul></div><div class='list-pages'><ul class='pager'>";
+		$pages=self::data('getVar',"select count(1) from ".self::$post[0]);
+		$pages=$pages?ceil($pages/$num):0;
+		for ($i=1; $i <=$pages ; $i++)
+		{ 
+			$html.="<li><a href='?p={$i}'>{$i}</a></li>";
+		}
+		echo $html,'</ul></div>';
+
 		
 	}
-	static function easyPost($table,$id,$container=null,$class=null)
+	static function easyPost($id,$container='.post-container')
 	{
-		$html=' <div></div> ';
+
+		$data=self::data('getLine',"select * from ".self::$post[0]." where ".self::$post['id']."={$id} ");
+		$data=$data?$data:null;
+		$con=substr($container,0,1)=='#'?" id='".substr($container,1)."' ":" class='".substr($container,1)."' ";
+		$html=" <div {$con}>";
+		$html.="<div class='post-title'>";
+		$html.="<h2>".$data[self::$post['title']]."</h2>";
+		$html.="<p class='post-meta'>阅读:".$data[self::$post['views']].",发布于:".date('Y-m-d H:i',$data[self::$post['time']])."</p></div>";
+		$html.="<div class='post-content'>".$data[self::$post['content']]."</div>";
+		echo $html,'</div>';
 	}
 
 }

@@ -709,19 +709,18 @@ function C($time,$file=false)
 	}
 }
 
-function template($file,$data=array())///加载模版
+function template($loadViewFileName,$data=array())///加载模版
 {
-	$file=VIEW_PATH.$file.'.php';
-	if(is_file($file))
+	$loadViewFileName=VIEW_PATH.$loadViewFileName.'.php';
+	if(is_file($loadViewFileName))
 	{
-		is_array($data)||empty($data)||Error('500','Param To View '.$file.' Must Be An Array');
+		is_array($data)||empty($data)||Error('500','Param To View '.$loadViewFileName.' Must Be An Array');
 		empty($data)||extract($data);
-		include $file;
-		flush();
+		include $loadViewFileName;
 	}
 	else
 	{
-		Error('404','Template File '.$file.' Not Found !');
+		Error('404','Template File '.$loadViewFileName.' Not Found !');
 	}
 }
 
@@ -1239,6 +1238,7 @@ class Validate
 class db extends PDO 
 {
 	private  static $pdo;///单例模式
+	private static $count;
 
 	function __construct($dbType=null)
 	{
@@ -1292,6 +1292,7 @@ class db extends PDO
 		{
 			self::ready();
 			$rs=self::$pdo->exec($sql);
+			app::setItem('sys-sql-count',app::getItem('sys-sql-count')+1);
 			return $rs;
 		}
 		catch (PDOException $e)
@@ -1308,6 +1309,7 @@ class db extends PDO
 		{
 			self::ready();
 			$rs=self::$pdo->query($sql);
+			app::setItem('sys-sql-count',app::getItem('sys-sql-count')+1);
 			if(FALSE==$rs)return array();
 			return $rs->fetchAll(PDO::FETCH_ASSOC);
 		}
@@ -1323,6 +1325,7 @@ class db extends PDO
 		{
 			self::ready();
 			$rs=self::$pdo->query($sql);
+			app::setItem('sys-sql-count',app::getItem('sys-sql-count')+1);
 			if(FALSE==$rs)return array();
 			return $rs->fetch(PDO::FETCH_ASSOC);
 		}
@@ -1339,6 +1342,7 @@ class db extends PDO
 		{
 			self::ready();
 			$rs=self::$pdo->query($sql);
+			app::setItem('sys-sql-count',app::getItem('sys-sql-count')+1);
 			if(FALSE==$rs)return null;
 			return $rs->fetchColumn();
 		}
