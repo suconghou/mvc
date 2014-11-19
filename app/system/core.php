@@ -100,6 +100,10 @@ class app
 			{
 				$GLOBALS['APP']['regex_router'][$regex]=$arr;
 			}
+			else if(is_string($arr))
+			{
+				$GLOBALS['APP']['regex_router'][]=array($arr,DEFAULT_ACTION);
+			}
 			else
 			{
 				Error(404,'Regex Router Param Mising !');
@@ -1238,7 +1242,6 @@ class Validate
 class db extends PDO 
 {
 	private  static $pdo;///单例模式
-	private static $count;
 
 	function __construct($dbType=null)
 	{
