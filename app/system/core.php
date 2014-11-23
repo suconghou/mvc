@@ -1491,14 +1491,19 @@ function cookie($key,$val=null,$expire=0)
 	}
 	else
 	{
-		setcookie($key,$val,$expire);
+		setcookie($key,is_array($val)?json_encode($val):$val,$expire);
 	}
 
 }
-function json($data)
+function json($data,$callback=null)
 {
 	is_array($data)||parse_str($data,$data);
-	exit(json_encode($data));
+	$data=json_encode($data);
+	if($callback&&(is_string($callback)||$callback=Request::get('jsoncallback')))
+	{
+		exit($callback."(".$data.")");
+	}
+	exit($data);
 }
 function byteFormat($size,$dec=2)
 {
