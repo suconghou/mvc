@@ -5,7 +5,7 @@
 * 取出,首先在kv里查找,没有的话,到storage里查找,也没有则输出默认
 * 关于后缀名,STOR必须带上
 */
-class saeStorage
+class sae
 {
     private static $kv;
     private static $stor;
@@ -199,7 +199,7 @@ class saeStorage
             case "amr": $mime = "audio/amr"; break;
             default: $mime = "application/force-download";
         }
-        if(!in_array($ext, array('jpg','gif','png','jpeg','mp4','swf','flv'))) //浏览器不能打开,弹出下载提示
+        if(!in_array($ext, array('jpg','gif','png','jpeg','mp3','mp4','3gp','swf','flv','pdf'))) //浏览器不能打开,弹出下载提示
         {
              $filename=$hash.'.'.$ext;
              header('Content-Disposition: attachment; filename='.$filename);

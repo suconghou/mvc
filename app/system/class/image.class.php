@@ -164,24 +164,19 @@ class image
     switch ($type)
     {
       case 1: //gif
-        $src_image=imagecreatefromgif($path);
-        imagecopyresampled($new_img,$src_image,0,0,0,0,$real_w,$real_h,$w,$h);
-        header('Content-Type: '.$mime);
-        $cache?(imagegif($new_img,$hash)&&self::readCache($hash)):imagegif($new_img);
+        $fun=array('imagecreatefromgif','imagegif');
         break;
       case 2: //jpg
-        $src_image=imagecreatefromjpeg($path);
-        imagecopyresampled($new_img,$src_image,0,0,0,0,$real_w,$real_h,$w,$h);
-        header('Content-Type: '.$mime);
-        $cache?(imagejpeg($new_img,$hash)&&self::readCache($hash)):imagejpeg($new_img);
+        $fun=array('imagecreatefromjpeg','imagejpeg');
         break;
       default: //png
-        $src_image=imagecreatefrompng($path);
-        imagecopyresampled($new_img,$src_image,0,0,0,0,$real_w,$real_h,$w,$h);
-        header('Content-Type: '.$mime);
-        $cache?(imagepng($new_img,$hash)&&self::readCache($hash)):imagepng($new_img);
+        $fun=array('imagecreatefrompng','imagepng');
         break;
     }
+    header('Content-Type: '.$mime);
+    $src_image=$fun[0]($path);
+    imagecopyresampled($new_img,$src_image,0,0,0,0,$real_w,$real_h,$w,$h);
+    $cache?($fun[1]($new_img,$hash)&&self::readCache($hash)):$fun[1]($new_img);
     imagedestroy($new_img);
     imagedestroy($src_image);
     return $this;
@@ -213,6 +208,35 @@ class image
     {
       return false;
     }
+  }
+
+  function rotate($filepath,$degrees=90)
+  {
+       if(is_file($filepath))
+       {
+          $arr=getimagesize($filepath);
+          $mime=&$arr['mime'];
+          $type=&$arr[2];
+          switch ($type)
+          {
+            case 1: //gif
+              $fun=array('imagecreatefromgif','imagegif');
+              break;
+            case 2: //jpg
+              $fun=array('imagecreatefromjpeg','imagejpeg');
+              break;
+            default: //png
+              $fun=array('imagecreatefrompng','imagepng');
+              break;
+          }
+
+         $source=$fun[0]($filepath);
+         $rotate=imagerotate($source, $degrees, 16777215);///未覆盖的区域白色ffffff
+         header('Content-Type: '.$mime);
+         $fun[1]($rotate);
+
+       }
+
   }
 
 
