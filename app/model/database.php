@@ -143,6 +143,7 @@ abstract class database extends db
 	 */
 	function insertData($table,$data)
 	{
+		$k=$v=array();
 		foreach ($data as $key => $value)
 		{
 			$k[]='`'.$key.'`';
@@ -163,6 +164,7 @@ abstract class database extends db
 	{	
 		if($where)
 		{
+			$k=array();
 			foreach ($where as $key => $value) 
 			{
 				$value=$this->quote($value);
@@ -227,6 +229,7 @@ abstract class database extends db
 	{
 		if($where)
 		{
+			$k=array();
 			foreach ($where as $key => $value) 
 			{
 				$value=$this->quote($value);
@@ -251,6 +254,7 @@ abstract class database extends db
 	 */
 	function updateWhere($table,$where,$data)
 	{
+		$k=$v=array();
 		foreach ($where as $key => $value) 
 		{
 			$value=$this->quote($value);
@@ -341,6 +345,7 @@ abstract class database extends db
 		try
 		{
 			$keys=array_keys(current($idArr));
+			$v=array();
 			foreach ($keys as $k) 
 			{
 				$v[]=$k.'='.":".$k."";
@@ -425,6 +430,7 @@ abstract class database extends db
 	}
 	function existWhere($table,$where,$select='*')
 	{
+		$k=array();
 		foreach ($where as $key => $value) 
 		{
 			$value=$this->quote($value);
@@ -467,12 +473,13 @@ abstract class database extends db
 	/**
 	 * 获得某个表的某条件下按某字段排序的指定页的SELECT内容以及该条件下的总页数,缓存只能过期自动删除
 	 */
-	function getList($table,$page=1,$where=array(),$column='id',$order='desc',$per=20,$selectCloumn='*')
+	function getList($table,$page=1,$where=null,$column='id',$order='desc',$per=20,$selectCloumn='*')
 	{
 		$offset=max(0,($page-1)*$per);
 		if(is_array($where))
 		{
 			$pdo=$this->getInstance();
+			$k=array();
 			foreach ($where as $key => $value) 
 			{
 				$value=$pdo->quote($value);
