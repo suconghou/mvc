@@ -383,7 +383,6 @@ class app
 		    	stream_set_blocking($fp,0);
 		    	$out = 'GET '.$parts['query']." HTTP/1.1\r\nHost: ".$parts['host']."\r\nConnection: Close\r\n\r\n";
 		    	fwrite($fp, $out);
-		    	ob_flush();
 		    	flush();
 		    	fclose($fp);
 		    	return true;
