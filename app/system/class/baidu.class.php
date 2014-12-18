@@ -1,11 +1,12 @@
 <?php
 
 /**
+*  S('class/baidu')->init()->getLrcDataBr
+*  S('class/baidu')->init()->getLrcData
+*  S('class/baidu')->init()->getLrc
 *  S('class/baidu')->init()->getSongInfo
-*  S('class/baidu')->init()->getSongData
-*  S('class/baidu')->init()->getSongInfo
-*  S('class/baidu')->init()->getSongInfo
-*  S('class/baidu')->init()->getSongInfo
+*  S('class/baidu')->init()->getSongLink
+*  S('class/baidu')->getSongById()
 */
 class baidu
 {
@@ -14,8 +15,12 @@ class baidu
 	private static $callback;
 	private static $playerid;
 
-	function __construct()
+	function __construct($auto=false)
 	{
+		if($auto)
+		{
+			$this->AutoHandler();
+		}
 		
 	}
 	function init($name,$singer,$callback=null,$playerid=null)
@@ -26,40 +31,58 @@ class baidu
 		return $this;
 	}
     
-    function handler()
+    function AutoHandler()
     {
     	$name=isset($_GET['name'])?$_GET['name']:null;
     	$singer=isset($_GET['singer'])?$_GET['singer']:null;
     	$callback=isset($_GET['callback'])?$_GET['callback']:null;
     	$playerid=isset($_GET['playerid'])?$_GET['playerid']:null;
-    	$this->init($name,$singer,$callback,$playerid);
-    	$this->getLrcDataBr();
-    }
 
+    	$this->init($name,$singer,$callback,$playerid)->getLrcDataBr();
+    	// echo $this->init($name,$singer,$callback,$playerid)->getSongInfo('file_link');
+    }
+    /**
+     * with init param to get song info
+     */
     public function getSongInfo($key=null)
     {
     	return self::fetchData(null,null,$key);
     }
+    /**
+     * with init param to get song play link
+     */
     public function getSongLink($rate=128)
     {
     	$info=$this->getSongInfo();
     	$id=$info['song_list'][0]['song_id'];
     	return self::getSong($id,$rate);
     }
+    /**
+     * get by baidusong id with rate
+     */
     public function getSongById($id,$rate=128)
     {
     	return self::getSong($id,$rate);
     }
+    /**
+     * return lrc data download link
+     */
     public function getLrc()
     {
     	return self::fetchData(null,null,'lrclink');
     }
+    /**
+     * return origin lrc data 
+     */
     public function getLrcData()
     {
     	$link=$this->getLrc();
     	$data=self::curl_get_contents($link);
     	return $data;
     }
+    /**
+     * echo lrc with <br>
+     */
     public function getLrcDataBr()
     {
     	$data=$this->getLrcData();
@@ -162,10 +185,6 @@ class baidu
     }
   
 
-
-
-
-
      //封装 curl
    public static function curl_get_contents($url)
    {
@@ -199,20 +218,15 @@ class baidu
         }
     }
 
-    public static function output($result_array)
-    { //输出函数
-        if ($_GET['playerid'] && $result_array['status']=='success')
-        {
-            $playerid=htmlspecialchars($_GET['playerid']);
-        }
-        echo ($_GET['callback']?htmlspecialchars($_GET['callback']).'(':'').urldecode(json_encode(url_encode_array($result_array))).($_GET['callback']?(($playerid?(',\''.(get_magic_quotes_gpc()?$playerid:addslashes($playerid)).'\''):'').');'):'');
-        exit();
-    }
     public static function json($data,$callback=null)
     {
-    	is_array($data)||parse_str($data,$data);
-    
-		exit(json_encode($data));
+		is_array($data)||parse_str($data,$data);
+		$data=json_encode($data);
+		if($callback&&(is_string($callback)||$callback=Request::get('jsoncallback')))
+		{
+		    exit($callback."(".$data.")");
+		}
+		exit($data);
     }
     
 }
