@@ -117,13 +117,6 @@ class app
 		$msg=strtoupper($type).'-'.date('Y-m-d H:i:s').' ==> '.$msg.PHP_EOL;
 		if(is_writable(APP_PATH.'log'))
 		{
-			if(!function_exists('error_log'))
-			{
-				function error_log($msg,$type=3,$path)
-				{
-					file_put_contents($path,$msg,FILE_APPEND); 
-				}
-			}
 			//error消息和开发模式,测试模式全部记录
 			if(strtoupper($type)=='ERROR'||DEBUG==1||DEBUG==2)
 			{
@@ -1420,6 +1413,13 @@ if(!function_exists('http_response_code'))
 			$text=$headers[$code];
 			header("{$header} {$code} {$text}", TRUE, $code);
 		}
+	}
+}
+if(!function_exists('error_log'))
+{
+	function error_log($msg,$type=3,$path='./error.log')
+	{
+		file_put_contents($path,$msg,FILE_APPEND); 
 	}
 }
 function __autoload($class)
