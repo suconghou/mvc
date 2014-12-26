@@ -4,7 +4,7 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.81
+ * @version 1.82
  */
 /**
 * APP 主要控制类
@@ -172,27 +172,27 @@ class app
 		if(isset($GLOBALS['argc'])&&$GLOBALS['argc']>1)
 		{
 			$GLOBALS['APP']['CLI']=true;
-    		foreach ($GLOBALS['argv'] as $key=>$uri)
-    		{
-    			if($key==0)
-    			{	
-    				continue;
-    			}
-    			else if($key==1&&count($u=explode('/', $uri))==2)
-    			{
-    				$GLOBALS['APP']['router']=$u;
-    			}
-    			else
-    			{
-    				$GLOBALS['APP']['router'][]=$uri;
-    			}
-    		}
-      		self::runRouter($GLOBALS['APP']['router']);
-      	}
-      	else
-      	{
-      		exit('CLI Mode Need Both Controller And Action !'.PHP_EOL);
-      	}
+			foreach ($GLOBALS['argv'] as $key=>$uri)
+			{
+				if($key==0)
+				{	
+					continue;
+				}
+				else if($key==1&&count($u=explode('/', $uri))==2)
+				{
+					$GLOBALS['APP']['router']=$u;
+				}
+				else
+				{
+					$GLOBALS['APP']['router'][]=$uri;
+				}
+			}
+			self::runRouter($GLOBALS['APP']['router']);
+		}
+		else
+		{
+			exit('CLI Mode Need Both Controller And Action !'.PHP_EOL);
+		}
 		
 
 	}
@@ -345,8 +345,7 @@ class app
 				return file_get_contents($url);			
 			}
 			$ch = curl_init(); 
-			$curl_opt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT_MS=>1,CURLOPT_NOSIGNAL=>1,
-								CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
+			$curl_opt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT_MS=>1,CURLOPT_NOSIGNAL=>1, CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
 			curl_setopt_array($ch, $curl_opt);
 			curl_exec($ch);
 			curl_close($ch);
@@ -372,13 +371,13 @@ class app
 				{
 					$fp = fsockopen($parts['host'],$parts['port'],$errno, $errstr,3);
 				}	
-		    	$fp||Error($errno,$errstr);
-		    	stream_set_blocking($fp,0);
-		    	$out = 'GET '.$parts['query']." HTTP/1.1\r\nHost: ".$parts['host']."\r\nConnection: Close\r\n\r\n";
-		    	fwrite($fp, $out);
-		    	flush();
-		    	fclose($fp);
-		    	return true;
+				$fp||Error($errno,$errstr);
+				stream_set_blocking($fp,0);
+				$out = 'GET '.$parts['query']." HTTP/1.1\r\nHost: ".$parts['host']."\r\nConnection: Close\r\n\r\n";
+				fwrite($fp, $out);
+				flush();
+				fclose($fp);
+				return true;
 			}
 			return false;
 		}
@@ -420,7 +419,7 @@ class app
 			app::log($e->getMessage(),'ERROR');
 			return false;
 		}
-		    
+			
 
 	}
 	public static function get($key,$default=null)
@@ -829,6 +828,23 @@ class Request
 		}
 		return $data;
 	}
+	public static function ip()
+	{
+		if ($ip=self::getVar('server','HTTP_X_FORWARDED_FOR'))
+			return $ip;
+		else if ($ip=self::getVar('server','HTTP_CLIENT_IP'))
+			return $ip;
+		else if ($ip=self::getVar('server','REMOTE_ADDR'))
+			return $ip;
+		else if ($ip=getenv("HTTP_X_FORWARDED_FOR"))
+			return $ip;
+		else if ($ip=getenv("HTTP_CLIENT_IP"))
+			return $ip;
+		else if ($ip=getenv("REMOTE_ADDR"))
+			return $ip;
+		else return null;
+
+	}
 	public static function info($key=null,$default=null)
 	{
 		$data['ip']=self::ip();
@@ -841,18 +857,123 @@ class Request
 	public static function serverInfo($key=null,$default=null)
 	{
 		$info['server_ip']=gethostbyname(self::getVar('server',"SERVER_NAME"));///服务器IP
-        $info['max_exectime']=ini_get('max_execution_time');//最大执行时间
-        $info['max_upload']=ini_get('file_uploads')?ini_get('upload_max_filesize'):0;///最大上传
-        $info['php_vision']=PHP_VERSION;////php版本
-        $info['os']=PHP_OS;///操作系统类型
-        $info['run_mode']=php_sapi_name();//php 运行方式
-        $info['post_max_size']=ini_get('post_max_size');
+		$info['max_exectime']=ini_get('max_execution_time');//最大执行时间
+		$info['max_upload']=ini_get('file_uploads')?ini_get('upload_max_filesize'):0;///最大上传
+		$info['php_vision']=PHP_VERSION;////php版本
+		$info['os']=PHP_OS;///操作系统类型
+		$info['run_mode']=php_sapi_name();//php 运行方式
+		$info['post_max_size']=ini_get('post_max_size');
 		if($key)
 		{
 			return isset($info[$key])?$info[$key]:$default;
 		}
 		return $info;
 
+	}
+	public static function isCli()
+	{
+		return isset($GLOBALS['APP']['CLI']);
+	}
+	public static function isAjax()
+	{
+		return self::getVar('server','HTTP_X_REQUESTED_WITH')=='XMLHttpRequest';
+	}
+	public static function isPjax()
+	{
+		return array_key_exists('HTTP_X_PJAX', $_SERVER) && $_SERVER['HTTP_X_PJAX'];
+	}
+	public static function isPost()
+	{
+		return strtolower(self::getVar('server','REQUEST_METHOD')) == 'post';
+	}
+	public static function isRobot()
+	{
+		$agent=self::getVar('server','HTTP_USER_AGENT');
+		$pattern='/(spider|bot|slurp|crawler)/i';
+		return preg_match($pattern, strtolower($agent));
+	}
+	public static function isMoblie()
+	{
+		$agent=self::getVar('server','HTTP_USER_AGENT');
+		$regex_match="/(nokia|iphone|android|motorola|^mot\-|softbank|foma|docomo|kddi|up\.browser|up\.link|";
+		$regex_match.="htc|dopod|blazer|netfront|helio|hosin|huawei|novarra|CoolPad|webos|techfaith|palmsource|";
+		$regex_match.="blackberry|alcatel|amoi|ktouch|nexian|samsung|^sam\-|s[cg]h|^lge|ericsson|philips|sagem|wellcom|bunjalloo|maui|";
+		$regex_match.="symbian|smartphone|midp|wap|phone|windows ce|iemobile|^spice|^bird|^zte\-|longcos|pantech|gionee|^sie\-|portalmmm|";
+		$regex_match.="jig\s browser|hiptop|^ucweb|^benq|haier|^lct|opera\s*mobi|opera\*mini|320x320|240x320|176x220";
+		$regex_match.=")/i";
+		return preg_match($regex_match, strtolower($agent));
+	}
+	public static function ua()
+	{
+		return self::getVar('server','HTTP_USER_AGENT');
+	}
+	public static function refer()
+	{
+		return self::getvar('server','HTTP_REFERER');
+	}
+	public static function filterPost($rule,$callback=null,$clean=false)
+	{
+		foreach ($rule as $key => $value)
+		{
+			$allowed[]=is_numeric($key)?$value:$key;
+		}
+		$post=self::cleanData($_POST,$allowed,$clean);
+		return Validate::Rule($rule,$post,$callback);
+	}
+	public static function filterGet($rule,$callback=null,$clean=false)
+	{
+		foreach ($rule as $key => $value)
+		{
+			$allowed[]=is_numeric($key)?$value:$key;
+		}
+		$get=self::cleanData($_GET,$allowed,$clean);
+		return Validate::Rule($rule,$get,$callback);
+	}
+	private static function cleanData($input,$allowed,$clean=false)
+	{
+		foreach(array_keys($input) as $key )
+		{
+			if ( !in_array($key,$allowed)||!$key )
+			{
+				 unset($input[$key]);
+			}
+			if($clean)
+			{
+				$input[$key]=self::clean($input[$key]);
+			}
+		}
+		foreach ($allowed as $item)
+		{
+			if(!isset($input[$item]))
+			{
+				$input[$item]=null;
+			}
+		}
+		return $input;
+	}
+	private static function getVar($type,$var,$default=null,$clean=false)
+	{
+		switch ($type)
+		{
+			case 'post':
+				return isset($_POST[$var])?($clean?self::clean($_POST[$var]):$_POST[$var]):$default;
+				break;
+			case 'get':
+				return isset($_GET[$var])?($clean?self::clean($_GET[$var]):$_GET[$var]):$default;
+				break;
+			case 'cookie':
+				return isset($_COOKIE[$var])?($clean?self::clean($_COOKIE[$var]):$_COOKIE[$var]):$default;
+				break;
+			case 'server':
+				return isset($_SERVER[$var])?$_SERVER[$var]:$default;
+				break;
+			case 'session': ///此处为获取session的方式
+				return isset($_SESSION[$var])?$_SESSION[$var]:$default;
+				break;
+			default:
+				return false;
+				break;
+		}
 	}
 	/**
 	 * 默认普通过滤,去除html标签,去除空格
@@ -885,131 +1006,6 @@ class Request
 		}
 
 	}
-	public static function ip()
-	{
-		if ($ip=self::getVar('server','HTTP_X_FORWARDED_FOR'))
-			return $ip;
-		else if ($ip=self::getVar('server','HTTP_CLIENT_IP'))
-			return $ip;
-		else if ($ip=self::getVar('server','REMOTE_ADDR'))
-			return $ip;
-		else if ($ip=getenv("HTTP_X_FORWARDED_FOR"))
-			return $ip;
-		else if ($ip=getenv("HTTP_CLIENT_IP"))
-			return $ip;
-		else if ($ip=getenv("REMOTE_ADDR"))
-			return $ip;
-		else return null;
-
-	}
-	public static function isCli()
-	{
-		return isset($GLOBALS['APP']['CLI']);
-	}
-	public static function isAjax()
-	{
-		return self::getVar('server','HTTP_X_REQUESTED_WITH')=='XMLHttpRequest';
-	}
-	public static function isPjax()
-	{
-        return array_key_exists('HTTP_X_PJAX', $_SERVER) && $_SERVER['HTTP_X_PJAX'];
-    }
-    public static function isPost()
-    {
-    	return strtolower(self::getVar('server','REQUEST_METHOD')) == 'post';
-    }
-    public static function isRobot()
-    {
-		$agent=self::getVar('server','HTTP_USER_AGENT');
-	    $pattern='/(spider|bot|slurp|crawler)/i';
-	    return preg_match($pattern, strtolower($agent));
-    }
-    public static function isMoblie()
-    {
-	 	$agent=self::getVar('server','HTTP_USER_AGENT');
-	    $regex_match="/(nokia|iphone|android|motorola|^mot\-|softbank|foma|docomo|kddi|up\.browser|up\.link|";
-	    $regex_match.="htc|dopod|blazer|netfront|helio|hosin|huawei|novarra|CoolPad|webos|techfaith|palmsource|";
-	    $regex_match.="blackberry|alcatel|amoi|ktouch|nexian|samsung|^sam\-|s[cg]h|^lge|ericsson|philips|sagem|wellcom|bunjalloo|maui|";
-	    $regex_match.="symbian|smartphone|midp|wap|phone|windows ce|iemobile|^spice|^bird|^zte\-|longcos|pantech|gionee|^sie\-|portalmmm|";
-	    $regex_match.="jig\s browser|hiptop|^ucweb|^benq|haier|^lct|opera\s*mobi|opera\*mini|320x320|240x320|176x220";
-	    $regex_match.=")/i";
-	    return preg_match($regex_match, strtolower($agent));
-    }
-	public static function ua()
-	{
-		return self::getVar('server','HTTP_USER_AGENT');
-	}
-	public static function refer()
-	{
-		return self::getvar('server','HTTP_REFERER');
-	}
-	public static function filterPost($rule,$callback=null,$clean=false)
-	{
-		foreach ($rule as $key => $value)
-		{
-			$allowed[]=is_numeric($key)?$value:$key;			
-		}
-		$post=self::filter($_POST,$allowed,$clean);
-		Validate::addRules($rule);
-		return Validate::check($post,$callback);
-	}
-	public static function filterGet($rule,$callback=null,$clean=false)
-	{
-		foreach ($rule as $key => $value)
-		{
-			$allowed[]=is_numeric($key)?$value:$key;
-		}
-		$get=self::filter($_GET,$allowed,$clean);
-		Validate::addRules($rule);
-		return Validate::check($get,$callback);
-	}
-	private static function filter($input,$allowed,$clean=false)
-	{
-		foreach(array_keys($input) as $key )
-	    {
-	        if ( !in_array($key,$allowed) )
-	        {
-	             unset($input[$key]);
-	        }
-	        if($clean)
-	        {
-	        	$input[$key]=self::clean($input[$key]);
-	        }
-	    }
-	    foreach ($allowed as $item)
-	    {
-	    	if(!isset($input[$item]))
-	    	{
-	    		$input[$item]=null;
-	    	}
-	    }
-	    return $input;
-	}
-	private static function getVar($type,$var,$default=null,$clean=false)
-	{
-		switch ($type)
-		{
-			case 'post':
-				return isset($_POST[$var])?($clean?self::clean($_POST[$var]):$_POST[$var]):$default;
-				break;
-			case 'get':
-				return isset($_GET[$var])?($clean?self::clean($_GET[$var]):$_GET[$var]):$default;
-				break;
-			case 'cookie':
-				return isset($_COOKIE[$var])?($clean?self::clean($_COOKIE[$var]):$_COOKIE[$var]):$default;
-				break;
-			case 'server':
-				return isset($_SERVER[$var])?$_SERVER[$var]:$default;
-				break;
-			case 'session': ///此处为获取session的方式
-				return isset($_SESSION[$var])?$_SESSION[$var]:$default;
-				break;
-			default:
-				return false;
-				break;
-		}
-
-	}
 	public static function __callStatic($method,$args)
 	{
 		Error('500','Call Error Static Method '.$method.' In Class '.__CLASS__);
@@ -1021,23 +1017,40 @@ class Request
 */
 class Validate
 {
-	private static $rule;
-	private static $msg;
-	private static $data;
-
-	public static function check($data,$callback=null)
+	public static function Rule($rule,$data,$callback=null)
 	{
 		try
 		{
-			self::$data=$data;
-			self::$rule=self::$rule?self::$rule:array();
-			foreach (self::$rule as $key => $rules)
+			foreach($rule as $k=>&$item)
 			{
-				foreach ($rules as $ruleNum => $rule)
+				if(isset($data[$k])&&$data[$k]!='')//存在要验证的数据
 				{
-					self::checker($key,$rule,$ruleNum);
+					foreach($item as $type=>$msg)
+					{
+						if(is_object($msg)) //是一个过滤器
+						{
+							$data[$k]=$msg($data[$k]);
+						}
+						else if(is_numeric($type))
+						{
+							$sw[$k]=$msg;
+						}
+						else if(stripos($type,'='))
+						{
+							self::mixedChecker($data[$k],explode('=', $type),$msg);
+						}
+						else
+						{
+							self::typeChecker($data[$k],$type,$msg);
+						}
+					}
 				}
-			}	
+				else if(isset($item['require'])) //标记为require,却不存在
+				{
+					throw new Exception($item['require'], -1);
+				}
+			}			
+
 		}
 		catch(Exception $e)
 		{
@@ -1050,138 +1063,102 @@ class Validate
 			{
 				exit($data);
 			}
-			self::$data=self::$rule=self::$msg=null;
 			return false;
 		}
-		self::$data=self::$rule=self::$msg=null;
-		return $data;
-	}
-
-	private static function checker($key,$rule,$ruleNum)
-	{
-		$msg=self::$msg[$key][$ruleNum];
-		if(stripos($rule,'='))
+		if(!empty($sw)&&is_array($sw))
 		{
-			self::mixedFilter($key,explode('=', $rule),$msg);
-		} 
-		else if(preg_match('/^\/.*\/$/',$rule))
-		{
-			$item=isset(self::$data[$key])?self::$data[$key]:null;
-			if(!preg_match($rule,$item))
+			foreach($sw as $from=>$to)
 			{
-				throw new Exception($msg, 100);
+				$data[$to]=$data[$from];
+				unset($data[$from]);
 			}
 		}
-		else
-		{
-			self::typeFilter($key,$rule,$msg);
-		}
+		return $data; //数据全部校验通过
 	}
 
-	private static function typeFilter($key,$type,$msg)
+	private static function typeChecker($item,$type,$msg)
 	{
-		$item=isset(self::$data[$key])?self::$data[$key]:null;
 		switch ($type)
 		{
 			case 'require':
 				if(empty($item))
 				{
-					throw new Exception($msg, 11);
+					throw new Exception($msg, -1);
 				}
 				break;
 			case 'email':
 				if(!self::email($item))
 				{
-					throw new Exception($msg, 12);
+					throw new Exception($msg, -2);
 				}
 				break;
 			case 'username':
 				if(!self::username($item))
 				{
-					throw new Exception($msg, 13);
+					throw new Exception($msg, -3);
 				}
 				break;
 			case 'password':
 				if(!self::password($item))
 				{
-					throw new Exception($msg, 14);
+					throw new Exception($msg, -4);
 				}
 				break;
 			case 'phone':
 				if(!self::phone($item))
 				{
-					throw new Exception($msg, 15);
+					throw new Exception($msg, -5);
 				}
 				break;
 			case 'url':
 				if(!self::url($item))
 				{
-					throw new Exception($msg, 16);
+					throw new Exception($msg, -6);
 				}
 				break;
 			case 'ip':
 				if(!self::ip($item))
 				{
-					throw new Exception($msg, 17);
+					throw new Exception($msg, -7);
 				}
 				break;
 			case 'idcard':
 				if(!self::idcard($item))
 				{
-					throw new Exception($msg, 18);
+					throw new Exception($msg, -8);
 				}
 				break;
 			default:
-				throw new Exception("Error Type Rule {$type}", 404);
+				throw new Exception("Error Type Rule {$type}", -404);
 				break;
 		}
 
 	}
-	private static function mixedFilter($key,$mixed,$msg)
+	private static function mixedChecker($item,$mixed,$msg)
 	{
-		$item=isset(self::$data[$key])?self::$data[$key]:null;
 		switch ($mixed[0])
 		{
 			case 'minlength':
 				if(strlen($item)<$mixed[1])
 				{
-					throw new Exception($msg, 21);
+					throw new Exception($msg, -9);
 				}
 				break;
 			case 'maxlength':
 				if(strlen($item)>$mixed[1])
 				{
-					throw new Exception($msg, 22);
+					throw new Exception($msg, -10);
 				}
 				break;
 			case 'eq':
 				if($item!=$mixed[1])
 				{
-					throw new Exception($msg, 23);
+					throw new Exception($msg, -11);
 				}
 				break;
 			default:
-				throw new Exception("Error Mixed Rule {$mixed[0]}", 500);
+				throw new Exception("Error Mixed Rule {$mixed[0]}", -500);
 				break;
-		}
-	}
-	/**
-	 * 添加过滤规则
-	 */
-	public static function addRule($key,$msg,$rule)
-	{
-		self::$rule[$key]=explode('|',$rule);
-		self::$msg[$key]=explode('|', $msg);
-	}
-	public static function addRules($arr)
-	{
-		foreach ($arr as $key=>$item)
-		{
-			$item=explode('@', $item);
-			if(count($item)==2)
-			{
-				self::addRule($key,$item[0],$item[1]);
-			}
 		}
 	}
 	public static function email($email)
@@ -1259,8 +1236,8 @@ class db extends PDO
 			}
 			catch ( Exception $e )
 			{
-            	Error('500','Open Sqlite Database Error ! '.$e->getMessage());
-        	}
+				Error('500','Open Sqlite Database Error ! '.$e->getMessage());
+			}
 		}
 		else///使用mysql
 		{
@@ -1275,8 +1252,8 @@ class db extends PDO
 			}
 			catch ( Exception $e )
 			{
-           	 	Error('500','Connect Mysql Database Error ! '.$e->getMessage());
-        	}
+				Error('500','Connect Mysql Database Error ! '.$e->getMessage());
+			}
 		}
 
 	}
@@ -1507,8 +1484,8 @@ function json($data,$callback=null)
 function byteFormat($size,$dec=2)
 {
 	$size=abs($size);
-    $unit=array("B","KB","MB","GB","TB","PB","EB","ZB","YB");
-    return round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i];
+	$unit=array("B","KB","MB","GB","TB","PB","EB","ZB","YB");
+	return round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i];
 }
 function dateFormat($time)
 {
@@ -1525,11 +1502,11 @@ function dateFormat($time)
 	);
 	foreach ($f as $k=>$v)
 	{
-        if (0 !=$c=floor($t/(int)$k))
-        {
-            return $c.$v.'前';
-        }
-    }
+		if (0 !=$c=floor($t/(int)$k))
+		{
+			return $c.$v.'前';
+		}
+	}
 
 }
 //外部重定向,会立即结束脚本以发送header,内部重定向app::run(array);
