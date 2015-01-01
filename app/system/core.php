@@ -172,6 +172,7 @@ class app
 		if(isset($GLOBALS['argc'])&&$GLOBALS['argc']>1)
 		{
 			$GLOBALS['APP']['CLI']=true;
+			chdir(ROOT);
 			foreach ($GLOBALS['argv'] as $key=>$uri)
 			{
 				if($key==0)
