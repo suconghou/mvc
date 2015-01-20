@@ -497,7 +497,7 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 		$str="ERROR({$errno}) {$errstr} at {$errfile} on line {$errline} ";
 		$code=500;
 	}
-	http_response_code($code);
+	isset($GLOBALS['APP']['CLI'])||http_response_code($code);
 	DEBUG&&app::log($str,'ERROR');
 	if(defined('ERROR_PAGE_404')&&defined('ERROR_PAGE_500')&&ERROR_PAGE_404&&ERROR_PAGE_500) //自定义了404和500
 	{
@@ -550,13 +550,12 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 		}
 		if(isset($GLOBALS['APP']['CLI']))
 		{
-			$error=$h1.PHP_EOL.$li;
+			echo $h1,PHP_EOL,$li;
 		}
 		else
 		{
-			$error="<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;'><p>{$h1}{$ln}{$li}</p></div>";
+			exit("<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;'><p>{$h1}{$ln}{$li}</p></div>");
 		}
-		exit($error);
 	}
 
 }
