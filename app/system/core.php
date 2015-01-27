@@ -207,7 +207,7 @@ class app
 		{
 			unset($router_arr[1]);
 		}
-		$hash=CACHE_PATH.md5(implode('-',$router_arr)).'.html';
+		$hash=self::fileCache($router_arr);
 		if (is_file($hash))//存在缓存文件
 		{
 			$expires_time=filemtime($hash);
@@ -384,14 +384,38 @@ class app
 		}
 
 	}
-
 	/**
-	 * 
+	 * 计算缓存位置,或删除缓存
+	 */
+	public static function fileCache($router_arr=array(),$delete=false)
+	{
+		if(empty($router_arr))
+		{
+			$router_arr=DEFAULT_CONTROLLER.'/'.DEFAULT_ACTION;
+		}
+		else if(is_array($router_arr))
+		{
+			$router_arr=implode('/',$router_arr);
+		}
+		$cache_file=CACHE_PATH.md5(baseUrl($router_arr)).'.html';
+		if($delete)
+		{
+			return file_exists($cache_file)&&unlink($cache_file);
+		}
+		else
+		{
+			return $cache_file;
+		}
+
+	}
+	/**
+	 * 全局变量获取设置
 	 */
 	public static function getItem($key,$default=null)
 	{
 		return isset(self::$global[$key])?self::$global[$key]:$default;
 	}
+
 	public static function setItem($key,$value)
 	{
 		self::$global[$key]=$value;
@@ -423,6 +447,7 @@ class app
 			
 
 	}
+
 	public static function get($key,$default=null)
 	{
 		try
@@ -447,6 +472,7 @@ class app
 		}
 
 	}
+
 	public static function del($key=null)
 	{
 		try
@@ -637,11 +663,11 @@ function V($loadViewFileName,$dataPassToView=array(),$fileCacheMinute=0)
 	$loadViewFileName=VIEW_PATH.$loadViewFileName.'.php';
 	if(is_file($loadViewFileName))
 	{
-		if($fileCacheMinute||(is_numeric($dataPassToView)&&($dataPassToView>0)))
+		if($fileCacheMinute||(is_int($dataPassToView)&&($dataPassToView>0)))
 		{
 			$cacheTime=$fileCacheMinute?$fileCacheMinute:$dataPassToView;
 			$GLOBALS['APP']['cache']['time']=intval($cacheTime*60);
-			$GLOBALS['APP']['cache']['file']=true;		
+			$GLOBALS['APP']['cache']['file']=true;
 		}
 		GZIP?ob_start("ob_gzhandler"):ob_start();
 		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));//耗时
@@ -658,7 +684,7 @@ function V($loadViewFileName,$dataPassToView=array(),$fileCacheMinute=0)
 			{
 				unset($router_arr[1]);
 			}
-			$cache_file=APP_PATH.'cache/'.md5(implode('-',$router_arr)).'.html';
+			$cache_file=app::fileCache($router_arr);
 			file_put_contents($cache_file,$contents);
 			touch($cache_file,$expires_time);
 			ob_end_flush();
@@ -851,6 +877,7 @@ class Request
 		$data['ajax']=self::isAjax();
 		$data['ua']=self::ua();
 		$data['refer']=self::refer();
+		$data['protocol'] = (isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) != 'off')) ? "https" : "http";
 		if($key) return isset($data[$key])?$data[$key]:$default;
 		return $data;
 	}
@@ -915,7 +942,7 @@ class Request
 	{
 		foreach ($rule as $key => $value)
 		{
-			$allowed[]=is_numeric($key)?$value:$key;
+			$allowed[]=is_int($key)?$value:$key;
 		}
 		$post=self::cleanData($_POST,$allowed,$clean);
 		return Validate::Rule($rule,$post,$callback);
@@ -924,7 +951,7 @@ class Request
 	{
 		foreach ($rule as $key => $value)
 		{
-			$allowed[]=is_numeric($key)?$value:$key;
+			$allowed[]=is_int($key)?$value:$key;
 		}
 		$get=self::cleanData($_GET,$allowed,$clean);
 		return Validate::Rule($rule,$get,$callback);
@@ -1031,7 +1058,7 @@ class Validate
 						{
 							$data[$k]=$msg($data[$k]);
 						}
-						else if(is_numeric($type))
+						else if(is_int($type))
 						{
 							$sw[$k]=$msg;
 						}
@@ -1517,21 +1544,18 @@ function redirect($url,$seconds=0,$code=302)
 }
 function baseUrl($path=null)
 {
-	if(is_string($path))
-	{
-		$path='/'.ltrim($path, '/');
-		return('http://'.$_SERVER['HTTP_HOST'].$path);
-	}
-	else if(is_null($path))
-	{
-		return 'http://'.Request::server('HTTP_HOST');
-	}
-	else
+	if(is_int($path))
 	{
 		$router=$GLOBALS['APP']['router'];
 		return isset($router[$path])?$router[$path]:null;
 	}
-
+	else
+	{
+		$protocol=Request::info('protocol');
+		$host=Request::server('HTTP_HOST');
+		$path=is_null($path)?null:'/'.ltrim($path, '/');
+		return "{$protocol}://{$host}".$path;
+	}
 }
 function encrypt($input,$key=null)
 {
