@@ -21,15 +21,8 @@ class app
 		define('APP_START_MEMORY',memory_get_usage());
 		date_default_timezone_set('PRC');//设置时区
 		set_include_path(LIB_PATH);//此路径下可直接include
-		if(defined('DEBUG')&&DEBUG==2)
-		{
-			set_error_handler('Error');///异常处理
-		}
-		else
-		{
-			set_error_handler('Error',2);///异常处理
-			error_reporting(0);
-		}
+		error_reporting(DEBUG?E_ALL:0);
+		set_error_handler('Error');///异常处理
 		defined('STDIN')&&self::runCli();
 		if(!isset($GLOBALS['APP']['CLI']))
 		{
@@ -118,7 +111,7 @@ class app
 		if(is_writable(APP_PATH.'log'))
 		{
 			//error消息和开发模式,测试模式全部记录
-			if(strtoupper($type)=='ERROR'||DEBUG==1||DEBUG==2)
+			if(strtoupper($type)=='ERROR'||DEBUG)
 			{
 				error_log($msg,3,$path);
 			}
@@ -512,20 +505,23 @@ class app
 //异常处理 404 500等
 function Error($errno, $errstr, $errfile=null, $errline=null)
 {
-
-	if(in_array($errno,array(400,403,404,414,500,502,503,504)))
+	if((DEBUG<2)&&in_array($errno,array(E_NOTICE,E_USER_NOTICE)))
 	{
-		$str="ERROR({$errno}) {$errstr}";
+		return;
+	}
+	else if(in_array($errno,array(400,403,404,414,500,502,503,504)))
+	{
+		$errormsg="ERROR({$errno}) {$errstr}";
 		$code=$errno;
 	}
 	else
 	{
-		$str="ERROR({$errno}) {$errstr} at {$errfile} on line {$errline} ";
+		$errormsg="ERROR({$errno}) {$errstr} at {$errfile} on line {$errline} ";
 		$code=500;
 	}
 	isset($GLOBALS['APP']['CLI'])||http_response_code($code);
-	DEBUG&&app::log($str,'ERROR');
-	if(defined('ERROR_PAGE_404')&&defined('ERROR_PAGE_500')&&ERROR_PAGE_404&&ERROR_PAGE_500) //自定义了404和500
+	app::log($errormsg,'ERROR');
+	if(!DEBUG&&defined('ERROR_PAGE_404')&&defined('ERROR_PAGE_500')&&ERROR_PAGE_404&&ERROR_PAGE_500) //线上模式且自定义了404和500
 	{
 		if(isset($GLOBALS['APP']['router'][0])&&is_file(CONTROLLER_PATH.$GLOBALS['APP']['router'][0].'.php'))
 		{
@@ -535,7 +531,7 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 		{
 			$errorController=DEFAULT_CONTROLLER;
 		}
-		$errorRouter=array($errorController,$errno==404?ERROR_PAGE_404:ERROR_PAGE_500,$str);
+		$errorRouter=array($errorController,$errno==404?ERROR_PAGE_404:ERROR_PAGE_500,$errormsg);
 
 		if(method_exists($errorController,$errorRouter[1]))//当前已加载的控制器或默认控制器中含有ERROR处理
 		{
@@ -544,7 +540,7 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 			{
 				$GLOBALS['APP']['controller'][$errorController]=new $errorController();///实例化控制器	
 			}
-			exit(call_user_func_array(array($GLOBALS['APP']['controller'][$errorController],$errorRouter[1]), array($str)));//传入参数
+			exit(call_user_func_array(array($GLOBALS['APP']['controller'][$errorController],$errorRouter[1]), array($errormsg)));//传入参数
 		}
 		else
 		{
@@ -553,11 +549,10 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 	}
 	else
 	{
+		$ln=isset($GLOBALS['APP']['CLI'])?PHP_EOL:'</p><p>';
 		$trace=debug_backtrace();
-		$h1=&$str;
 		$i=count($trace)-1;
 		$li=null;
-		$ln=isset($GLOBALS['APP']['CLI'])?PHP_EOL:'</p><p>';
 		while($i>=0)
 		{
 			if(!isset($trace[$i]['file']))
@@ -569,18 +564,18 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 			$li.=$trace[$i]['file'].'=>'.$trace[$i]['class'].$trace[$i]['type'].$trace[$i]['function'].'() on line '.$trace[$i]['line'].$ln;
 			$i--;
 		}
-		if(DEBUG!=2)
-		{
-			$h1="Oops ! Something Error,Error Code:{$errno}";
-			$li="See the log for more information ! {$ln}";
-		}
 		if(isset($GLOBALS['APP']['CLI']))
 		{
-			echo $h1,PHP_EOL,$li;
+			echo $errormsg,PHP_EOL,$li;
 		}
 		else
 		{
-			exit("<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;'><p>{$h1}{$ln}{$li}</p></div>");
+			if(!DEBUG)
+			{
+				$errormsg="Oops ! Something Error,Error Code:{$errno}";
+				$li="See the log for more information ! {$ln}";
+			}
+			exit("<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;'><p>{$errormsg}{$ln}{$li}</p></div>");
 		}
 	}
 
