@@ -567,6 +567,7 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 		if(isset($GLOBALS['APP']['CLI']))
 		{
 			echo $errormsg,PHP_EOL,$li;
+			$errfile||exit;
 		}
 		else
 		{
