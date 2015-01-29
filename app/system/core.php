@@ -165,6 +165,7 @@ class app
 		if(isset($GLOBALS['argc'])&&$GLOBALS['argc']>1)
 		{
 			$GLOBALS['APP']['CLI']=true;
+			$_SERVER['REQUEST_URI']=null;
 			chdir(ROOT);
 			foreach ($GLOBALS['argv'] as $key=>$uri)
 			{
@@ -1549,7 +1550,7 @@ function baseUrl($path=null)
 	{
 		$protocol=Request::info('protocol');
 		$host=Request::server('HTTP_HOST');
-		$path=is_null($path)?null:'/'.ltrim($path, '/');
+		$path=is_null($path)?null:(is_bool($path)?($path?$_SERVER['REQUEST_URI']:'/'.implode('/',$GLOBALS['APP']['router'])):'/'.ltrim($path,'/'));
 		return "{$protocol}://{$host}".$path;
 	}
 }
