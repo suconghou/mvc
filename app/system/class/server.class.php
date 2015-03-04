@@ -395,13 +395,26 @@ class server
 
 }
 
-
-function _config($key,$value=null)
+interface websocket
 {
-	static $config=array();
-	if(!is_null($value))
+
+	function init2();
+	function connect();
+	function onMessage();
+	function onClose();
+
+
+} 
+
+if(!function_exists('_config'))
+{
+	function _config($key,$value=null)
 	{
-		$config[$key]=$value;
+		static $config=array();
+		if(!is_null($value))
+		{
+			$config[$key]=$value;
+		}
+		return isset($config[$key])?$config[$key]:null;
 	}
-	return isset($config[$key])?$config[$key]:null;
 }
