@@ -228,13 +228,21 @@ class uploader
 	 * 文件类型不合法,则返回false
 	 * ajax切割上传没有发来文件名的会采取自动命名
 	 * 部分文件类型不能检测,需要随请求发送来
+	 * $storName 为true，则使用MD5值，为空则使用上传的名称，否则使用指定名称
 	 */
 	private function detectName($f,$storName=null)
 	{
-		$contents=file_get_contents($_FILES[$f]['tmp_name']);
+
 		if($storName)
 		{
-			$default=$storName;
+			if(is_string($storName))
+			{
+				$default=$storName;
+			}
+			else
+			{
+				$default=md5_file($_FILES[$f]['tmp_name']);
+			}
 		}
 		else if(Request::post('name'))
 		{
@@ -246,12 +254,16 @@ class uploader
 		}
 		else
 		{
-			$default=uniqid().'.unknow';
+			$default=md5_file($_FILES[$f]['tmp_name']);
 		}
 		$default=preg_replace('/[^\w\.]/',chr(mt_rand(65,90)),$default);//文件名清除
 		$arr=explode('.',$default);
-		$defaultType=end($arr); ///综合得出默认文件类型
-		$type=self::getType($contents,$defaultType);
+		$userType=end($arr);
+		$userType==$arr[0]?'unknow':$userType;
+		$fp=fopen($_FILES[$f]['tmp_name'], 'rb');
+		$contents=fread($fp, 2);
+		fclose($fp);
+		$type=self::getType($contents,$userType); ///综合得出默认文件类型
 
 		if(in_array($type,self::$allowType)) //合法的文件类型
 		{

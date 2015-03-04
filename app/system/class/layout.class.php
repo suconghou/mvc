@@ -4,17 +4,24 @@
 * 提供静态方法
 * 几大组件
 * css ,js, title, ul ,ol 
+* 配置数据库映射
+* layout::easyList(1,3) 加载第一页,每页3个
+* layout::easyPost(1) 显示第一篇文章
 *
 */
 class layout
 {
-	// 数据库 字段映射,一个表一个数组,第一个表名
-	private static $post=array('blog_post','id'=>'id','title'=>'title','content'=>'content','views'=>'hit','time'=>'date'); 
+	// 数据库 字段映射,一个表一个数组,数组第一个表名,以后为各个字段与数组的映射,修改键值以匹配数据库
+	private static $post=array('wp_posts','id'=>'id','title'=>'post_title','content'=>'post_content','views'=>'comment_count','time'=>'time'); 
 	private static $cat=array();
 		
+	/**
+	 * 参数合并
+	 * @param array $cfg [传入合并的参数]
+	 */
 	function __construct($cfg=array())
 	{
-
+		self::init($cfg);
 	}
 	function __call($method,$args)
 	{
@@ -23,6 +30,19 @@ class layout
 	static function __callStatic($method,$args)
 	{
 		Error(500,'Call Error Static Method '.$method.' In Class '.__CLASS__.'!');
+	}
+	static function init($cfg=array())
+	{
+		if($cfg)
+		{
+			foreach ($cfg as $key => $arr)
+			{
+				if(isset(self::$$key))
+				{
+					self::$$key=$arr;
+				}
+			}
+		}
 	}
 	static function data($method,$param_arr=array())
 	{
@@ -168,6 +188,7 @@ class layout
 
 	static function easyList($page,$num=15,$container='.post-list',$orderby=' id desc ')
 	{
+
 		$offset=max(intval(($page-1)*$num),0);
 		$data=self::data('getData',"select * from ".self::$post[0]." order by {$orderby} limit {$offset},$num");
 		$data=$data?$data:array();
@@ -181,7 +202,7 @@ class layout
 		$pages=self::data('getVar',"select count(1) from ".self::$post[0]);
 		$pages=$pages?ceil($pages/$num):0;
 		for ($i=1; $i <=$pages ; $i++)
-		{ 
+		{
 			$html.="<li><a href='?p={$i}'>{$i}</a></li>";
 		}
 		echo $html,'</ul></div>';
