@@ -164,13 +164,20 @@ abstract class database extends db
 	{	
 		if($where)
 		{
-			$k=array();
-			foreach ($where as $key => $value) 
+			if(is_array($where))
 			{
-				$value=$this->quote($value);
-				$k[]='(`'.$key.'`='.$value.')';
+				$k=array();
+				foreach ($where as $key => $value) 
+				{
+					$value=$this->quote($value);
+					$k[]='(`'.$key.'`='.$value.')';
+				}
+				$strk=implode(" AND ",$k);
 			}
-			$strk=implode(" AND ",$k);
+			else
+			{
+				$strk=$where;
+			}
 			$sql="SELECT {$column} FROM `{$table}` WHERE ({$strk}) ";
 			if($orderlimit)
 			{
@@ -229,20 +236,27 @@ abstract class database extends db
 	{
 		if($where)
 		{
-			$k=array();
-			foreach ($where as $key => $value) 
+			if(is_array($where))
 			{
-				$value=$this->quote($value);
-				$k[]='(`'.$key.'`='.$value.')';
+				$k=array();
+				foreach ($where as $key => $value) 
+				{
+					$value=$this->quote($value);
+					$k[]='(`'.$key.'`='.$value.')';
+				}
+				$strk=implode(" AND ",$k);
 			}
-			$strk=implode(" AND ",$k);
+			else
+			{
+				$strk=$where;
+			}
 			$sql="DELETE  FROM `{$table}` WHERE ({$strk}) ";
 		}
 		else
 		{
 			$sql="DELETE  FROM `{$table}` ";
 		}
-		if(isset($where['id']))
+		if(is_array($where) and isset($where['id']))
 		{
 			$this->delCache($table,$where['id']);
 		}
@@ -255,16 +269,23 @@ abstract class database extends db
 	function updateWhere($table,$where,$data)
 	{
 		$k=$v=array();
-		foreach ($where as $key => $value) 
+		if(is_array($where))
 		{
-			$value=$this->quote($value);
-			$k[]='(`'.$key.'`='.$value.')';
+			foreach ($where as $key => $value) 
+			{
+				$value=$this->quote($value);
+				$k[]='(`'.$key.'`='.$value.')';
+			}
+			$strk=implode(" AND ",$k);
+		}
+		else
+		{
+			$strk=$where;
 		}
 		foreach ($data as $key => $value) 
 		{
 			$v[]=$key.'='."'".$value."'";
 		}
-		$strk=implode(" AND ",$k);
 		$strv=implode(' , ',$v);
 		$sql="UPDATE `{$table}` SET {$strv} WHERE ({$strk})";
 		if(isset($where['id']))
@@ -320,7 +341,7 @@ abstract class database extends db
 			 $error=$e->getMessage();
 			 if($callback)
 			 {
-			 	$callback($error,$e);
+				$callback($error,$e);
 			 }
 			 else
 			 {
@@ -374,11 +395,11 @@ abstract class database extends db
 			 $error=$e->getMessage();
 			 if($callback)
 			 {
-			 	$callback($error,$e);
+				$callback($error,$e);
 			 }
 			 else
 			 {
-			 	app::log($error);
+				app::log($error);
 			 }
 			 return false;
 		}
@@ -430,13 +451,20 @@ abstract class database extends db
 	}
 	function existWhere($table,$where,$select='*')
 	{
-		$k=array();
-		foreach ($where as $key => $value) 
+		if(is_array($where))
 		{
-			$value=$this->quote($value);
-			$k[]='(`'.$key.'`='.$value.')';
+			$k=array();
+			foreach ($where as $key => $value) 
+			{
+				$value=$this->quote($value);
+				$k[]='(`'.$key.'`='.$value.')';
+			}
+			$strk=implode(" AND ",$k);
 		}
-		$strk=implode(" AND ",$k);
+		else
+		{
+			$strk=$where;
+		}
 		$sql="SELECT {$select} FROM `{$table}` WHERE ({$strk})";
 		$data=$this->getData($sql);
 		return empty($data)?false:$data;
@@ -445,9 +473,9 @@ abstract class database extends db
 	/**
 	 * 按栏目搜索
 	 */
-	function searchByColumn($table,$column,$search,$selectCloumn='*',$num=50)
+	function searchByColumn($table,$column,$search,$selectcolumn='*',$num=50)
 	{
-		$sql="SELECT {$selectCloumn} FROM `{$table}` WHERE {$column} LIKE  '%{$search}%' LIMIT {$num}";
+		$sql="SELECT {$selectcolumn} FROM `{$table}` WHERE {$column} LIKE  '%{$search}%' LIMIT {$num}";
 		if(self::$use)
 		{
 			$key=md5($sql);
@@ -473,21 +501,27 @@ abstract class database extends db
 	/**
 	 * 获得某个表的某条件下按某字段排序的指定页的SELECT内容以及该条件下的总页数,缓存只能过期自动删除
 	 */
-	function getList($table,$page=1,$where=null,$column='id',$order='desc',$per=20,$selectCloumn='*')
+	function getList($table,$page=1,$where=null,$column='id',$order='desc',$per=20,$selectcolumn='*')
 	{
 		$offset=max(0,($page-1)*$per);
-		if(is_array($where))
+		if($where)
 		{
 			$pdo=$this->getInstance();
-			$k=array();
-			foreach ($where as $key => $value) 
+			if(is_array($where))
 			{
-				$value=$pdo->quote($value);
-				$k[]='(`'.$key.'`='.$value.')';
+				$k=array();
+				foreach ($where as $key => $value) 
+				{
+					$value=$pdo->quote($value);
+					$k[]='(`'.$key.'`='.$value.')';
+				}
+				$strk=implode(" AND ",$k);
 			}
-			$strk=null;
-			$strk.=implode(" AND ",$k);
-			$l="SELECT {$selectCloumn} FROM `{$table}` WHERE  ({$strk})  ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
+			else
+			{
+				$strk=$where;
+			}
+			$l="SELECT {$selectcolumn} FROM `{$table}` WHERE  ({$strk})  ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
 			$p="SELECT COUNT(1) FROM `{$table}` WHERE  ({$strk})  ";
 			if(self::$use)
 			{
@@ -513,7 +547,7 @@ abstract class database extends db
 		}
 		else
 		{
-			$l="SELECT {$selectCloumn} FROM `{$table}` ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
+			$l="SELECT {$selectcolumn} FROM `{$table}` ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
 			$p="SELECT COUNT(1) FROM `{$table}` ";
 			if(self::$use)
 			{
@@ -544,12 +578,19 @@ abstract class database extends db
 	{
 		if($where)
 		{
-			foreach ($where as $key => $value) 
+			if(is_array($where))
 			{
-				$k[]='(`'.$key.'`="'.$value.'")';
+				$k=array();
+				foreach ($where as $key => $value) 
+				{
+					$k[]='(`'.$key.'`="'.$value.'")';
+				}
+				$strk=implode(" AND ",$k);
 			}
-			$strk=null;
-			$strk.=implode(" AND ",$k);
+			else
+			{
+				$strk=$where;
+			}
 			$where=" WHERE ({$strk}) ";
 		}
 		$sql="SELECT COUNT(1) FROM `".$table."` {$where} ";
