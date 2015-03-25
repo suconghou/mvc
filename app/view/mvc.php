@@ -318,6 +318,15 @@
 			
 		</section>
 		<section>
+			<p>使用系统提供的timer</p>
+			<p>app::timer($function,$exit,$callback)可用于命令行,也可用于浏览器,但一般用在命令行下</p>
+			<p>参数一为要循环的闭包函数</p>
+			<p>参数二为退出的条件,为false永不退出,true执行一次则退出,或者传入一个闭包由此返回值决定</p>
+			<p>参数三为如果要执行退出,退前的回调函数</p>
+			<p>注意:要循环的函数,请自己添加sleep,或者在参数二的传入闭包sleep</p>
+			<p>若函数永不退出,则回调永无机会执行</p>
+		</section>
+		<section>
 			<h1 class="danger" id="attention">注意</h1>
 			<blockquote>
 			<ol>

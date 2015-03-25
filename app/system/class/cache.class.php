@@ -55,16 +55,34 @@ class cache
 		}
 		else
 		{
-			self::$cache= new Memcache();
-			self::$cache->connect(self::$memcacheServer, self::$memcachePort);
+			if(extension_loaded('Memcached'))
+			{
+				self::$cache= new Memcached();
+			}
+			else if(extension_loaded('Memcache'))
+			{
+				self::$cache= new Memcache();
+			}
+			else
+			{
+				exit('Memcache Extension Not Loaded !');
+			}
+			self::$cache->addServer(self::$memcacheServer, self::$memcachePort);
 		}
 		self::$cacheType='memcache';
 	}
 	private static function initRedis()
 	{
-		self::$cache= new Redis();
-		self::$cache->connect(self::$redisServer,self::$redisPort);
-		self::$cacheType='redis';
+		if(extension_loaded('Redis'))
+		{
+			self::$cache= new Redis();
+			self::$cache->connect(self::$redisServer,self::$redisPort);
+			self::$cacheType='redis';
+		}
+		else
+		{
+			exit('Redis Extension Not Loaded !');
+		}
 
 	}
 	private static function initFile($db=null)
@@ -359,6 +377,7 @@ class cache
 	 */
 	private static function delFileExpire()
 	{
+		self::$fileArr=is_array(self::$fileArr)?self::$fileArr:array();
 		foreach (self::$fileArr as $key => $value)
 		{
 			if(time()>$value['e']) //过期
