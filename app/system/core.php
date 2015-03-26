@@ -166,7 +166,7 @@ class app
 		{
 			$GLOBALS['APP']['CLI']=true;
 			$_SERVER['REQUEST_URI']=null;
-			chdir(ROOT);
+			(substr(ROOT,0,7)=='phar://')||chdir(ROOT);
 			foreach ($GLOBALS['argv'] as $key=>$uri)
 			{
 				if($key==0)
