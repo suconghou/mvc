@@ -62,6 +62,6 @@ $hrefs=S('class/curl')->fetch('href',$url);
 -----
 ##其他
 
-###获取更多详细用法,见[使用说明](http://www.suconghou.cn/works/phpframe)
+###获取更多详细用法,见[使用说明](http://www.suconghou.cn/phpframe)
 -----
 2014年9月12日
