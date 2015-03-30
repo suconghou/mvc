@@ -285,6 +285,25 @@ function array_delete($array,$item)
 	}
 
 }
+/**
+ * 自然下标、制成map、新键数组
+ */
+function array_keymap($array,$index=null,$key=null)
+{
+	$ret=array();
+	foreach ($array as &$item)
+	{
+		if($index)
+		{
+			$ret[$item[$index]]=$key?$item[$key]:$item;
+		}
+		else
+		{
+			$ret[]=$key?$item[$key]:$item;
+		}
+	}
+	return $ret;
+}
 
 function mcrypt($string,$operation,$key='')
 { 
