@@ -339,7 +339,7 @@ abstract class database extends db
 		{
 			 $pdo->rollback();
 			 $error=$e->getMessage();
-			 if($callback)
+			 if(is_callable($callback))
 			 {
 				$callback($error,$e);
 			 }
@@ -353,7 +353,7 @@ abstract class database extends db
 
 	}
 	/***
-	 * 批量更新   
+	 *	批量更新   
 		$updata=array(
 					'18'=>array('name'=>'name18','pass'=>'11'),
 					'19'=>array('name'=>'name19','pass'=>'22')
@@ -393,7 +393,7 @@ abstract class database extends db
 		{
 			 $pdo->rollback();
 			 $error=$e->getMessage();
-			 if($callback)
+			 if(is_callable($callback))
 			 {
 				$callback($error,$e);
 			 }
@@ -409,18 +409,44 @@ abstract class database extends db
 	/**
 	 * 批量删除
 	 */
-	function multDelete($table,$idArr)
+	function multDelete($table,$idArr,$cloumn='id')
 	{
-		$str='';
-		foreach ($idArr as $id)
+		if(is_array($idArr))
 		{
-			$str.="'{$id}',";
+			$str=implode(',', $idArr);
 		}
-		$str=rtrim($str,',');
-		$sql="DELETE FROM `{$table}` WHERE id IN ({$str})";
+		else
+		{
+			$str=$idArr;
+		}
+		$sql="DELETE FROM `{$table}` WHERE {$column} IN ({$str})";
 		return $this->runSql($sql);
 	}
-	//END multInsert multUpdate multDelete 三种批量操作
+	/**
+	 * 批量map查找
+	 */
+	function multSelect($table,$idArr,$selectcolumn='*',$cloumn='id')
+	{
+		if(is_array($idArr))
+		{
+			$str=implode(',', $idArr);
+		}
+		else
+		{
+			$str=$idArr;
+		}
+		$sql="select {$selectcolumn} from `{$table}` where {$cloumn} in ({$str}) ";
+		$ret=$this->getData($sql);
+		$res=array();
+		foreach ($ret as $item)
+		{
+			$id=$item[$cloumn];
+			unset($item[$cloumn]);
+			$res[$id]=count($item)==1?current($item):$item;
+		}
+		return $res;
+	}
+	//END multInsert multUpdate multDelete 四种批量操作
 
 	/**
 	 * 将某个表的某个字段自增1
