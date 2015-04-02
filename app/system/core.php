@@ -107,7 +107,7 @@ class app
 	public static function log($msg,$type='DEBUG')
 	{
 		$path=APP_PATH.'log/'.date('Y-m-d').'.log';
-		$msg=strtoupper($type).'-'.date('Y-m-d H:i:s').' ==> '.$msg.PHP_EOL;
+		$msg=strtoupper($type).'-'.date('Y-m-d H:i:s').' ==> '.(is_array($msg)?var_export($msg,true):$msg).PHP_EOL;
 		if(is_writable(APP_PATH.'log'))
 		{
 			//error消息和开发模式,测试模式全部记录
