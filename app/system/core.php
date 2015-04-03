@@ -23,11 +23,7 @@ class app
 		set_include_path(LIB_PATH);//此路径下可直接include
 		error_reporting(DEBUG?E_ALL:0);
 		set_error_handler('Error');///异常处理
-		defined('STDIN')&&self::runCli();
-		if(!isset($GLOBALS['APP']['CLI']))
-		{
-			self::process(self::init());
-		}
+		defined('STDIN')?self::runCli():self::process(self::init());
 	}
 	/**
 	 * 内部转向,可以指定一个方法,控制器保持原有的
@@ -182,7 +178,7 @@ class app
 					$GLOBALS['APP']['router'][]=$uri;
 				}
 			}
-			self::runRouter($GLOBALS['APP']['router']);
+			return self::runRouter($GLOBALS['APP']['router']);
 		}
 		else
 		{
@@ -213,12 +209,12 @@ class app
 				if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']))
 				{
 					header('Last-Modified: ' . $_SERVER['HTTP_IF_MODIFIED_SINCE']);	 
-					exit(http_response_code(304));  
+					return http_response_code(304);  
 				}
 				else
 				{	
 					header('Last-Modified: ' . gmdate('D, d M y H:i:s',$now). ' GMT');	 
-					exit(readfile($hash));
+					return readfile($hash);
 				}
 			}
 			else //缓存已过期
@@ -394,7 +390,7 @@ class app
 		$cache_file=CACHE_PATH.md5(baseUrl($router_arr)).'.html';
 		if($delete)
 		{
-			return file_exists($cache_file)&&unlink($cache_file);
+			return is_file($cache_file)&&unlink($cache_file);
 		}
 		else
 		{
@@ -425,7 +421,7 @@ class app
 				$file=sys_get_temp_dir().'/'.date('Ymd');
 				self::setItem('sys-filecache',$file);
 			}
-			if(file_exists($file))
+			if(is_file($file))
 			{
 				$data=unserialize(file_get_contents($file));
 			}
@@ -451,7 +447,7 @@ class app
 				$file=sys_get_temp_dir().'/'.date('Ymd');
 				self::setItem('sys-filecache',$file);
 			}
-			if(file_exists($file))
+			if(is_file($file))
 			{
 				$data=unserialize(file_get_contents($file));
 				return isset($data[$key])?$data[$key]:$default;
@@ -477,11 +473,11 @@ class app
 			}
 			if(is_null($key))
 			{
-				return file_exists($file)&&unlink($file);
+				return is_file($file)&&unlink($file);
 			}
 			else
 			{
-				if(file_exists($file))
+				if(is_file($file))
 				{
 					$data=unserialize(file_get_contents($file));
 					unset($data[$key]);
@@ -725,7 +721,7 @@ function C($time,$file=false)
 		header("Expires: ".gmdate("D, d M Y H:i:s",$last_expire+$seconds)." GMT");
 		header("Cache-Control: max-age=".(($last_expire+$seconds)-$now));
 		header('Last-Modified: ' . gmdate('D, d M y H:i:s',$last_expire). ' GMT'); 
-		exit(http_response_code(304));	
+		exit(http_response_code(304));
 		
 	}
 	else
@@ -1080,7 +1076,7 @@ class Validate
 				{
 					throw new Exception($item['require'], -1);
 				}
-			}			
+			}
 
 		}
 		catch(Exception $e)
@@ -1265,7 +1261,7 @@ class db extends PDO
 					self::$pdo->exec('PRAGMA temp_store = MEMORY');
 				}
 			}
-			catch ( Exception $e )
+			catch (Exception $e)
 			{
 				Error('500','Open Sqlite Database Error ! '.$e->getMessage());
 			}
@@ -1277,11 +1273,11 @@ class db extends PDO
 				if(self::$pdo==null)
 				{
 					$dsn="mysql:host=".DB_HOST.";dbname=".DB_NAME.";port=".DB_PORT;
-					self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array (PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"));
+					self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array(PDO::ATTR_PERSISTENT=>true,PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"));
 					self::$pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
 				}	
 			}
-			catch ( Exception $e )
+			catch (Exception $e)
 			{
 				Error('500','Connect Mysql Database Error ! '.$e->getMessage());
 			}
@@ -1398,10 +1394,7 @@ class db extends PDO
 	{
 		Error('500','Call Error Static Method '.$method.' In Class '.__CLASS__);
 	}
-	function __destruct()
-	{
-		self::$pdo=null;
-	}
+
 }//end class db
 
 
@@ -1524,8 +1517,7 @@ function byteFormat($size,$dec=2)
 }
 function dateFormat($time)
 {
-	$t=time()-$time;
-	if($t<1)return false;
+	$t=max(time()-$time,1);
 	$f=array(
 	'31536000'=>'年',
 	'2592000'=>'个月',
