@@ -322,7 +322,7 @@ class app
 		if(is_array($router))
 		{
 			isset($GLOBALS['APP']['CLI'])&&die('Async In CLI Mode Need Whole Url ');
-			$url='http://'.Request::server('HTTP_HOST').'/'.implode('/',$router);
+			$url='http://'.$_SERVER['HTTP_HOST'].'/'.implode('/',$router);
 		}
 		else
 		{
@@ -663,7 +663,7 @@ function V($_v_,$_data_=array(),$fileCacheMinute=0)
 	{
 		Error('500','Function V Can Only Use Once , Use template Instead ! ');
 	}
-	if((is_file(VIEW_PATH.$_v_)&&($_v_=VIEW_PATH.$_v_))||(is_file(VIEW_PATH.$_v_.'.php')&&($_v_=VIEW_PATH.$_v_.'.php')))
+	if((is_file(VIEW_PATH.$_v_.'.php')&&($_v_=VIEW_PATH.$_v_.'.php'))||(is_file(VIEW_PATH.$_v_)&&($_v_=VIEW_PATH.$_v_)))
 	{
 		if($fileCacheMinute||(is_int($_data_)&&($_data_>0)))
 		{
@@ -714,7 +714,7 @@ function C($time,$file=false)
 	///使用了http缓存,在此处捕获缓存
 	$now=time();
 	$expires_time=time()+$seconds;
-	$last_expire = Request::server('HTTP_IF_MODIFIED_SINCE',0);
+	$last_expire = isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])?$_SERVER['HTTP_IF_MODIFIED_SINCE']:0;
 	if($last_expire&&((strtotime($last_expire)+$seconds-$now)>0))
 	{	
 		$last_expire=strtotime($last_expire);
@@ -734,7 +734,7 @@ function C($time,$file=false)
 
 function template($_v_,$_data_=array())///加载模版
 {
-	if((is_file(VIEW_PATH.$_v_)&&($_v_=VIEW_PATH.$_v_))||(is_file(VIEW_PATH.$_v_.'.php')&&($_v_=VIEW_PATH.$_v_.'.php')))
+	if((is_file(VIEW_PATH.$_v_.'.php')&&($_v_=VIEW_PATH.$_v_.'.php'))||(is_file(VIEW_PATH.$_v_)&&($_v_=VIEW_PATH.$_v_)))
 	{
 		(is_array($_data_)&&extract($_data_))||empty($_data_)||Error('500','Param To View '.$_v_.' Must Be An Array');
 		include $_v_;
@@ -1273,7 +1273,7 @@ class db extends PDO
 				if(self::$pdo==null)
 				{
 					$dsn="mysql:host=".DB_HOST.";dbname=".DB_NAME.";port=".DB_PORT;
-					self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array(PDO::ATTR_PERSISTENT=>true,PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"));
+					self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES UTF8",PDO::ATTR_PERSISTENT=>TRUE));
 					self::$pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
 				}	
 			}
@@ -1551,8 +1551,8 @@ function baseUrl($path=null)
 	}
 	else
 	{
-		$protocol=Request::info('protocol');
-		$host=Request::server('HTTP_HOST');
+		$protocol=(isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) != 'off')) ? "https" : "http";
+		$host=$_SERVER['HTTP_HOST'];
 		$path=is_null($path)?null:(is_bool($path)?($path?$_SERVER['REQUEST_URI']:'/'.implode('/',$GLOBALS['APP']['router'])):'/'.ltrim($path,'/'));
 		return "{$protocol}://{$host}".$path;
 	}
