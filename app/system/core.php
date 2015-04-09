@@ -46,7 +46,7 @@ class app
 		}
 		else if(is_dir($controllerDir))
 		{
-			$controllerFile=$controllerDir.'/'.$router[1].'.php';
+			$controllerFile=$controllerDir.DIRECTORY_SEPARATOR.$router[1].'.php';
 			if(is_file($controllerFile))
 			{
 				$controllerName=$router[1];
@@ -102,7 +102,7 @@ class app
 	}
 	public static function log($msg,$type='DEBUG')
 	{
-		$path=APP_PATH.'log/'.date('Y-m-d').'.log';
+		$path=APP_PATH.'log'.DIRECTORY_SEPARATOR.date('Y-m-d').'.log';
 		$msg=strtoupper($type).'-'.date('Y-m-d H:i:s').' ==> '.(is_array($msg)?var_export($msg,true):$msg).PHP_EOL;
 		if(is_writable(APP_PATH.'log'))
 		{
@@ -418,7 +418,7 @@ class app
 		{	
 			if(!$file=self::getItem('sys-filecache'))
 			{
-				$file=sys_get_temp_dir().'/'.date('Ymd');
+				$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.date('Ymd');
 				self::setItem('sys-filecache',$file);
 			}
 			if(is_file($file))
@@ -444,7 +444,7 @@ class app
 		{
 			if(!$file=self::getItem('sys-filecache'))
 			{
-				$file=sys_get_temp_dir().'/'.date('Ymd');
+				$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.date('Ymd');
 				self::setItem('sys-filecache',$file);
 			}
 			if(is_file($file))
@@ -468,7 +468,7 @@ class app
 		{
 			if(!$file=self::getItem('sys-filecache'))
 			{
-				$file=sys_get_temp_dir().'/'.date('Ymd');
+				$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.date('Ymd');
 				self::setItem('sys-filecache',$file);
 			}
 			if(is_null($key))
@@ -671,7 +671,7 @@ function V($_v_,$_data_=array(),$fileCacheMinute=0)
 			$GLOBALS['APP']['cache']['time']=intval($cacheTime*60);
 			$GLOBALS['APP']['cache']['file']=true;
 		}
-		GZIP?ob_start("ob_gzhandler"):ob_start();
+		GZIP?ob_end_clean()&&ob_start("ob_gzhandler"):ob_start();
 		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));//耗时
 		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-APP_START_MEMORY));
 		(is_array($_data_)&&!empty($_data_))&&extract($_data_);
@@ -1436,7 +1436,7 @@ function __autoload($class)
 		require_once $controller_file;
 		class_exists($class)||Error('500','Load File '.$controller_file.' Succeed,But Not Found Class '.$class);
 	}
-	else if(is_file($lib_file=LIB_PATH."class/{$class}.class.php"))
+	else if(is_file($lib_file=LIB_PATH.'class'.DIRECTORY_SEPARATOR.'{$class}.class.php'))
 	{
 		require_once $lib_file;
 		class_exists($class)||Error('500','Load File '.$lib_file.' Succeed,But Not Found Class '.$class);

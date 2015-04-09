@@ -1,12 +1,12 @@
 <?php
 
-define('ROOT',dirname(__FILE__).'/');//根路径
-define('APP_PATH',ROOT.'app/');//APP路径
-define('CACHE_PATH',APP_PATH.'cache/');//文件缓存路径
-define('LIB_PATH',APP_PATH.'system/');//系统路径
-define('MODEL_PATH',APP_PATH.'model/');//模型路径
-define('VIEW_PATH',APP_PATH.'view/');//视图路径
-define('CONTROLLER_PATH',APP_PATH.'controller/'); //控制器路径
+define('ROOT',dirname(__FILE__).DIRECTORY_SEPARATOR);//根路径
+define('APP_PATH',ROOT.'app'.DIRECTORY_SEPARATOR);//APP路径
+define('CACHE_PATH',APP_PATH.'cache'.DIRECTORY_SEPARATOR);//文件缓存路径
+define('LIB_PATH',APP_PATH.'system'.DIRECTORY_SEPARATOR);//系统路径
+define('MODEL_PATH',APP_PATH.'model'.DIRECTORY_SEPARATOR);//模型路径
+define('VIEW_PATH',APP_PATH.'view'.DIRECTORY_SEPARATOR);//视图路径
+define('CONTROLLER_PATH',APP_PATH.'controller'.DIRECTORY_SEPARATOR); //控制器路径
 require LIB_PATH.'core.php';//载入核心
 
 define('MAX_URL_LENGTH',100); //URL最大长度限制

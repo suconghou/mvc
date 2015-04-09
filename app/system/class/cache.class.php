@@ -87,7 +87,7 @@ class cache
 	}
 	private static function initFile($db=null)
 	{
-		$file=$db?'/'.$db:'/'.date('Y-m');
+		$file=$db?DIRECTORY_SEPARATOR.$db:DIRECTORY_SEPARATOR.date('Y-m');
 		self::$fileCache=sys_get_temp_dir().$file;
 		if(!file_exists(self::$fileCache))
 		{
