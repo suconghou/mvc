@@ -402,25 +402,25 @@ class app
 	/**
 	 * 全局变量获取设置
 	 */
-	public static function getItem($key,$default=null)
+	public static function get($key,$default=null)
 	{
 		return isset(self::$global[$key])?self::$global[$key]:$default;
 	}
 
-	public static function setItem($key,$value)
+	public static function set($key,$value)
 	{
 		self::$global[$key]=$value;
 		return self::$global;
 	}
 
-	public static function set($key,$value)
+	public static function setItem($key,$value)
 	{
 		try
 		{	
-			if(!$file=self::getItem('sys-filecache'))
+			if(!$file=self::get('sys-filecache'))
 			{
 				$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.date('Ymd');
-				self::setItem('sys-filecache',$file);
+				self::set('sys-filecache',$file);
 			}
 			if(is_file($file))
 			{
@@ -435,18 +435,16 @@ class app
 			app::log($e->getMessage(),'ERROR');
 			return false;
 		}
-			
-
 	}
 
-	public static function get($key,$default=null)
+	public static function getItem($key,$default=null)
 	{
 		try
 		{
-			if(!$file=self::getItem('sys-filecache'))
+			if(!$file=self::get('sys-filecache'))
 			{
 				$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.date('Ymd');
-				self::setItem('sys-filecache',$file);
+				self::set('sys-filecache',$file);
 			}
 			if(is_file($file))
 			{
@@ -460,17 +458,16 @@ class app
 			app::log($e->getMessage(),'ERROR');
 			return false;
 		}
-
 	}
 
-	public static function del($key=null)
+	public static function clearItem($key=null)
 	{
 		try
 		{
-			if(!$file=self::getItem('sys-filecache'))
+			if(!$file=self::get('sys-filecache'))
 			{
 				$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.date('Ymd');
-				self::setItem('sys-filecache',$file);
+				self::set('sys-filecache',$file);
 			}
 			if(is_null($key))
 			{
@@ -528,7 +525,7 @@ function Error($errno, $errstr, $errfile=null, $errline=null)
 		$code=500;
 	}
 	app::log($errormsg,'ERROR');
-	isset($GLOBALS['APP']['CLI'])||(app::getItem('sys-error')&&exit('Error Found In Error Handler'))||(http_response_code($code)&&app::setItem('sys-error',true));
+	isset($GLOBALS['APP']['CLI'])||(app::get('sys-error')&&exit('Error Found In Error Handler'))||(http_response_code($code)&&app::set('sys-error',true));
 	if(!DEBUG&&defined('ERROR_PAGE_404')&&defined('ERROR_PAGE_500')&&ERROR_PAGE_404&&ERROR_PAGE_500) //线上模式且自定义了404和500
 	{
 		if(isset($GLOBALS['APP']['router'][0])&&is_file(CONTROLLER_PATH.$GLOBALS['APP']['router'][0].'.php'))
@@ -1285,7 +1282,7 @@ class db extends PDO
 		{
 			self::ready();
 			$rs=self::$pdo->exec($sql);
-			app::setItem('sys-sql-count',app::getItem('sys-sql-count')+1);
+			app::set('sys-sql-count',app::get('sys-sql-count')+1);
 			return $rs;
 		}
 		catch (PDOException $e)
@@ -1302,7 +1299,7 @@ class db extends PDO
 		{
 			self::ready();
 			$rs=self::$pdo->query($sql);
-			app::setItem('sys-sql-count',app::getItem('sys-sql-count')+1);
+			app::set('sys-sql-count',app::get('sys-sql-count')+1);
 			if(FALSE==$rs)return array();
 			return $rs->fetchAll(PDO::FETCH_ASSOC);
 		}
@@ -1318,7 +1315,7 @@ class db extends PDO
 		{
 			self::ready();
 			$rs=self::$pdo->query($sql);
-			app::setItem('sys-sql-count',app::getItem('sys-sql-count')+1);
+			app::set('sys-sql-count',app::get('sys-sql-count')+1);
 			if(FALSE==$rs)return array();
 			return $rs->fetch(PDO::FETCH_ASSOC);
 		}
@@ -1335,7 +1332,7 @@ class db extends PDO
 		{
 			self::ready();
 			$rs=self::$pdo->query($sql);
-			app::setItem('sys-sql-count',app::getItem('sys-sql-count')+1);
+			app::set('sys-sql-count',app::get('sys-sql-count')+1);
 			if(FALSE==$rs)return null;
 			return $rs->fetchColumn();
 		}
