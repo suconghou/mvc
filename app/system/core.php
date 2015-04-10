@@ -17,6 +17,7 @@ class app
 	 */
 	public static function start()
 	{
+		GZIP?ob_end_clean()&&ob_start("ob_gzhandler"):ob_start();
 		define('APP_START_TIME',microtime(true));
 		define('APP_START_MEMORY',memory_get_usage());
 		date_default_timezone_set('PRC');//设置时区
@@ -671,7 +672,6 @@ function V($_v_,$_data_=array(),$fileCacheMinute=0)
 			$GLOBALS['APP']['cache']['time']=intval($cacheTime*60);
 			$GLOBALS['APP']['cache']['file']=true;
 		}
-		GZIP?ob_end_clean()&&ob_start("ob_gzhandler"):ob_start();
 		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));//耗时
 		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-APP_START_MEMORY));
 		(is_array($_data_)&&!empty($_data_))&&extract($_data_);
@@ -689,15 +689,9 @@ function V($_v_,$_data_=array(),$fileCacheMinute=0)
 			$cache_file=app::fileCache($router_arr);
 			file_put_contents($cache_file,$contents);
 			touch($cache_file,$expires_time);
-			ob_end_flush();
-			flush();
 		}
-		else //未启用缓存或http缓存,若为http缓存则在之前必有处理
-		{
-			ob_end_flush();
-			flush();
-		}
-
+		ob_end_flush();
+		flush();
 	}
 	else
 	{
