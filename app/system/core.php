@@ -1242,36 +1242,43 @@ class db extends PDO
 		}
 		if($dbType)//使用sqlite
 		{
-			try
+			if(self::$pdo==null)
 			{
-				if(self::$pdo==null)
+				try
 				{
 					self::$pdo=new PDO("sqlite:".SQLITE);
 					self::$pdo->exec('PRAGMA synchronous=OFF');
 					self::$pdo->exec('PRAGMA cache_size =8000');
 					self::$pdo->exec('PRAGMA temp_store = MEMORY');
 				}
-			}
-			catch (Exception $e)
-			{
-				Error('500','Open Sqlite Database Error ! '.$e->getMessage());
+				catch (Exception $e)
+				{
+					Error('500','Open Sqlite Database Error ! '.$e->getMessage());
+				}
 			}
 		}
 		else///使用mysql
 		{
-			try
-			{		
-				if(self::$pdo==null)
-				{
-					$dsn="mysql:host=".DB_HOST.";dbname=".DB_NAME.";port=".DB_PORT;
-					self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES UTF8",PDO::ATTR_PERSISTENT=>TRUE));
-					self::$pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-				}	
-			}
-			catch (Exception $e)
+			if(self::$pdo==null)
 			{
-				Error('500','Connect Mysql Database Error ! '.$e->getMessage());
-			}
+				$dsn='mysql:host='.DB_HOST.';dbname='.DB_NAME.';port='.DB_PORT.';charset=UTF8';
+				try
+				{
+					self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array(PDO::ATTR_PERSISTENT=>TRUE));
+				}
+				catch (Exception $e)
+				{
+					try
+					{
+						self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array(PDO::ATTR_PERSISTENT=>TRUE));
+					}
+					catch(Exception $e)
+					{
+						Error('500','Connect Mysql Database Error ! '.$e->getMessage());
+					}
+				}
+				self::$pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+			}	
 		}
 
 	}
