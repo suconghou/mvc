@@ -17,7 +17,7 @@ class app
 	 */
 	public static function start()
 	{
-		GZIP?ob_end_clean()&&ob_start("ob_gzhandler"):ob_start();
+		GZIP?ob_start("ob_gzhandler"):ob_start();
 		define('APP_START_TIME',microtime(true));
 		define('APP_START_MEMORY',memory_get_usage());
 		date_default_timezone_set('PRC');//设置时区
