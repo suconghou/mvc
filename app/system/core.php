@@ -510,7 +510,7 @@ class app
 //异常处理 404 500等
 function Error($errno, $errstr, $errfile=null, $errline=null)
 {
-	if((DEBUG<2)&&in_array($errno,array(E_NOTICE,E_USER_NOTICE)))
+	if((DEBUG<2)&&in_array($errno,array(E_NOTICE,E_WARNING)))
 	{
 		return;
 	}
@@ -1251,7 +1251,7 @@ class db extends PDO
 					self::$pdo->exec('PRAGMA cache_size =8000');
 					self::$pdo->exec('PRAGMA temp_store = MEMORY');
 				}
-				catch (Exception $e)
+				catch (PDOException $e)
 				{
 					Error('500','Open Sqlite Database Error ! '.$e->getMessage());
 				}
@@ -1264,22 +1264,22 @@ class db extends PDO
 				$dsn='mysql:host='.DB_HOST.';dbname='.DB_NAME.';port='.DB_PORT.';charset=UTF8';
 				try
 				{
-					self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array(PDO::ATTR_PERSISTENT=>TRUE));
+					self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array(PDO::ATTR_PERSISTENT=>TRUE,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION));
 				}
-				catch (Exception $e)
+				catch (PDOException $e)
 				{
 					try
 					{
-						self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array(PDO::ATTR_PERSISTENT=>TRUE));
+						self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array(PDO::ATTR_PERSISTENT=>TRUE,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION));
 					}
-					catch(Exception $e)
+					catch(PDOException $e)
 					{
 						Error('500','Connect Mysql Database Error ! '.$e->getMessage());
 					}
 				}
-				self::$pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
 			}	
 		}
+		return self::$pdo;
 
 	}
 	//运行Sql语句,不返回结果集,但会返回成功与否,不能用于select
@@ -1287,8 +1287,7 @@ class db extends PDO
 	{
 		try
 		{
-			self::ready();
-			$rs=self::$pdo->exec($sql);
+			$rs=self::ready()->exec($sql);
 			app::set('sys-sql-count',app::get('sys-sql-count')+1);
 			return $rs;
 		}
@@ -1304,8 +1303,7 @@ class db extends PDO
 	{
 		try
 		{
-			self::ready();
-			$rs=self::$pdo->query($sql);
+			$rs=self::ready()->query($sql);
 			app::set('sys-sql-count',app::get('sys-sql-count')+1);
 			if(FALSE==$rs)return array();
 			return $rs->fetchAll(PDO::FETCH_ASSOC);
@@ -1320,8 +1318,7 @@ class db extends PDO
 	{
 		try
 		{
-			self::ready();
-			$rs=self::$pdo->query($sql);
+			$rs=self::ready()->query($sql);
 			app::set('sys-sql-count',app::get('sys-sql-count')+1);
 			if(FALSE==$rs)return array();
 			return $rs->fetch(PDO::FETCH_ASSOC);
@@ -1337,8 +1334,7 @@ class db extends PDO
 	{
 		try
 		{
-			self::ready();
-			$rs=self::$pdo->query($sql);
+			$rs=self::ready()->query($sql);
 			app::set('sys-sql-count',app::get('sys-sql-count')+1);
 			if(FALSE==$rs)return null;
 			return $rs->fetchColumn();
@@ -1351,20 +1347,18 @@ class db extends PDO
 	}
 	public static function lastId()
 	{
-		self::ready();
-		return self::$pdo->lastInsertId();
+		return self::ready()->lastInsertId();
 	}
 	//返回原生的PDO对象
 	public static function getInstance($current=true)
 	{
 		if($current)
 		{
-			self::ready();
-			return self::$pdo;
+			return self::ready();
 		}
 		else
 		{
-			$staticPdo=self::$pdo;
+			$staticPdo=self::ready();
 			self::$pdo=null;
 			self::init(!(defined('DB')&&DB));//相反的
 			list($pdo,self::$pdo)=array(self::$pdo,$staticPdo);
@@ -1374,15 +1368,11 @@ class db extends PDO
 	}
 	public  function quote($string, $paramtype = null)
 	{
-		self::ready();
-		return self::$pdo->quote($string, $paramtype);
+		return self::ready()->quote($string, $paramtype);
 	}
 	private static  function ready()
 	{
-		if(!self::$pdo)
-		{
-			self::init();
-		}
+		return self::$pdo?self::$pdo:self::init();
 	}
 	public function __call($method,$args)
 	{
@@ -1550,7 +1540,7 @@ function baseUrl($path=null)
 	else
 	{
 		$protocol=(isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) != 'off')) ? "https" : "http";
-		$host=$_SERVER['HTTP_HOST'];
+		$host=isset($_SERVER['HTTP_HOST'])?$_SERVER['HTTP_HOST']:'';
 		$path=is_null($path)?null:(is_bool($path)?($path?$_SERVER['REQUEST_URI']:'/'.implode('/',$GLOBALS['APP']['router'])):'/'.ltrim($path,'/'));
 		return "{$protocol}://{$host}".$path;
 	}
