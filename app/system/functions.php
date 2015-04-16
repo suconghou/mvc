@@ -287,24 +287,37 @@ function array_delete($array,$item)
 }
 
 /**
- * 自然下标、制成map、新键数组
+ * 自然下标、制成二维map、化为一维数组,array_column兼容
  */
-function array_keymap($array,$index=null,$key=null)
+
+if(!function_exists('array_column'))
 {
-	$ret=array();
-	foreach ($array as &$item)
+	function array_column($input,$columnKey=null,$indexKey=null)
 	{
-		if($index)
+		if($columnKey&&!$indexKey)
 		{
-			$ret[$item[$index]]=$key?$item[$key]:$item;
+			return array_map(function($item){ return $item[$columnKey]; },$input);
 		}
 		else
 		{
-			$ret[]=$key?$item[$key]:$item;
+			$ret=array();
+			foreach ($input as &$item)
+			{
+				if($indexKey)
+				{
+					$ret[$item[$indexKey]]=$columnKey?$item[$columnKey]:$item;
+				}
+				else
+				{
+					$ret[]=$columnKey?$item[$columnKey]:$item;
+				}
+			}
+			return $ret;
 		}
 	}
-	return $ret;
 }
+
+
 
 function mcrypt($string,$operation,$key='')
 { 
