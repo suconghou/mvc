@@ -58,7 +58,7 @@ class image
             $font=6;//system font
         }
         $im = imagecreate($width,$height); // 画一张指定宽高的图片
-        $bg = ImageColorAllocate($im, isset($gb[0])?$gb[0]:rand(200,255),isset($gb[1])?$gb[1]:rand(200,255),isset($gb[2])?$gb[2]:rand(200,255)); // 定义背景颜色
+        $bg = ImageColorAllocate($im, isset($gb[0])?$gb[0]:rand(220,255),isset($gb[1])?$gb[1]:rand(220,255),isset($gb[2])?$gb[2]:rand(220,255)); // 定义背景颜色
         for ($i=0; $i <$num ; $i++)
         { 
             $a=rand(1,255);
@@ -75,17 +75,17 @@ class image
         }
         //draw some other 
         for($i=0,$len=$height+$width; $i <$len ; $i++)
-        { 
+        {
             $randcolor = ImageColorAllocate($im,rand(50,255),rand(50,255),rand(50,255));
             if($i%57==0)
             {
                 imageline($im,rand(1,$width),rand(1,$height),rand(1,$width),rand(1,$height),$randcolor);
             }
-            else if($i%5==0)
+            else if($i%17==0)
             {
                 imagesetpixel($im, rand(1,$width) , rand(1,$height), $randcolor); // 画像素点函数
             }
-            else if(!is_numeric($font)&&$i%7==0)
+            else if(!is_numeric($font)&&$i%17==0)
             {
                 imagestring($im,1,rand(1,$width) , rand(1,$height),chr(rand(1,127)), $randcolor);
             }

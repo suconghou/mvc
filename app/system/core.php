@@ -86,7 +86,7 @@ class app
 			{
 				$GLOBALS['APP']['regex_router'][]=array($regex,$arr);
 			}
-			else if(is_callable($arr)) //回调函数
+			else if(is_object($arr)) //回调函数
 			{
 				$GLOBALS['APP']['regex_router'][$regex]=$arr;
 			}
@@ -128,7 +128,7 @@ class app
 				{
 					$url=$matches[0];
 					unset($matches[0]); //这个为输入的url
-					if(is_callable($item)) 
+					if(is_object($item)) 
 					{
 						return array_merge(array($url,$item),$matches);
 					}
@@ -194,7 +194,7 @@ class app
 	private static function process($router)
 	{
 		$router_arr=$router;
-		if(is_callable($router_arr[1]))
+		if(is_object($router_arr[1]))
 		{
 			unset($router_arr[1]);
 		}
@@ -245,7 +245,7 @@ class app
 			$router[]=DEFAULT_ACTION;
 		}
 		$GLOBALS['APP']['router']=$router;
-		if(is_callable($router[1]))//含有回调的
+		if(is_object($router[1]))//含有回调的
 		{
 			return call_user_func_array($router[1],array_slice($router,2));
 		}
@@ -679,7 +679,7 @@ function V($_v_,$_data_=array(),$fileCacheMinute=0)
 			//生成文件缓存
 			$contents=ob_get_contents();
 			$router_arr=$GLOBALS['APP']['router'];
-			if(is_callable($router_arr[1])) //过滤自定义闭包路由,闭包路由也可以使用文件缓存
+			if(is_object($router_arr[1])) //过滤自定义闭包路由,闭包路由也可以使用文件缓存
 			{
 				unset($router_arr[1]);
 			}
@@ -1045,7 +1045,7 @@ class Validate
 				{
 					foreach($item as $type=>$msg)
 					{
-						if(is_callable($msg)) //是一个过滤器
+						if(is_object($msg)) //是一个过滤器
 						{
 							$data[$k]=$msg($data[$k]);
 						}
