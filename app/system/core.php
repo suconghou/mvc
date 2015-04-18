@@ -146,10 +146,10 @@ class app
 	 */
 	private static function commonRouter($uri)
 	{
-		$uri_arr=explode('/', $uri);
-		foreach ($uri_arr as  $v)
+		$uriArr=explode('/', $uri);
+		foreach ($uriArr as  $v)
 		{
-			if(empty($v)) continue;
+			if(empty($v)){ continue; }
 			$router[]=$v;
 		}
 		return isset($router)?$router:array();
@@ -193,20 +193,20 @@ class app
 	 */
 	private static function process($router)
 	{
-		$router_arr=$router;
-		if(is_object($router_arr[1]))
+		$routerArr=$router;
+		if(is_object($routerArr[1]))
 		{
-			unset($router_arr[1]);
+			unset($routerArr[1]);
 		}
-		$hash=self::fileCache($router_arr);
+		$hash=self::fileCache($routerArr);
 		if (is_file($hash))//存在缓存文件
 		{
-			$expires_time=filemtime($hash);
+			$expiresTime=filemtime($hash);
 			$now=time();
-			if($now<$expires_time) ///缓存未过期
+			if($now<$expiresTime) ///缓存未过期
 			{	
-				header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
-				header("Cache-Control: max-age=".($expires_time-$now));
+				header("Expires: ".gmdate("D, d M Y H:i:s", $expiresTime)." GMT");
+				header("Cache-Control: max-age=".($expiresTime-$now));
 				if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']))
 				{
 					header('Last-Modified: ' . $_SERVER['HTTP_IF_MODIFIED_SINCE']);	 
@@ -337,8 +337,8 @@ class app
 				return file_get_contents($url);			
 			}
 			$ch = curl_init(); 
-			$curl_opt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT_MS=>1,CURLOPT_NOSIGNAL=>1, CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
-			curl_setopt_array($ch, $curl_opt);
+			$curlOpt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT_MS=>1,CURLOPT_NOSIGNAL=>1, CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
+			curl_setopt_array($ch, $curlOpt);
 			curl_exec($ch);
 			curl_close($ch);
 			return true;
@@ -378,24 +378,24 @@ class app
 	/**
 	 * 计算缓存位置,或删除缓存
 	 */
-	public static function fileCache($router_arr=array(),$delete=false)
+	public static function fileCache($router=array(),$delete=false)
 	{
-		if(empty($router_arr))
+		if(empty($router))
 		{
-			$router_arr=DEFAULT_CONTROLLER.'/'.DEFAULT_ACTION;
+			$router=DEFAULT_CONTROLLER.'/'.DEFAULT_ACTION;
 		}
-		else if(is_array($router_arr))
+		else if(is_array($router))
 		{
-			$router_arr=implode('/',$router_arr);
+			$router=implode('/',$router);
 		}
-		$cache_file=CACHE_PATH.md5(baseUrl($router_arr)).'.html';
+		$cacheFile=CACHE_PATH.md5(baseUrl($router)).'.html';
 		if($delete)
 		{
-			return is_file($cache_file)&&unlink($cache_file);
+			return is_file($cacheFile)&&unlink($cacheFile);
 		}
 		else
 		{
-			return $cache_file;
+			return $cacheFile;
 		}
 
 	}
@@ -599,10 +599,10 @@ function M($model,$param=null)
 	}
 	else
 	{
-		$model_file=MODEL_PATH.$model.'.php';
-		is_file($model_file)||Error('500','Load Model '.$m.' Failed , Mdoel File '.$model_file.' Not Found ! ');
-		require $model_file;
-		class_exists($m)||Error('500','Model File '.$model_file .' Does Not Contain Class '.$m);
+		$modelFile=MODEL_PATH.$model.'.php';
+		is_file($modelFile)||Error('500','Load Model '.$m.' Failed , Mdoel File '.$modelFile.' Not Found ! ');
+		require $modelFile;
+		class_exists($m)||Error('500','Model File '.$modelFile .' Does Not Contain Class '.$m);
 		if(is_null($param))
 		{
 			$GLOBALS['APP']['model'][$m]=new $m();
@@ -627,11 +627,11 @@ function S($lib,$param=null)
 	else
 	{
 		$file=LIB_PATH.$lib.'.php';
-		$class_file=LIB_PATH.$lib.'.class.php';
-		if(is_file($class_file))///是类库文件
+		$classFile=LIB_PATH.$lib.'.class.php';
+		if(is_file($classFile))///是类库文件
 		{
-			require $class_file;
-			class_exists($l)||Error('500','Library File '.$class_file .' Does Not Contain Class '.$l);
+			require $classFile;
+			class_exists($l)||Error('500','Library File '.$classFile .' Does Not Contain Class '.$l);
 			if(is_null($param))
 			{
 				$GLOBALS['APP']['lib'][$l]=new $l();
@@ -650,7 +650,7 @@ function S($lib,$param=null)
 		}
 		else
 		{
-			Error('500','Load  Library '.$l.' Failed ,File '.$file.' Or '.$class_file.' Not Found ! ');
+			Error('500','Load  Library '.$l.' Failed ,File '.$file.' Or '.$classFile.' Not Found ! ');
 		}
 	}
 }
@@ -675,17 +675,17 @@ function V($_v_,$_data_=array(),$fileCacheMinute=0)
 		include $_v_;
 		if(!empty($GLOBALS['APP']['cache']['file']))//启用了缓存,并且启用了文件缓存
 		{
-			$expires_time=intval(time()+$GLOBALS['APP']['cache']['time']);
+			$expiresTime=intval(time()+$GLOBALS['APP']['cache']['time']);
 			//生成文件缓存
 			$contents=ob_get_contents();
-			$router_arr=$GLOBALS['APP']['router'];
-			if(is_object($router_arr[1])) //过滤自定义闭包路由,闭包路由也可以使用文件缓存
+			$router=$GLOBALS['APP']['router'];
+			if(is_object($router[1])) //过滤自定义闭包路由,闭包路由也可以使用文件缓存
 			{
-				unset($router_arr[1]);
+				unset($router[1]);
 			}
-			$cache_file=app::fileCache($router_arr);
-			file_put_contents($cache_file,$contents);
-			touch($cache_file,$expires_time);
+			$cacheFile=app::fileCache($router);
+			file_put_contents($cacheFile,$contents);
+			touch($cacheFile,$expiresTime);
 		}
 		ob_end_flush();
 		flush();
@@ -704,20 +704,20 @@ function C($time,$file=false)
 	$GLOBALS['APP']['cache']['file']=$file;
 	///使用了http缓存,在此处捕获缓存
 	$now=time();
-	$expires_time=time()+$seconds;
-	$last_expire = isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])?$_SERVER['HTTP_IF_MODIFIED_SINCE']:0;
-	if($last_expire&&((strtotime($last_expire)+$seconds-$now)>0))
+	$expiresTime=time()+$seconds;
+	$lastExpire = isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])?$_SERVER['HTTP_IF_MODIFIED_SINCE']:0;
+	if($lastExpire&&((strtotime($lastExpire)+$seconds-$now)>0))
 	{	
-		$last_expire=strtotime($last_expire);
-		header("Expires: ".gmdate("D, d M Y H:i:s",$last_expire+$seconds)." GMT");
-		header("Cache-Control: max-age=".(($last_expire+$seconds)-$now));
-		header('Last-Modified: ' . gmdate('D, d M y H:i:s',$last_expire). ' GMT'); 
+		$lastExpire=strtotime($lastExpire);
+		header("Expires: ".gmdate("D, d M Y H:i:s",$lastExpire+$seconds)." GMT");
+		header("Cache-Control: max-age=".(($lastExpire+$seconds)-$now));
+		header('Last-Modified: ' . gmdate('D, d M y H:i:s',$lastExpire). ' GMT'); 
 		exit(http_response_code(304));
 		
 	}
 	else
 	{
-		header("Expires: ".gmdate("D, d M Y H:i:s", $expires_time)." GMT");
+		header("Expires: ".gmdate("D, d M Y H:i:s", $expiresTime)." GMT");
 		header("Cache-Control: max-age=".$seconds);
 		header('Last-Modified: ' . gmdate('D, d M y H:i:s',$now). ' GMT'); 
 	}
@@ -869,7 +869,7 @@ class Request
 		$data['ua']=self::ua();
 		$data['refer']=self::refer();
 		$data['protocol'] = (isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) != 'off')) ? "https" : "http";
-		if($key) return isset($data[$key])?$data[$key]:$default;
+		if($key) {return isset($data[$key])?$data[$key]:$default;}
 		return $data;
 	}
 	public static function serverInfo($key=null,$default=null)
@@ -913,13 +913,13 @@ class Request
 	public static function isMoblie()
 	{
 		$agent=self::getVar('server','HTTP_USER_AGENT');
-		$regex_match="/(nokia|iphone|android|motorola|^mot\-|softbank|foma|docomo|kddi|up\.browser|up\.link|";
-		$regex_match.="htc|dopod|blazer|netfront|helio|hosin|huawei|novarra|CoolPad|webos|techfaith|palmsource|";
-		$regex_match.="blackberry|alcatel|amoi|ktouch|nexian|samsung|^sam\-|s[cg]h|^lge|ericsson|philips|sagem|wellcom|bunjalloo|maui|";
-		$regex_match.="symbian|smartphone|midp|wap|phone|windows ce|iemobile|^spice|^bird|^zte\-|longcos|pantech|gionee|^sie\-|portalmmm|";
-		$regex_match.="jig\s browser|hiptop|^ucweb|^benq|haier|^lct|opera\s*mobi|opera\*mini|320x320|240x320|176x220";
-		$regex_match.=")/i";
-		return preg_match($regex_match, strtolower($agent));
+		$regexMatch="/(nokia|iphone|android|motorola|^mot\-|softbank|foma|docomo|kddi|up\.browser|up\.link|";
+		$regexMatch.="htc|dopod|blazer|netfront|helio|hosin|huawei|novarra|CoolPad|webos|techfaith|palmsource|";
+		$regexMatch.="blackberry|alcatel|amoi|ktouch|nexian|samsung|^sam\-|s[cg]h|^lge|ericsson|philips|sagem|wellcom|bunjalloo|maui|";
+		$regexMatch.="symbian|smartphone|midp|wap|phone|windows ce|iemobile|^spice|^bird|^zte\-|longcos|pantech|gionee|^sie\-|portalmmm|";
+		$regexMatch.="jig\s browser|hiptop|^ucweb|^benq|haier|^lct|opera\s*mobi|opera\*mini|320x320|240x320|176x220";
+		$regexMatch.=")/i";
+		return preg_match($regexMatch, strtolower($agent));
 	}
 	public static function ua()
 	{
@@ -1207,7 +1207,7 @@ class Validate
 	//字母数字汉字,不能全是数字
 	public static function username($username)
 	{
-		if(is_numeric($username)) return false;
+		if(is_numeric($username)) {return false;}
 		return preg_match('/^[\w\x{4e00}-\x{9fa5}]{3,20}$/u', $username);
 	}
 	//数字/大写字母/小写字母/标点符号组成，四种都必有，8位以上
@@ -1305,7 +1305,7 @@ class db extends PDO
 		{
 			$rs=self::ready()->query($sql);
 			app::set('sys-sql-count',app::get('sys-sql-count')+1);
-			if(FALSE==$rs)return array();
+			if(FALSE==$rs) {return array();}
 			return $rs->fetchAll(PDO::FETCH_ASSOC);
 		}
 		catch (PDOException $e)
@@ -1320,7 +1320,7 @@ class db extends PDO
 		{
 			$rs=self::ready()->query($sql);
 			app::set('sys-sql-count',app::get('sys-sql-count')+1);
-			if(FALSE==$rs)return array();
+			if(FALSE==$rs) {return array();}
 			return $rs->fetch(PDO::FETCH_ASSOC);
 		}
 		catch (PDOException $e)
@@ -1336,7 +1336,7 @@ class db extends PDO
 		{
 			$rs=self::ready()->query($sql);
 			app::set('sys-sql-count',app::get('sys-sql-count')+1);
-			if(FALSE==$rs)return null;
+			if(FALSE==$rs) {return null;}
 			return $rs->fetchColumn();
 		}
 		catch (PDOException $e)
@@ -1374,11 +1374,11 @@ class db extends PDO
 	{
 		return self::$pdo?self::$pdo:self::init();
 	}
-	public function __call($method,$args)
+	public function __call($method,$args=null)
 	{
 		Error('500','Call Error Method '.$method.' In Class '.__CLASS__);
 	}
-	public static function __callStatic($method,$args)
+	public static function __callStatic($method,$args=null)
 	{
 		Error('500','Call Error Static Method '.$method.' In Class '.__CLASS__);
 	}
@@ -1414,20 +1414,20 @@ if(!function_exists('error_log'))
 function __autoload($class)
 {
 	
-	if(is_file($model_file=MODEL_PATH.$class.'.php'))
+	if(is_file($modelFile=MODEL_PATH.$class.'.php'))
 	{
-		require_once $model_file;
-		class_exists($class)||Error('500','Load File '.$model_file.' Succeed,But Not Found Class '.$class);
+		require_once $modelFile;
+		class_exists($class)||Error('500','Load File '.$modelFile.' Succeed,But Not Found Class '.$class);
 	}
-	else if(is_file($controller_file=CONTROLLER_PATH.$class.'.php'))
+	else if(is_file($controllerFile=CONTROLLER_PATH.$class.'.php'))
 	{
-		require_once $controller_file;
-		class_exists($class)||Error('500','Load File '.$controller_file.' Succeed,But Not Found Class '.$class);
+		require_once $controllerFile;
+		class_exists($class)||Error('500','Load File '.$controllerFile.' Succeed,But Not Found Class '.$class);
 	}
-	else if(is_file($lib_file=LIB_PATH.'class'.DIRECTORY_SEPARATOR.'{$class}.class.php'))
+	else if(is_file($libFile=LIB_PATH.'class'.DIRECTORY_SEPARATOR.'{$class}.class.php'))
 	{
-		require_once $lib_file;
-		class_exists($class)||Error('500','Load File '.$lib_file.' Succeed,But Not Found Class '.$class);
+		require_once $libFile;
+		class_exists($class)||Error('500','Load File '.$libFile.' Succeed,But Not Found Class '.$class);
 	}
 	else
 	{
@@ -1560,12 +1560,12 @@ function decrypt($input,$key=null)
 }
 
 //发送邮件,用来替代原生mail,多个接受者用分号隔开
-function sendMail($mail_to, $mail_subject, $mail_message)
+function sendMail($mailTo, $mailSubject, $mailMessage)
 {
 	try
 	{
-		$mail_subject = '=?utf-8?B?'.base64_encode($mail_subject).'?=';
-		$mail_message = chunk_split(base64_encode(preg_replace("/(^|(\r\n))(\.)/", "\1.\3", $mail_message)));
+		$mailSubject = '=?utf-8?B?'.base64_encode($mailSubject).'?=';
+		$mailMessage = chunk_split(base64_encode(preg_replace("/(^|(\r\n))(\.)/", "\1.\3", $mailMessage)));
 		$headers  = "";
 		$headers .= "MIME-Version:1.0\r\n";
 		$headers .= "Content-type:text/html\r\n";
@@ -1630,7 +1630,7 @@ function sendMail($mail_to, $mail_subject, $mail_message)
 				throw new Exception("MAIL FROM - ".$lastmessage,7);
 			}
 		}
-		foreach(explode(';', $mail_to) as $touser)
+		foreach(explode(';', $mailTo) as $touser)
 		{
 			$touser = trim($touser);
 			if($touser)
@@ -1652,10 +1652,10 @@ function sendMail($mail_to, $mail_subject, $mail_message)
 			throw new Exception("DATA - ".$lastmessage,9);
 		}
 		fputs($fp, $headers);
-		fputs($fp, "To: ".$mail_to."\r\n");
-		fputs($fp, "Subject: $mail_subject\r\n");
+		fputs($fp, "To: ".$mailTo."\r\n");
+		fputs($fp, "Subject: $mailSubject\r\n");
 		fputs($fp, "\r\n\r\n");
-		fputs($fp, "$mail_message\r\n.\r\n");
+		fputs($fp, "$mailMessage\r\n.\r\n");
 		$lastmessage = fgets($fp, 512);
 		if(substr($lastmessage, 0, 3) != 250)
 		{

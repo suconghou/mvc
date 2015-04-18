@@ -202,7 +202,7 @@ class curl
                 $ret['href']=$this->filter($res,$regex['href'],2);
                 return $ret;
             default:
-                if(!preg_match('/^\/.+\/$/',$type)) return $res;//不是正则规则
+                if(!preg_match('/^\/.+\/$/',$type)) {return $res;}//不是正则规则
                 return $this->filter($res,$type,$index);
         }
     }
