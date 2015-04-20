@@ -33,7 +33,11 @@ class app
 	{
 		if(!is_array($router))
 		{
-			$router=array($GLOBALS['APP']['router'][0],$router);
+			$router=func_get_args();
+		}
+		if(!isset($router[1]))
+		{
+			$router=array($GLOBALS['APP']['router'][0],$router[0]);
 		}
 		$controller=CONTROLLER_PATH.$router[0].'.php'; 
 		$controllerDir=CONTROLLER_PATH.$router[0]; ///二级目录
