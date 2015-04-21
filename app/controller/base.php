@@ -75,6 +75,7 @@ class base
 		{
 			header('Access-Control-Allow-Origin:*');
 		}
+		header('Access-Control-Allow-Headers:Origin, X-Requested-With, Content-Type, Accept');
 	}
 	/**
 	 * 是否已登录用户,登陆返回其中信息,否则返回json或跳转
