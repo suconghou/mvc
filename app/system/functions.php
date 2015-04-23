@@ -14,7 +14,27 @@ define('MAIL_CLOUD_PASS','123456');
 define('MAIL_CLOUD_FROM','admin@suconghou.cn');
 define('MAIL_CLOUD_NAME','苏苏');
 
+function dateFormat($time)
+{
+	$t=max(time()-$time,1);
+	$f=array(
+	'31536000'=>'年',
+	'2592000'=>'个月',
+	'604800'=>'星期',
+	'86400'=>'天',
+	'3600'=>'小时',
+	'60'=>'分钟',
+	'1'=>'秒'
+	);
+	foreach ($f as $k=>$v)
+	{
+		if (0 !=$c=floor($t/(int)$k))
+		{
+			return $c.$v.'前';
+		}
+	}
 
+}
 
 //采用CURL方式POST数据,数据为拼接好的或者数组
 function postData($url,$post_string)

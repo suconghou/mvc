@@ -1507,27 +1507,6 @@ function byteFormat($size,$dec=2)
 	$unit=array("B","KB","MB","GB","TB","PB","EB","ZB","YB");
 	return round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i];
 }
-function dateFormat($time)
-{
-	$t=max(time()-$time,1);
-	$f=array(
-	'31536000'=>'年',
-	'2592000'=>'个月',
-	'604800'=>'星期',
-	'86400'=>'天',
-	'3600'=>'小时',
-	'60'=>'分钟',
-	'1'=>'秒'
-	);
-	foreach ($f as $k=>$v)
-	{
-		if (0 !=$c=floor($t/(int)$k))
-		{
-			return $c.$v.'前';
-		}
-	}
-
-}
 //外部重定向,会立即结束脚本以发送header,内部重定向app::run(array);
 function redirect($url,$seconds=0,$code=302)
 {
