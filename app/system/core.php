@@ -4,7 +4,7 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.82
+ * @version 1.8.3
  */
 /**
 * APP 主要控制类
