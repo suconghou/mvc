@@ -2,7 +2,7 @@
 
 define('ROOT',dirname(__FILE__).DIRECTORY_SEPARATOR);//根路径
 define('APP_PATH',ROOT.'app'.DIRECTORY_SEPARATOR);//APP路径
-define('CACHE_PATH',APP_PATH.'cache'.DIRECTORY_SEPARATOR);//文件缓存路径
+define('VAR_PATH',ROOT.'var'.DIRECTORY_SEPARATOR);//缓存路径
 define('LIB_PATH',APP_PATH.'system'.DIRECTORY_SEPARATOR);//系统路径
 define('MODEL_PATH',APP_PATH.'model'.DIRECTORY_SEPARATOR);//模型路径
 define('VIEW_PATH',APP_PATH.'view'.DIRECTORY_SEPARATOR);//视图路径
