@@ -12,8 +12,9 @@
 * 自定义过滤条件
 * 辅助函数
 * 在其他控制器中调用 $this->ip()->refer()->session()->post()->get()->defender();
+* 此控制器不能通过URl访问
 */
-class base 
+abstract class base 
 {
 	private static $ip;
 	private static $refer; //限制refer,包含关系也会限制
@@ -29,21 +30,13 @@ class base
 	
 	function __construct()
 	{
-		if(baseUrl(0)==__CLASS__)die; //此控制器不能通过URl访问
 		$this->auto()->defender(); //开启自动过滤
 		$this->globalIndex(); //全局加载的
 	}
 	function index(){}
 	function globalIndex()
 	{
-		  $menu=config('topmenu');
-          if($user=isUserLogin())
-          {
-            array_pop($menu);
-            array_pop($menu);
-            $menu["/u/{$user['id']}"]=$user['name'];
-          }
-         config('topmenu',$menu); 
+		 
 	}
 
 	/**
@@ -239,9 +232,9 @@ class base
 			if($this->frequencyIp) //依据IP
 			{
 				$this->current_id=session_id();
-	    		session_write_close();
+				session_write_close();
 				$host=md5(Request::ip());
-	    		session_id($host);
+				session_id($host);
 			}
 			$ssid='frequency';
 			$data=json_decode(session($ssid),1);

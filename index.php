@@ -62,6 +62,6 @@ S('functions');//加载扩展函数库
 // S('site/site2'); //Single File Site 模式
 
 //配置完,可以启动啦
-app::start();
+echo app::start();
 
 

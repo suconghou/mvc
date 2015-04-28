@@ -25,7 +25,7 @@ class app
 		error_reporting(DEBUG?E_ALL:0);
 		set_error_handler(array('app','Error'));///异常处理
 		register_shutdown_function(array('app','Shutdown'));
-		defined('STDIN')?self::runCli():self::process(self::init());
+		return defined('STDIN')?self::runCli():self::process(self::init());
 	}
 	/**
 	 * 内部转向,可以指定一个方法,控制器保持原有的
@@ -168,15 +168,15 @@ class app
 	 */
 	private static function runCli()
 	{
+		$phar=(substr(ROOT,0,7)=='phar://');
 		if(isset($GLOBALS['argc'])&&$GLOBALS['argc']>1)
 		{
-			$GLOBALS['APP']['CLI']=true;
 			$_SERVER['REQUEST_URI']=null;
-			(substr(ROOT,0,7)=='phar://')||chdir(ROOT);
+			$phar||chdir(ROOT);
 			foreach ($GLOBALS['argv'] as $key=>$uri)
 			{
 				if($key==0)
-				{	
+				{
 					continue;
 				}
 				else if($key==1&&count($u=explode('/', $uri))==2)
@@ -192,7 +192,20 @@ class app
 		}
 		else
 		{
-			exit('CLI Mode Need Both Controller And Action !'.PHP_EOL);
+			if($phar)
+			{
+				return self::run(array(DEFAULT_CONTROLLER,DEFAULT_ACTION));
+			}
+			else
+			{
+				$path=ROOT.'app.phar';
+				(is_file($path))&&unlink($path);
+				$p=new Phar($path,FilesystemIterator::CURRENT_AS_FILEINFO | FilesystemIterator::KEY_AS_FILENAME,'app.phar');
+				$p->startBuffering();
+				$p->buildFromDirectory(ROOT,'/\.php$/');
+				$p->stopBuffering();
+				return ("Files:{$p->count()}".PHP_EOL."Stored in:".$path.PHP_EOL);
+			}
 		}
 		
 
@@ -222,7 +235,7 @@ class app
 					return http_response_code(304);  
 				}
 				else
-				{	
+				{
 					header('Last-Modified: ' . gmdate('D, d M y H:i:s',$now). ' GMT');	 
 					return readfile($hash);
 				}
@@ -512,7 +525,7 @@ class app
 			$code=500;
 		}
 		app::log($errormsg,'ERROR');
-		isset($GLOBALS['APP']['CLI'])||(app::get('sys-error')&&exit('Error Found In Error Handler'))||(http_response_code($code)&&app::set('sys-error',true));
+		defined('STDIN')||(app::get('sys-error')&&exit('Error Found In Error Handler'))||(http_response_code($code)&&app::set('sys-error',true));
 		if(!DEBUG&&defined('ERROR_PAGE_404')&&defined('ERROR_PAGE_500')&&ERROR_PAGE_404&&ERROR_PAGE_500) //线上模式且自定义了404和500
 		{
 			if(isset($GLOBALS['APP']['router'][0])&&is_file(CONTROLLER_PATH.$GLOBALS['APP']['router'][0].'.php'))
@@ -541,7 +554,7 @@ class app
 		}
 		else
 		{
-			$ln=isset($GLOBALS['APP']['CLI'])?PHP_EOL:'</p><p>';
+			$ln=defined('STDIN')?PHP_EOL:'</p><p>';
 			$trace=debug_backtrace();
 			$i=count($trace)-1;
 			$li=null;
@@ -556,7 +569,7 @@ class app
 				$li.=$trace[$i]['file'].'=>'.$trace[$i]['class'].$trace[$i]['type'].$trace[$i]['function'].'() on line '.$trace[$i]['line'].$ln;
 				$i--;
 			}
-			if(isset($GLOBALS['APP']['CLI']))
+			if(defined('STDIN'))
 			{
 				echo $errormsg,PHP_EOL,$li;
 				$errfile||exit;
@@ -893,7 +906,7 @@ class Request
 	}
 	public static function isCli()
 	{
-		return isset($GLOBALS['APP']['CLI']);
+		return defined('STDIN')&&defined('STDOUT');
 	}
 	public static function isAjax()
 	{
@@ -1390,7 +1403,7 @@ class db extends PDO
 		}
 		else
 		{
-			call_user_func_array(array($instance,ltrim($method,'_')), $args);
+			return call_user_func_array(array($instance,ltrim($method,'_')), $args);
 		}
 	}
 
