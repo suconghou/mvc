@@ -703,8 +703,7 @@ function V($_v_,$_data_=array(),$fileCacheMinute=0)
 			file_put_contents($cacheFile,$contents);
 			touch($cacheFile,$expiresTime);
 		}
-		ob_end_flush();
-		flush();
+		defined('STDIN')||(ob_end_flush()&&flush());
 	}
 	else
 	{
