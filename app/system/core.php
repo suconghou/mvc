@@ -1441,21 +1441,21 @@ function __autoload($class)
 	if(is_file($modelFile=MODEL_PATH.$class.'.php'))
 	{
 		require_once $modelFile;
-		class_exists($class)||app::Error(500,'Load File '.$modelFile.' Succeed,But Not Found Class '.$class);
+		return class_exists($class)||app::Error(500,'Load File '.$modelFile.' Succeed,But Not Found Class '.$class);
 	}
 	else if(is_file($controllerFile=CONTROLLER_PATH.$class.'.php'))
 	{
 		require_once $controllerFile;
-		class_exists($class)||app::Error(500,'Load File '.$controllerFile.' Succeed,But Not Found Class '.$class);
+		return class_exists($class)||app::Error(500,'Load File '.$controllerFile.' Succeed,But Not Found Class '.$class);
 	}
 	else if(is_file($libFile=LIB_PATH.'class'.DIRECTORY_SEPARATOR.'{$class}.class.php'))
 	{
 		require_once $libFile;
-		class_exists($class)||app::Error(500,'Load File '.$libFile.' Succeed,But Not Found Class '.$class);
+		return class_exists($class)||app::Error(500,'Load File '.$libFile.' Succeed,But Not Found Class '.$class);
 	}
 	else
 	{
-		app::Error(500,'Can Not Load Class '.$class);
+		return false;
 	}
 }
 function session($key,$val=null,$delete=false)
