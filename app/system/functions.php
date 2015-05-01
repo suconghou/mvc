@@ -37,10 +37,10 @@ function dateFormat($time)
 }
 
 //采用CURL方式POST数据,数据为拼接好的或者数组
-function postData($url,$post_string)
+function postData($url,$post_string,$header=array('Content-type: application/x-www-form-urlencoded;charset: UTF-8'))
 {
 	$ch=curl_init();
-	curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($post_string)?http_build_query($post_string):$post_string));
+	curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_HTTPHEADER=$header,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($post_string)?http_build_query($post_string):$post_string));
 	$result=curl_exec($ch);
 	curl_close($ch);
 	return $result;
@@ -49,7 +49,7 @@ function postData($url,$post_string)
 function postDataByStream($url,$post_string)
 {
 	$data=is_array($post_string)?http_build_query($post_string):$post_string;
-	$options = array('http' => array('method'  => 'POST','header'=>'Content-type: application/x-www-form-urlencoded','content' => $data));
+	$options = array('http' => array('method'  => 'POST','header'=>'Content-type: application/x-www-form-urlencoded;charset: UTF-8','content' => $data));
 	$context = stream_context_create($options);
 	$result  = file_get_contents($url, false, $context);
 	return $result;

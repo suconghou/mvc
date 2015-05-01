@@ -347,6 +347,7 @@ class app
 		if($callback===false)
 		{
 			$parts = parse_url($url);
+			$parts['path']=isset($parts['path'])?$parts['path']:'/';
 			$parts['port']=isset($parts['port']) ? $parts['port'] : 80;
 			$parts['query']=isset($parts['query'])?$parts['path'].'?'.$parts['query']:$parts['path'];
 			if(function_exists('stream_socket_client'))
