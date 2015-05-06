@@ -338,6 +338,12 @@ if(!function_exists('array_column'))
 }
 
 
+function object2array(&$object)
+{
+	$object=json_decode(json_encode($object),true);
+	return $object;
+}
+
 
 function mcrypt($string,$operation,$key='')
 { 
