@@ -522,7 +522,7 @@ class app
 		}
 		else
 		{
-			$errormsg="ERROR({$errno}) {$errstr} at {$errfile} on line {$errline} ";
+			$errormsg="ERROR({$errno}) {$errstr} in {$errfile} on line {$errline} ";
 			$code=500;
 		}
 		app::log($errormsg,'ERROR');
@@ -591,10 +591,14 @@ class app
 
 	public static function Shutdown()
 	{
-		$lastError=error_get_last();
-		if($lastError)
+		if(DEBUG)
 		{
-			self::Error($lastError['type'],$lastError['message'],$lastError['file'],$lastError['line']);
+			$lastError=error_get_last();
+			if($lastError)
+			{
+				$errormsg="ERROR({$lastError['type']}) {$lastError['message']} in {$lastError['file']} on line {$lastError['line']} ";
+				return app::log($errormsg,'ERROR');
+			}
 		}
 	}
 
