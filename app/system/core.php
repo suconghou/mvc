@@ -1432,13 +1432,6 @@ if(!function_exists('http_response_code'))
 		}
 	}
 }
-if(!function_exists('error_log'))
-{
-	function error_log($msg,$type=3,$path='./error.log')
-	{
-		file_put_contents($path,$msg,FILE_APPEND); 
-	}
-}
 function __autoload($class)
 {
 	

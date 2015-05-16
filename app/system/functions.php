@@ -192,22 +192,9 @@ function rgb2hex($r,$g,$b)
 {
 	return dechex($r).dechex($g).dechex($b);
 }
-function dump($var, $echo=true, $label=null, $strict=true)
+if(!function_exists('_'))
 {
-	$label = ($label === null) ? '' : rtrim($label) . ' ';
-	if (!$strict)
-	{
-		if (ini_get('html_errors'))
-		{
-			$output = print_r($var, true);
-			$output = '<pre>' . $label . htmlspecialchars($output, ENT_QUOTES) . '</pre>';
-		}
-		else
-		{
-			$output = $label . print_r($var, true);
-		}
-	}
-	else
+	function _($var)
 	{
 		ob_start();
 		var_dump($var);
@@ -215,17 +202,10 @@ function dump($var, $echo=true, $label=null, $strict=true)
 		if (!extension_loaded('xdebug'))
 		{
 			$output = preg_replace('/\]\=\>\n(\s+)/m', '] => ', $output);
-			$output = '<pre>' . $label . htmlspecialchars($output, ENT_QUOTES) . '</pre>';
+			$output = '<pre>' . htmlspecialchars($output, ENT_QUOTES) . '</pre>';
 		}
-	}
-	if ($echo)
-	{
-		echo($output);
-		return null;
-	}
-	else
-	{
-		return $output;
+		exit($output);
+		
 	}
 }
 //可以指定前缀
