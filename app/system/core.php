@@ -4,7 +4,7 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.8.5
+ * @version 1.8.6
  */
 /**
 * APP 主要控制类
@@ -1565,7 +1565,27 @@ function decrypt($input,$key=null)
 	}
 	return trim(mcrypt_decrypt(MCRYPT_RIJNDAEL_128,md5($key),base64_decode($input),MCRYPT_MODE_ECB,mcrypt_create_iv(16)));
 }
-
+function csrf_token($check=false)
+{
+	isset($_SESSION)||session_start();
+	$token=isset($_SESSION['csrf_token'])?$_SESSION['csrf_token']:null;
+	if($check)
+	{
+		if(!(isset($_REQUEST['_token']) && $_REQUEST['_token'] === $token))
+		{
+			app::Error(500,'Csrf Token Not Match ! ');
+		}
+	}
+	else
+	{
+		if(!$token)
+		{
+			$token=md5(uniqid());
+			$_SESSION['csrf_token']=$token;
+		}
+		return $token;
+	}
+}
 //发送邮件,用来替代原生mail,多个接受者用分号隔开
 function sendMail($mailTo, $mailSubject, $mailMessage)
 {
