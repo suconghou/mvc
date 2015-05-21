@@ -3,6 +3,7 @@
 /**
 * 单点登录
 * Single Sign On
+* Server and Client
 */
 class Sso
 {
@@ -20,22 +21,22 @@ class Sso
 							);
 
 
-	function __construct()
+	function __construct($server=false)
 	{
-		$this->init();
+		$this->init($server);
 	}
 
-	function init()
+	function init($server)
 	{
 		app::route('\/auth(\?.*)?',function()
 		{
-			if(empty($_POST['secret_key']))
+			if(isset($_REQUEST['account']) and isset($_REQUEST['password']))
 			{
-				$account=isset($_REQUEST['account'])?$_REQUEST['account']:null;
-				$password=isset($_REQUEST['password'])?$_REQUEST['password']:null;
+				$account=$_REQUEST['account'];
+				$password=$_REQUEST['password'];
 				return $this->login($account,$password);
 			}
-			else
+			else if(!empty($_POST['secret_key']))
 			{
 				if($_POST['secret_key']===self::secret_key)
 				{
@@ -47,9 +48,20 @@ class Sso
 					self::out(array('code'=>-1,'msg'=>'auth failed,secret key error'));
 				}
 			}
+			else
+			{
+				$this->redirect();
+			}
+		});
+		app::route('\/setcookie(\?*)?',function()
+		{
+			$this->setcookie();
 		});
 		//sae 缓存驱动
-		// self::$cache=memcache_init();
+		if(function_exists('memcache_init'))
+		{
+			self::$cache=memcache_init();
+		}
 	}
 	
 	function login($account,$password)
@@ -70,10 +82,10 @@ class Sso
 			}
 		}
 		else
-		{	
+		{
 			if($redirect)
 			{
-				$url=$redirect."?token={$token}&domain=".base64_encode(json_encode(self::$domain));
+				$url=$redirect."?msg=".urlencode("邮箱与密码不匹配");
 				exit(header("Refresh: 0; url={$url}"));
 			}
 			else
@@ -105,6 +117,53 @@ class Sso
 		$token=md5($account.uniqid());
 		self::set($token,$uid);
 		return $token;
+	}
+
+	/**
+	 * 客户端回调处理
+	 */
+	function redirect()
+	{
+		$token=isset($_GET['token'])?$_GET['token']:null;
+		$domain=isset($_GET['domain'])?$_GET['domain']:null;
+		$msg=isset($_GET['msg'])?$_GET['msg']:null;
+		if($token and preg_match('/[a-z0-9]/', $token))
+		{
+			//success
+			$expire=time()+86400*30;
+			setcookie('token',$token,$expire,'/',$_SERVER['HTTP_HOST'],0,true);
+			$script=array();
+			$domain=json_decode(base64_decode($domain),true);
+			foreach ($domain as $url)
+			{
+				$script[]="<script src=\"//{$url}/setcookie?token={$token}\"></script>";
+			}
+			//show welcome page , and get those script
+			return implode("\r\n", $script);
+		}
+		else
+		{
+			//error,display error page
+			echo $msg;
+		}
+	}
+
+	/**
+	 * 跨域之setcookie请求
+	 */
+	function setcookie()
+	{
+		$token=isset($_GET['token'])?$_GET['token']:null;
+		if($token and preg_match('/[a-z0-9]/', $token))
+		{
+			$expire=time()+86400*30;
+			setcookie('token',$token,$expire,'/',$_SERVER['HTTP_HOST'],0,true);
+			header('X-SETCOOKIE:SUCCESS');
+		}
+		else
+		{
+			header('X-SETCOOKIE:ERROR');
+		}
 	}
 
 	/**

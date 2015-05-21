@@ -431,8 +431,7 @@ class app
 				$data=unserialize(file_get_contents($file));
 			}
 			$data[$key]=$value;
-			file_put_contents($file,serialize($data));
-			return true;	
+			return file_put_contents($file,serialize($data));
 		}
 		catch(Exception $e)
 		{
