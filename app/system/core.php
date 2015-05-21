@@ -495,6 +495,7 @@ class app
 		}
 
 	}
+
 	public static function timer($function,$exit=false,$callback=null)
 	{
 		while(true)
@@ -507,6 +508,23 @@ class app
 		}
 	}
 
+	public static function on($event,$function)
+	{
+		return self::$global['event'][$event]=$function;
+	}
+
+	public static function off($event)
+	{
+		unset(self::$global['event'][$event]);
+	}
+
+	public static function emit($event,$arguments=array())
+	{
+		if(!empty(self::$global['event'][$event]))
+		{
+			return call_user_func_array(self::$global['event'][$event],is_array($arguments)?$arguments:array($arguments));
+		}
+	} 
 
 	//异常处理 404 500等
 	public static function Error($errno, $errstr, $errfile=null, $errline=null)
@@ -588,7 +606,6 @@ class app
 
 	}
 
-
 	public static function Shutdown()
 	{
 		if(DEBUG)
@@ -601,8 +618,6 @@ class app
 			}
 		}
 	}
-
-
 
 }
 // End of class app
