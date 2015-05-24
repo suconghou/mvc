@@ -4,6 +4,7 @@
 * 单点登录
 * Single Sign On
 * Server and Client
+* 
 */
 class Sso
 {
@@ -26,44 +27,68 @@ class Sso
 		$this->init($server);
 	}
 
-	function init($server)
+	/**
+	 * server 是否工作于服务模式
+	 */
+	function init($server=false)
 	{
 		app::route('\/auth(\?.*)?',function()
 		{
-			if(isset($_REQUEST['account']) and isset($_REQUEST['password']))
-			{
-				$account=$_REQUEST['account'];
-				$password=$_REQUEST['password'];
-				return $this->login($account,$password);
-			}
-			else if(!empty($_POST['secret_key']))
-			{
-				if($_POST['secret_key']===self::secret_key)
-				{
-					$token=isset($_POST['token'])?$_POST['token']:null;
-					return $this->auth($token);
-				}
-				else
-				{
-					self::out(array('code'=>-1,'msg'=>'auth failed,secret key error'));
-				}
-			}
-			else
-			{
-				$this->redirect();
-			}
+			return $server?$this->__initServer():$this->__initClient();
 		});
-		app::route('\/setcookie(\?*)?',function()
-		{
-			$this->setcookie();
-		});
+	}
+	
+	private function __initServer()
+	{
 		//sae 缓存驱动
 		if(function_exists('memcache_init'))
 		{
 			self::$cache=memcache_init();
 		}
+		else
+		{
+			self::$cache=S('class/cache');
+		}
+		if(isset($_REQUEST['account'],$_REQUEST['password']))
+		{
+			//登录模式
+			$account=$_REQUEST['account'];
+			$password=$_REQUEST['password'];
+			return $this->login($account,$password);
+		}
+		else if(!empty($_POST['secret_key']))
+		{
+			//内部授权模式
+			if($_POST['secret_key']===self::secret_key)
+			{
+				$token=isset($_POST['token'])?$_POST['token']:null;
+				return $this->auth($token);
+			}
+			else
+			{
+				return self::out(array('code'=>-1,'msg'=>'auth failed,secret key error'));
+			}
+		}
+		else
+		{
+			//其他
+		}
+
 	}
-	
+
+	private function __initClient()
+	{
+
+		app::route('\/setcookie(\?*)?',function()
+		{
+			$this->setcookie();
+		});
+
+	}
+
+	/**
+	 * 若发送了redirect则地址跳转否则json或者jsonp响应.
+	 */
 	function login($account,$password)
 	{
 		$redirect=isset($_REQUEST['redirect'])?$_REQUEST['redirect']:null;
@@ -74,11 +99,11 @@ class Sso
 			if($redirect)
 			{
 				$url=$redirect."?token={$token}&domain=".base64_encode(json_encode(self::$domain));
-				exit(header("Refresh: 0; url={$url}"));
+				return header("Refresh: 0; url={$url}");
 			}
 			else
 			{
-				self::out(array('code'=>0,'msg'=>'success','token'=>$token,'domain'=>self::$domain));
+				return self::out(array('code'=>0,'msg'=>'success','token'=>$token,'domain'=>self::$domain));
 			}
 		}
 		else
@@ -86,11 +111,11 @@ class Sso
 			if($redirect)
 			{
 				$url=$redirect."?msg=".urlencode("邮箱与密码不匹配");
-				exit(header("Refresh: 0; url={$url}"));
+				return header("Refresh: 0; url={$url}");
 			}
 			else
 			{
-				self::out(array('code'=>-100,'msg'=>'邮箱与密码不匹配'));
+				return self::out(array('code'=>-100,'msg'=>'邮箱与密码不匹配'));
 			}
 		}
 	}
@@ -120,7 +145,8 @@ class Sso
 	}
 
 	/**
-	 * 客户端回调处理
+	 * 客户端回调处理,登陆成功或失败重定向地址.
+	 * 须客户端主动调用,返回数据须渲染到页面.
 	 */
 	function redirect()
 	{
@@ -144,12 +170,12 @@ class Sso
 		else
 		{
 			//error,display error page
-			echo $msg;
+			return $msg;
 		}
 	}
 
 	/**
-	 * 跨域之setcookie请求
+	 * 跨域之setcookie请求,最好不要有输出.可以用script,img等请求
 	 */
 	function setcookie()
 	{
@@ -158,11 +184,11 @@ class Sso
 		{
 			$expire=time()+86400*30;
 			setcookie('token',$token,$expire,'/',$_SERVER['HTTP_HOST'],0,true);
-			header('X-SETCOOKIE:SUCCESS');
+			header('X-Setcookie:success');
 		}
 		else
 		{
-			header('X-SETCOOKIE:ERROR');
+			header('X-Setcookie:error');
 		}
 	}
 
@@ -174,14 +200,15 @@ class Sso
 		$uid=self::get($token);
 		if($uid)
 		{
+			//填写自己需要的字段
 			$sql="SELECT uid,email,username,phone FROM `users` ";
 			$user=DB::getLine($sql);
 			if($user)
 			{
-				self::out(array('code'=>0,'msg'=>'success','data'=>$user));
+				return self::out(array('code'=>0,'msg'=>'success','data'=>$user));
 			}
 		}
-		self::out(array('code'=>-10,'msg'=>'auth failed,token error'));
+		return self::out(array('code'=>-10,'msg'=>'auth failed,token error'));
 
 	}
 

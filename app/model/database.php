@@ -37,7 +37,7 @@
 *
 *  该类只提供继承,不能直接实例化
 */
-abstract class database extends db
+abstract class database extends DB
 {
 	
 	private static $cache; 

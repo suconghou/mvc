@@ -1262,7 +1262,7 @@ class Validate
 /**
 * model 层,可以静态方式使用
 */
-class db extends PDO 
+class DB extends PDO 
 {
 	private  static $pdo;///单例模式
 
