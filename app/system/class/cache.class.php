@@ -1,399 +1,172 @@
 <?php
 /**
 * memcache,redis,file 缓存,memcache支持sae
-* set,get,del,flush
-* mset,mdel,mget
+* 配置可事先定义常亮到配置文件. 
 * file 方式在高并发下可能存在性能问题
 * @author suconghou
 * @link http://blog.suconghou.cn
-* @version V1.20
+* @version V1.21
 */
 class cache
 {
 
-	private static $memcacheServer='127.0.0.1';
-	private static $memcachePort=11211;
+	const memcacheServer='127.0.0.1';
+	const memcachePort=11211;
 
-
-	private static $redisServer='127.0.0.1';
-	private static $redisPort=6379;
-
-	private static $fileCache; //可以自定义初始化使用的文件数据库
-	private static $fileArr;
+	const redisServer='127.0.0.1';
+	const redisPort=6379;
 
 	private static $cache;
-	private static $cacheType;
-	private static $db;
-	
-	function __construct($type='memcache')
+	/**
+	 * true 自动判断
+	 * 或者传入redis/memcache/file/sqlite四者之一
+	 */
+	function __construct($type=true)
 	{
-		switch ($type)
+		if(function_exists('memcache_init'))
 		{
-			case 'memcache':
-				self::initMemcache();
-				break;
-			case 'redis':
-				self::initRedis();
-				break;
-			case 'file':
-				self::initFile();
-				break;
-			default:
-				self::halt(1);
-				break;
-		}	
+			self::$cache = memcache_init();
+		}
+		else if(extension_loaded('Redis') and ($type === true or $type === 'redis') )
+		{
+			self::$cache = new Redis();
+			self::$cache->connect(self::redisServer,self::redisPort);
+		}
+		else if(extension_loaded('Memcached') and ($type === true or $type ==='memcache') )
+		{
+			self::$cache = new Memcached();
+			self::$cache->addServer(self::memcacheServer, self::memcachePort);
+		}
+		else if(extension_loaded('Memcache') and ($type === true or $type ==='memcache') )
+		{
+			self::$cache = new Memcache();
+			self::$cache->addServer(self::memcacheServer, self::memcachePort);
+		}
+		else
+		{
+			self::$cache = new FileCache();
+		}
 	}
+
+	public static function get($key)
+	{
+		return unserialize(self::$cache->get($key));
+	}
+
+	public static function set($key,$value)
+	{
+		return self::$cache->set($key,serialize($value));
+	}
+
 	function __call($name,$args)
 	{
 		return call_user_func_array(array(self::$cache,$name), $args);
 	}
-	private static  function initMemcache()
-	{
-		if(function_exists('memcache_init'))
-		{
-			self::$cache=memcache_init();
-		}
-		else
-		{
-			if(extension_loaded('Memcached'))
-			{
-				self::$cache= new Memcached();
-			}
-			else if(extension_loaded('Memcache'))
-			{
-				self::$cache= new Memcache();
-			}
-			else
-			{
-				exit('Memcache Extension Not Loaded !');
-			}
-			self::$cache->addServer(self::$memcacheServer, self::$memcachePort);
-		}
-		self::$cacheType='memcache';
-	}
-	private static function initRedis()
-	{
-		if(extension_loaded('Redis'))
-		{
-			self::$cache= new Redis();
-			self::$cache->connect(self::$redisServer,self::$redisPort);
-			self::$cacheType='redis';
-		}
-		else
-		{
-			exit('Redis Extension Not Loaded !');
-		}
 
-	}
-	private static function initFile($db=null)
+	public static function __callStatic($name,$args)
 	{
-		$file=$db?DIRECTORY_SEPARATOR.$db:DIRECTORY_SEPARATOR.date('Y-m');
-		self::$fileCache=sys_get_temp_dir().$file;
-		if(!file_exists(self::$fileCache))
-		{
-			$init=array('FileCacheInit'=>time());
-			file_put_contents(self::$fileCache,serialize($init));
-		}
-		$data=unserialize(file_get_contents(self::$fileCache));
-		self::$fileArr=$data?$data:null;
-		self::$cacheType='file';
-
-	}
-
-	/**
-	 * 键名,键值,
-	 * 过期时间(默认为24小时),单位为秒
-	 */
-	function set($key,$value,$expire=86400)
-	{
-		switch (self::$cacheType)
-		{
-			case 'memcache':
-				return self::memcacheSet($key,$value,$expire);
-				break;
-			case 'redis':
-				return self::redisSet($key,$value,$expire);
-				break;
-			case 'file':
-				return self::fileSet($key,$value,$expire);
-				break;
-			default:
-				self::halt(2);
-				break;
-		}
-	}
-	/**
-	 * 键名
-	 */
-	function get($key)
-	{
-		switch (self::$cacheType)
-		{
-			case 'memcache':
-				return self::memcacheGet($key);
-				break;
-			case 'redis':
-				return self::redisGet($key);
-				break;
-			case 'file':
-				return self::fileGet($key);
-				break;
-			default:
-				self::halt(2);
-				break;
-		}
-
-	}
-	function del($key)
-	{
-		switch (self::$cacheType)
-		{
-			case 'memcache':
-				return self::memcacheDel($key);
-				break;
-			case 'redis':
-				return self::redisDel($key);
-				break;
-			case 'file':
-				return self::fileDel($key);
-				break;	
-			default:
-				self::halt(2);
-				break;
-		}
-
-	}
-	/**
-	 * 删除所有
-	 */
-	function flush()
-	{
-		switch (self::$cacheType)
-		{
-			case 'memcache':
-				return self::memcacheFlush();
-				break;
-			case 'redis':
-				return self::redisFlush();
-				break;
-			case 'file':
-				return self::fileFlush();
-				break;	
-			default:
-				self::halt(2);
-				break;
-		}
-
-	}
-	/**
-	 * 切换数据库
-	 */
-	function select($db)
-	{
-		self::$db=intval($db);
-		switch (self::$cacheType)
-		{
-			case 'memcache':
-				return self::memcacheSelect();
-				break;
-			case 'redis':
-				return self::redisSelect();
-				break;
-			case 'file':
-				return self::fileSelect();
-				break;	
-			default:
-				self::halt(2);
-				break;
-		}
-	}
-	/**
-	 * 批量设置
-	 */
-	function mset($arr,$expire=86400)
-	{
-		foreach ($arr as $key => $value)
-		{
-			self::set($key,$value,$expire);
-		}
-		return true;
-
-	}
-	/**
-	 * 批量获取
-	 */
-	function mget($arr)
-	{
-		$res=array();
-		foreach ($arr as $key)
-		{
-			$res[$key]=self::get($key);
-		}
-		return $res;
-	}
-	/**
-	 * 批量删除
-	 */
-	function mdel($arr)
-	{
-		foreach ($arr as $value)
-		{
-			self::del($value);
-		}
-		return true;
-	}
-	function incr($key)
-	{
-		return self::set($key,abs(intval(self::get($key)))+1);
-	}
-	function decr($key)
-	{
-		return self::set($key,abs(intval(self::get($key)))-1);
-	}
-	function incrby($key,$num)
-	{
-		return self::set($key,abs(intval(self::get($key)))+$num);
-	}
-	function decrby($key,$num)
-	{
-		return self::set($key,abs(intval(self::get($key)))-$num);
+		return call_user_func_array(array(self::$cache,$name), $args);
 	}
 	
-	private static function  memcacheSelect()
+	function __set($key,$value)
 	{
-		return self::$db.='m_';
-	}
-	private static function redisSelect()
-	{
-		return self::$cache->select(self::$db);
-	}
-	private static function fileSelect()
-	{
-		self::$db.='f_';
-		self::storFile();
-		return self::initFile(self::$db);
-	}
-	private static function memcacheSet($key,$value,$expire=86400)
-	{
-		return self::$cache->set(self::$db.$key,$value,0,$expire);
-	} 
-	private static function memcacheGet($key)
-	{
-		return self::$cache->get(self::$db.$key);
-	}
-	private static function redisSet($key,$value,$expire=86400)
-	{
-		return self::$cache->setex($key,$expire,serialize($value));
-	}
-	private static function redisGet($key)
-	{
-		$data=unserialize(self::$cache->get($key));
-		return $data?$data:null;
-	}
-	private static function fileSet($key,$value,$expire=86400)
-	{
-		if(empty(self::$fileArr))
-		{
-			self::fileFlush();
-		}
-		$realVal['v']=$value;
-		$realVal['e']=$expire+time();
-		self::$fileArr[$key]=$realVal;
-		self::storFile();
-		return true;
-	}
-	private static function fileGet($key)
-	{
-		if(isset(self::$fileArr[$key]))
-		{
-			if(time()<=self::$fileArr[$key]['e']) //未过期
-			{
-				return self::$fileArr[$key]['v'];
-			}
-			else//检测到有KEY过期
-			{
-				self::fileDel($key);
-			}
-			 
-		}
-		return null;
-		
-	}
-	private static function memcacheFlush()
-	{
-		return self::$cache->flush();
-	}
-	private static function redisFlush()
-	{
-		return self::$cache->flushdb();
-	}
-	private static function fileFlush()
-	{
-		$val['v']=time();
-		$val['e']=2*time();
-		self::$fileArr=array('FileCacheInit'=>$val);
-		self::storFile();
-	}
-	private static function memcacheDel($key)
-	{
-		return self::$cache->delete(self::$db.$key,0);
-	}
-	private static function redisDel($key)
-	{
-		return self::$cache->del($key);
-	}
-	private static function fileDel($key)
-	{
-		 if(isset(self::$fileArr[$key]))
-		 {
-		 	unset(self::$fileArr[$key]);
-		 }
-		 self::storFile();
-		 return true;
-	}
-	private static function halt($num)
-	{
-		switch ($num)
-		{
-			case 1:
-				exit('Error Cache Driver ! ');
-				break;
-			
-			case 2:
-				exit('Error Cache Type ! ');
-				break;
-			
-			default:
-				exit('Error ! ');
-				break;
-		}
-	}
-	private static function storFile()
-	{
-		file_put_contents(self::$fileCache,serialize(self::$fileArr));	
-	}
-	/**
-	 * 文本方式删除已过期的
-	 */
-	private static function delFileExpire()
-	{
-		self::$fileArr=is_array(self::$fileArr)?self::$fileArr:array();
-		foreach (self::$fileArr as $key => $value)
-		{
-			if(time()>$value['e']) //过期
-			{
-				unset(self::$fileArr[$key]);
-			}
-		}
+		return self::$cache->set($key,serialize($value));
 	}
 
-	function __destruct()
+	function __get($key)
 	{
-		if(self::$cacheType=='file')
-		{
-			self::delFileExpire();
-			self::storFile();
-		}
+		return unserialize(self::$cache->get($key));
 	}
+
+	function __isset($key)
+	{
+		return self::$cache->get($key);
+	}
+
+	public static function getInstance()
+	{
+		return self::$cache;
+	}
+
 
 }
+
+/**
+ * file cache
+ */
+final class FileCache
+{
+	private static $temp;
+
+	function __construct()
+	{
+		if(is_writeable('/dev/shm'))
+		{
+			self::$temp='/dev/shm/'.date('Ym');
+		}
+		else
+		{
+			self::$temp=sys_get_temp_dir().DIRECTORY_SEPARATOR.date('Ym');
+		}
+		if(!file_exists(self::$temp))
+		{
+			touch(self::$temp);
+		}
+	}
+	
+	//每个键最大存储100Kb
+	function set($key,$value)
+	{
+		$value=serialize($value);
+		if(strlen($value)>102400)
+		{
+			return false;
+		}
+		$key=str_pad(trim($key),60);
+
+		$fp=fopen(self::$temp,'a+');
+		while (! feof($fp))
+		{
+			$str=fgets($fp,204800);
+			if($key == substr($str,0,60))
+			{
+				//delet this line
+			}
+		}
+		$data=$key.$value.PHP_EOL;
+		fwrite($fp,$data);
+		return fclose($fp);
+
+	}
+	
+	function get($key)
+	{
+		$fp=fopen(self::$temp,'r');
+		if(!$fp)
+		{
+			return null;
+		}
+		$key=str_pad(trim($key),60);
+		while (! feof($fp))
+		{
+			$str=fgets($fp,204800);
+			if($key == substr($str,0,60))
+			{
+				return unserialize(ltrim($str,$key));
+			}
+		}
+		return null;
+
+	}
+
+	//todo delete tidy data
+	function __destruct()
+	{
+
+	}
+}
+
+
+
+
+
