@@ -226,7 +226,7 @@ class app
 			$expiresTime=filemtime($hash);
 			$now=time();
 			if($now<$expiresTime) ///缓存未过期
-			{	
+			{
 				header("Expires: ".gmdate("D, d M Y H:i:s", $expiresTime)." GMT");
 				header("Cache-Control: max-age=".($expiresTime-$now));
 				if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']))
@@ -747,7 +747,6 @@ function C($time,$file=false)
 		header("Cache-Control: max-age=".(($lastExpire+$seconds)-$now));
 		header('Last-Modified: ' . gmdate('D, d M y H:i:s',$lastExpire). ' GMT'); 
 		exit(http_response_code(304));
-		
 	}
 	else
 	{
