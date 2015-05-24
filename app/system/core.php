@@ -928,25 +928,28 @@ class Request
 	}
 	public static function isAjax()
 	{
-		return self::getVar('server','HTTP_X_REQUESTED_WITH')=='XMLHttpRequest';
+		return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
 	}
 	public static function isPjax()
 	{
-		return array_key_exists('HTTP_X_PJAX', $_SERVER) && $_SERVER['HTTP_X_PJAX'];
+		return isset($_SERVER['HTTP_X_PJAX']) && $_SERVER['HTTP_X_PJAX'];
 	}
 	public static function isPost()
 	{
-		return strtolower(self::getVar('server','REQUEST_METHOD')) == 'post';
+		return isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'post';
 	}
 	public static function isRobot()
 	{
-		$agent=self::getVar('server','HTTP_USER_AGENT');
-		$pattern='/(spider|bot|slurp|crawler)/i';
-		return preg_match($pattern, strtolower($agent));
+		$agent=isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:null;
+		if($agent)
+		{
+			return preg_match('/(spider|bot|slurp|crawler)/i', strtolower($agent));
+		}
+		return true;
 	}
 	public static function isMoblie()
 	{
-		$agent=self::getVar('server','HTTP_USER_AGENT');
+		$agent=isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:null;
 		$regexMatch="/(nokia|iphone|android|motorola|^mot\-|softbank|foma|docomo|kddi|up\.browser|up\.link|";
 		$regexMatch.="htc|dopod|blazer|netfront|helio|hosin|huawei|novarra|CoolPad|webos|techfaith|palmsource|";
 		$regexMatch.="blackberry|alcatel|amoi|ktouch|nexian|samsung|^sam\-|s[cg]h|^lge|ericsson|philips|sagem|wellcom|bunjalloo|maui|";
