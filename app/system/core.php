@@ -62,13 +62,13 @@ class app
 			}
 			else
 			{
-				self::Error(404,'Request Controller File '.$controllerFile.' Not Found ! ');
+				return self::Error(404,'Request Controller File '.$controllerFile.' Not Found ! ');
 			}
 			
 		}
 		else
 		{
-			self::Error(404,'Request Controller File '.$controller.' Not Found ! ');
+			return self::Error(404,'Request Controller File '.$controller.' Not Found ! ');
 		}
 		
 		method_exists($controllerName,$action)||self::Error(404,'Request Controller Class '.$controllerName.' Does Not Contain Method '.$action);
@@ -101,7 +101,7 @@ class app
 			}
 			else
 			{
-				self::Error(404,'Regex Router Param Mising !');
+				return self::Error(404,'Regex Router Param Mising !');
 			}
 
 		}
@@ -314,18 +314,18 @@ class app
 			}
 			else
 			{
-				self::Error(404,'Request Controller '.$router[0].' Error ! ');
+				return self::Error(404,'Request Controller '.$router[0].' Error ! ');
 			}
 		}
 		else //控制器和动作全部需要过滤
 		{
 			if(!preg_match('/^\w+$/i',$router[0]))
 			{
-				self::Error(404,'Request Controller '.$router[0].' Error ! ');
+				return self::Error(404,'Request Controller '.$router[0].' Error ! ');
 			}
 			if(!preg_match('/^\w+$/i',$router[1]))
 			{
-				self::Error(404,'Request Action '.$router[0].'=>'.$router[1].' Error ! ');
+				return self::Error(404,'Request Action '.$router[0].'=>'.$router[1].' Error ! ');
 			}
 		}
 		return $router;
@@ -685,7 +685,7 @@ function S($lib,$param=null)
 		}
 		else
 		{
-			app::Error(500,'Load  Library '.$l.' Failed ,File '.$file.' Or '.$classFile.' Not Found ! ');
+			return app::Error(500,'Load  Library '.$l.' Failed ,File '.$file.' Or '.$classFile.' Not Found ! ');
 		}
 	}
 }
@@ -726,7 +726,7 @@ function V($_v_,$_data_=array(),$fileCacheMinute=0)
 	}
 	else
 	{
-		app::Error(404,'View File '.$_v_.' Not Found ! ');
+		return app::Error(404,'View File '.$_v_.' Not Found ! ');
 	}
 
 }
@@ -765,7 +765,7 @@ function template($_v_,$_data_=array())///加载模版
 	}
 	else
 	{
-		app::Error(404,'Template File '.$_v_.' Not Found !');
+		return app::Error(404,'Template File '.$_v_.' Not Found !');
 	}
 }
 
@@ -1062,7 +1062,7 @@ class Request
 	}
 	public static function __callStatic($method,$args)
 	{
-		app::Error(500,'Call Error Static Method '.$method.' In Class '.get_called_class());
+		return app::Error(500,'Call Error Static Method '.$method.' In Class '.get_called_class());
 	}
 }
 
@@ -1289,7 +1289,7 @@ class DB extends PDO
 				}
 				catch (PDOException $e)
 				{
-					app::Error(500,'Open Sqlite Database Error ! '.$e->getMessage());
+					return app::Error(500,'Open Sqlite Database Error ! '.$e->getMessage());
 				}
 			}
 		}
@@ -1310,7 +1310,7 @@ class DB extends PDO
 					}
 					catch(PDOException $e)
 					{
-						app::Error(500,'Connect Mysql Database Error ! '.$e->getMessage());
+						return app::Error(500,'Connect Mysql Database Error ! '.$e->getMessage());
 					}
 				}
 			}
@@ -1329,7 +1329,7 @@ class DB extends PDO
 		}
 		catch (PDOException $e)
 		{
-			app::Error(500,'Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
+			return app::Error(500,'Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
 		}
 		
 		
@@ -1346,7 +1346,7 @@ class DB extends PDO
 		}
 		catch (PDOException $e)
 		{
-			app::Error(500,'Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
+			return app::Error(500,'Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
 		}
 	}
 	//运行Sql,以数组方式返回结果集第一条记录
@@ -1361,7 +1361,7 @@ class DB extends PDO
 		}
 		catch (PDOException $e)
 		{
-			app::Error(500,'Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
+			return app::Error(500,'Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
 		}
 
 	}
@@ -1377,7 +1377,7 @@ class DB extends PDO
 		}
 		catch (PDOException $e)
 		{
-			app::Error(500,'Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
+			return app::Error(500,'Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
 		}
 
 	}
@@ -1412,7 +1412,7 @@ class DB extends PDO
 	}
 	public function __call($method,$args=null)
 	{
-		app::Error(500,'Call Error Method '.$method.' In Class '.get_called_class());
+		return app::Error(500,'Call Error Method '.$method.' In Class '.get_called_class());
 	}
 	public static function __callStatic($method,$args=null)
 	{
@@ -1582,7 +1582,7 @@ function csrf_token($check=false)
 	{
 		if(!(isset($_REQUEST['_token']) && $_REQUEST['_token'] === $token))
 		{
-			app::Error(500,'Csrf Token Not Match ! ');
+			return app::Error(500,'Csrf Token Not Match ! ');
 		}
 	}
 	else
