@@ -9,7 +9,6 @@
 */
 class cache
 {
-
 	const memcacheServer='127.0.0.1';
 	const memcachePort=11211;
 
@@ -96,67 +95,98 @@ class cache
  */
 final class FileCache
 {
-	private static $temp;
+	private static $path;
 
 	function __construct()
 	{
 		if(is_writeable('/dev/shm'))
 		{
-			self::$temp='/dev/shm/'.date('Ym');
+			self::$path='/dev/shm/cache/';
 		}
 		else
 		{
-			self::$temp=sys_get_temp_dir().DIRECTORY_SEPARATOR.date('Ym');
+			self::$path=sys_get_temp_dir().DIRECTORY_SEPARATOR.'cache'.DIRECTORY_SEPARATOR;
 		}
-		if(!file_exists(self::$temp))
+		if(!is_dir(self::$path))
 		{
-			touch(self::$temp);
+			mkdir(self::$path,0777,true);
 		}
 	}
 	
-	//每个键最大存储100Kb
-	function set($key,$value)
+	function set($key,$value,$expire=86400)
 	{
-		$value=serialize($value);
-		if(strlen($value)>102400)
+		$path=null;
+		$filepath=self::__filepath($key,$path);
+		if(!is_dir($path))
 		{
-			return false;
+			mkdir($path,0777,true);
 		}
-		$key=str_pad(trim($key),60);
-
-		$fp=fopen(self::$temp,'a+');
-		while (! feof($fp))
-		{
-			$str=fgets($fp,204800);
-			if($key == substr($str,0,60))
-			{
-				//delet this line
-			}
-		}
-		$data=$key.$value.PHP_EOL;
-		fwrite($fp,$data);
-		return fclose($fp);
-
+		$data=serialize($value);
+		file_put_contents($filepath,$data);
+		return touch($filepath,time()+$expire);
 	}
 	
 	function get($key)
 	{
-		$fp=fopen(self::$temp,'r');
-		if(!$fp)
+		$filepath=self::__filepath($key);
+		if(self::__expired($filepath))
 		{
 			return null;
 		}
-		$key=str_pad(trim($key),60);
-		while (! feof($fp))
+		else
 		{
-			$str=fgets($fp,204800);
-			if($key == substr($str,0,60))
-			{
-				return unserialize(ltrim($str,$key));
-			}
+			return self::__getData($filepath);
 		}
-		return null;
 
+	}
+
+	function del($key)
+	{
+		$filepath=self::__filepath($key);
+		return is_file($filepath)&&unlink($filepath);
+	}
+
+	function flush()
+	{
+		return self::delTree(self::$path);
+	}
+	
+	public static function delTree($dir) 
+	{
+		$files = array_diff(scandir($dir), array('.','..')); 
+		foreach ($files as $file)
+		{
+			(is_dir("$dir/$file")) ? self::delTree("$dir/$file") : unlink("$dir/$file"); 
+		}
+		return rmdir($dir);
+	}
+
+	private static function __filepath($key,&$path=null)
+	{
+		$key=md5($key);
+		$dir=substr($key,0,2);
+		$file=substr($key,-30);
+		$path=self::$path.$dir;
+		return $path.DIRECTORY_SEPARATOR.$file;
+	}
+
+	private static function __expired($filepath)
+	{
+		if(is_file($filepath))
+		{
+			if(filemtime($filepath)<time())
+			{
+				unlink($filepath);
+				return true;
+			}
+			return false;
+		}
+		return true;
+	}
+
+	private static function __getData($filepath)
+	{
+		return unserialize(file_get_contents($filepath));
 	}
 
 	//todo delete tidy data
