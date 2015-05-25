@@ -2,16 +2,15 @@
 
 /**
 * UpImages
-* using imagick first
-* only jpg,jpeg,gif,png allowed
-* using http cache  for speed
+* 缩略图服务,图片中转,密匙验证上传.
+* 
 */
 class UpImages
 {
 	//上传的存储路径
 	const path='./';
 	//最大允许上传大小,单位M
-	const maxSize=2; 
+	const maxSize=2;
 
 
 	function __construct($auto=false)
@@ -32,7 +31,24 @@ class UpImages
 			return $this->init($origin,$width,$height);
 		});
 	}
+	
+	// all run start
+	function init($origin=null,$width=null,$height=null)
+	{
+		$filename=self::path.$origin.'.jpg';
+		if(is_file($filename))
+		{
+			return $this->loadImg($origin,intval($width),intval($height));
+		}
+		else
+		{
+			return self::error($filename." not found !");
+		}
+	}
 
+	/**
+	 * 手动调用上传接口,监视文件上传和URL上传
+	 */
 	function uploadHandler($f='file')
 	{
 		$width=isset($_GET['w'])?intval($_GET['w']):null;
@@ -45,22 +61,9 @@ class UpImages
 		{
 			$data=$this->upload($f,$width,$height);
 		}
-		return exit(json_encode($data));
+		return self::json($data);
 	}
 
-	// all run start
-	function init($origin=null,$width=null,$height=null)
-	{
-		$filename=self::path.$origin.'.jpg';
-		if(is_file($filename))
-		{
-			return $this->loadImg($origin,intval($width),intval($height));
-		}
-		else
-		{
-			return $this->__notfound($filename,$origin);
-		}
-	}
 	
 	//若指定宽或者高,则触发缩放
 	function upload($f='file',$width=null,$height=null)
@@ -74,13 +77,13 @@ class UpImages
 				{
 					$hash=md5_file($tmpname);
 					$dir=self::path.$hash;
-					is_dir($dir) or mkdir($dir,0777);
+					is_dir($dir) or mkdir($dir,0777,true);
 					$destination=$dir.".jpg";
 					move_uploaded_file($tmpname, $destination);
 					if($width||$height)
 					{
 						$newpath=self::path.$hash."/{$width}x{$height}.jpg";
-						$this->__resize($destination,$width,$height,$newpath);
+						self::resize($destination,$width,$height,$newpath);
 					}
 					return array(
 							'hash'=>$hash,
@@ -94,19 +97,19 @@ class UpImages
 				else
 				{
 					unlink($tmpname);
-					return $this->__error('only images file allowed');
+					return self::error('only images file allowed');
 				}
 			}
 			else
 			{
 				unlink($tmpname);
-				return $this->__error('file is too large');
+				return self::error('file is too large');
 			}
 			
 		}
 		else
 		{
-			return $this->__error('no file upload');
+			return self::error('no file upload');
 		}
 	}
 
@@ -114,17 +117,17 @@ class UpImages
 	{
 		if(!filter_var($url,FILTER_VALIDATE_URL))
 		{
-			return $this->__error('error url'.$url);
+			return self::error('error url'.$url);
 		}
 		$data=file_get_contents($url);
 		if(!$data)
 		{
-			return $this->__error('url upload failed '.$url);
+			return self::error('url upload failed '.$url);
 		}
 		$size=strlen($data);
 		if($size>self::maxSize*1024*1024)
 		{
-			return $this->__error('file is too large');
+			return self::error('file is too large');
 		}
 		$hash=md5($data);
 		$dir=self::path.$hash;
@@ -132,11 +135,11 @@ class UpImages
 		file_put_contents($destination, $data);
 		if($imgInfo=getimagesize($destination))
 		{
-			is_dir($dir) or mkdir($dir,0777);
+			is_dir($dir) or mkdir($dir,0777,true);
 			if($width||$height)
 			{
 				$newpath=self::path.$hash."/{$width}x{$height}.jpg";
-				$this->__resize($destination,$width,$height,$newpath);
+				self::resize($destination,$width,$height,$newpath);
 			}
 			return array(
 					'hash'=>$hash,
@@ -150,9 +153,12 @@ class UpImages
 		else
 		{
 			unlink($destination);
-			return $this->__error('only images file allowed');
+			return self::error('only images file allowed');
 		}
 	}
+	/**
+	 * 加载一个已存在的图像
+	 */
 	function loadImg($hash=null,$width=null,$height=null)
 	{
 		$path=self::path.$hash.'.jpg';
@@ -161,14 +167,14 @@ class UpImages
 		{
 			if($width||$height)
 			{
-				$newpath=$this->__resize($path,$width,$height,$newpath);
+				$newpath=self::resize($path,$width,$height,$newpath);
 			}
 			else
 			{
 				$newpath=$path;
 			}
 		}
-		return $this->__output($newpath,$hash);
+		return self::output($newpath,$hash);
 	
 	}
 
@@ -176,20 +182,20 @@ class UpImages
 	/**
 	 * 兼容imagick 与gd2 的 图像缩放
 	 */
-	private function __resize($path,$width,$height,$newpath)
+	private static function resize($path,$width,$height,$newpath)
 	{
 		if(class_exists('Imagick'))
 		{
-			return $this->__imagickResize($path,$width,$height,$newpath);
+			return self::imagickResize($path,$width,$height,$newpath);
 		}
 		else
 		{
-			return $this->__gdResize($path,$width,$height,$newpath);
+			return self::gdResize($path,$width,$height,$newpath);
 		}
 		
 	}
 
-	private function __imagickResize($path,$width,$height,$newpath)
+	private static function imagickResize($path,$width,$height,$newpath)
 	{
 		$image=new Imagick($path);
 		$image->resizeImage($width,$height,imagick::FILTER_LANCZOS, 0.9, true);
@@ -197,7 +203,7 @@ class UpImages
 		return $newpath;
 	}
 
-	private function __gdResize($path,$width,$height,$newpath)
+	private static function gdResize($path,$width,$height,$newpath)
 	{
 		list($w,$h,$type)=getimagesize($path);
 		if($width&&!$height)
@@ -229,20 +235,20 @@ class UpImages
 		return $newpath;
 	}
 
-	private function __output($path=null,$hash=null)
+	private static function output($path=null,$hash=null)
 	{
 		header("Content-Type: image/jpg");
 		return readfile($path);
 	}
 
-	private function __notfound($hash=null)
+	private static function error($msg=null)
 	{
-		exit('not found '.$hash);
+		return self::json(array('msg'=>$msg,'code'=>-1));
 	}
 
-	private function __error($msg=null)
+	private static function json($arr)
 	{
-		exit(json_encode(array('msg'=>$msg,'code'=>-1)));
+		exit(json_encode($arr));
 	}
 
 }
