@@ -52,7 +52,7 @@ class cache
 		return unserialize(self::$cache->get($key));
 	}
 
-	public static function set($key,$value)
+	public static function set($key,$value,$expire=86400)
 	{
 		return self::$cache->set($key,serialize($value));
 	}

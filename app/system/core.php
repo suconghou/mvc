@@ -1394,10 +1394,10 @@ class DB extends PDO
 		}
 		else
 		{
-			$staticPdo=self::ready();
+			$origin=self::$pdo;
 			self::$pdo=null;
-			self::init(!(defined('DB')&&DB));//相反的
-			list($pdo,self::$pdo)=array(self::$pdo,$staticPdo);
+			$pdo=self::init(!(defined('DB')&&DB));//相反的
+			self::$pdo=$origin;
 			return $pdo;
 		}
 
