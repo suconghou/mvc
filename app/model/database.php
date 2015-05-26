@@ -568,8 +568,7 @@ abstract class database extends DB
 			}
 			$list=$this->getData($l);
 			$page=ceil($this->getVar($p)/$per);
-			$data=array('list'=>$list,'page'=>$page);
-			return $data;
+			return array('list'=>$list,'page'=>$page);
 		}
 		else
 		{
