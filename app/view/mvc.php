@@ -164,6 +164,12 @@
 			<p>当然,系统提供了template方法可供使用</p>
 			<p>建议使用V加载视图,在视图内部用template加载其他视图文件</p>
 			<p>template可随意使用,但是不处理缓存,不处理计时功能</p>
+			<div>
+				假设有一模型user，调用其getData()方式可为：
+				通用：M('user')->getData();
+				调用静态方法 user::getData();
+				调用静态或非静态方法 user::_getData();
+			</div>
 		</section>
 		<section>
 			<h1 class="danger" id="regex">使用正则路由</h1>
