@@ -1,6 +1,6 @@
 <?php
 
-define('ROOT',dirname(__FILE__).DIRECTORY_SEPARATOR);//根路径
+define('ROOT',__DIR__.DIRECTORY_SEPARATOR);//根路径
 define('APP_PATH',ROOT.'app'.DIRECTORY_SEPARATOR);//APP路径
 define('VAR_PATH',ROOT.'var'.DIRECTORY_SEPARATOR);//缓存路径
 define('LIB_PATH',APP_PATH.'system'.DIRECTORY_SEPARATOR);//系统路径
@@ -39,7 +39,7 @@ app::route('\/about',array('home','about'));
 //0自动记录错误日志(自定义的error和自动捕获的程序错误),不显示错误详情,忽略notice,显示404,500错误页(若已定义).建议上线使用
 //1自动记录全部日志(error ,debug 和自动捕获的程序错误),显示错误详情,忽略notice,不使用404,500错误页.建议测试时使用
 //2自动记录全部日志(error ,debug 和自动捕获的程序错误),显示错误详情,捕获所有,不使用404,500错误页.建议开发时使用
-S('functions');//加载通用扩展函数库
+S('Functions');//加载通用扩展函数库
 
 //线上模式与本地模式配置差异,更改数据库,Redis,Memcache等
 //加载应用程序配置,可以将数据库,正则,smtp等配置信息移入应用设置文件
