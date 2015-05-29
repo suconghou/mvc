@@ -8,9 +8,13 @@ class Kvdb extends SQLite3
 {
 	private static $path;
 
-	function __construct()
+	function __construct($file=null)
 	{
-		if(is_writeable('/dev/shm/'))
+		if($file)
+		{
+			self::$path=defined(VAR_PATH)?VAR_PATH.$file:$file;
+		}
+		else if(is_writeable('/dev/shm/'))
 		{
 			self::$path='/dev/shm/kvdb.db';
 		}
