@@ -7,7 +7,6 @@
  * 
  */
 
-
 // function sendMailByCloud 配置
 define('MAIL_CLOUD_USER','postmaster@sumail.sendcloud.org');
 define('MAIL_CLOUD_PASS','123456');
@@ -33,7 +32,6 @@ function dateFormat($time)
 			return $c.$v.'前';
 		}
 	}
-
 }
 
 //采用CURL方式POST数据,数据为拼接好的或者数组
@@ -205,7 +203,6 @@ if(!function_exists('_'))
 			$output = '<pre>' . htmlspecialchars($output, ENT_QUOTES) . '</pre>';
 		}
 		exit($output);
-		
 	}
 }
 //可以指定前缀
