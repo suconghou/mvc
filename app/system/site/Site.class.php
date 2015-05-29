@@ -3,7 +3,7 @@
 /**
 * Single File Site 模式
 */
-class site1
+class Site
 {
 	private static $db;
 

@@ -97,7 +97,7 @@ final class App
 		{
 			if(preg_match('/^[a-z]\w{0,20}$/i',$router[0]))
 			{
-				$router=array($router[0],DEFAULT_ACTION);
+				$router=array(strtolower($router[0]),DEFAULT_ACTION);
 			}
 			else
 			{
@@ -114,6 +114,7 @@ final class App
 			{
 				return self::Error(404,'Request Action '.$router[0].'=>'.$router[1].' Error ! ');
 			}
+			$router[0]=strtolower($router[0]);
 		}
 		return $router;
 	}
@@ -537,7 +538,7 @@ final class App
 function M($model,$param=null)
 {
 	$arr=explode('/',$model);
-	$m=ucfirst(end($arr));
+	$m=end($arr);
 	$GLOBALS['APP']['model'][$m]=isset($GLOBALS['APP']['model'][$m])?$GLOBALS['APP']['model'][$m]:$m;
 	if($GLOBALS['APP']['model'][$m] instanceof $m)
 	{
@@ -563,7 +564,7 @@ function M($model,$param=null)
 function S($lib,$param=null)
 {
 	$arr=explode('/',$lib);
-	$l=ucfirst(end($arr));
+	$l=end($arr);
 	$GLOBALS['APP']['lib'][$l]=isset($GLOBALS['APP']['lib'][$l])?$GLOBALS['APP']['lib'][$l]:$l;
 	if($GLOBALS['APP']['lib'][$l] instanceof $l)
 	{
