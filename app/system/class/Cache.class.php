@@ -7,7 +7,7 @@
 * @link http://blog.suconghou.cn
 * @version V1.21
 */
-class cache
+class Cache
 {
 	const memcacheServer='127.0.0.1';
 	const memcachePort=11211;

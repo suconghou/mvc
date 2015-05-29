@@ -4,7 +4,7 @@
 /**
 * 
 */
-class yinyuetai
+class Yinyuetai
 {
 	private static $content;
 

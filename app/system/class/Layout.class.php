@@ -9,7 +9,7 @@
 * layout::easyPost(1) 显示第一篇文章
 *
 */
-class layout
+class Layout
 {
 	// 数据库 字段映射,一个表一个数组,数组第一个表名,以后为各个字段与数组的映射,修改键值以匹配数据库
 	private static $post=array('wp_posts','id'=>'id','title'=>'post_title','content'=>'post_content','views'=>'comment_count','time'=>'time'); 

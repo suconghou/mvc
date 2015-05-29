@@ -9,7 +9,7 @@
 * $cache true 检测缓存,false 不使用缓存 其他不使用缓存并且删除以前的缓存
 * 建议开启http缓存使用 C(60); 缓存1个小时
 */
-class image 
+class Image 
 {
     const dict='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'; //产生验证码的字典
     private static $cachePath=CACHE_PATH; //缓存路径

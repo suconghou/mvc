@@ -537,7 +537,7 @@ final class App
 function M($model,$param=null)
 {
 	$arr=explode('/',$model);
-	$m=end($arr);
+	$m=ucfirst(end($arr));
 	$GLOBALS['APP']['model'][$m]=isset($GLOBALS['APP']['model'][$m])?$GLOBALS['APP']['model'][$m]:$m;
 	if($GLOBALS['APP']['model'][$m] instanceof $m)
 	{
@@ -563,7 +563,7 @@ function M($model,$param=null)
 function S($lib,$param=null)
 {
 	$arr=explode('/',$lib);
-	$l=end($arr);
+	$l=ucfirst(end($arr));
 	$GLOBALS['APP']['lib'][$l]=isset($GLOBALS['APP']['lib'][$l])?$GLOBALS['APP']['lib'][$l]:$l;
 	if($GLOBALS['APP']['lib'][$l] instanceof $l)
 	{

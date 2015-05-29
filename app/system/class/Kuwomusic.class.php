@@ -8,7 +8,7 @@
 * $url=='404'||redirect($url);
 */
 
-class kuwoMusic 
+class KuwoMusic 
 {
 	static $q=null;//搜索词
 	static $type='aac|mp3';///默认搜索的类型

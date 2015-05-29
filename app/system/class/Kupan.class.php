@@ -4,7 +4,7 @@
 /**
 * 酷盘api
 */
-class kupan 
+class Kupan 
 {
 
   static $client_id='4ca2c199a24ec9a3415f586c77dc04d*';

@@ -2,7 +2,7 @@
 /**
 * long polling for ajax and event 
 */
-class polling
+class Polling
 {
 	private static $events;
 	private static $timeout;

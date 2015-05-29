@@ -13,7 +13,7 @@
 * $curl->post($url,$post_data);
 * $b=$curl->add($url)->fetch('img');img/src/url/href/或者自定义正则
 */
-class curl 
+class Curl 
 {
     private $mh;
     private $ch;

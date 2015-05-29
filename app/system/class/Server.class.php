@@ -8,7 +8,7 @@
 * 
 * 
 */
-class server
+class Server
 {
 
 	private static $serverInfo;

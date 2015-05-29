@@ -5,7 +5,7 @@
 * $backup->dbBackup();  //返回数据库备份的内容
 * $backup->dataBackup(); //返回备份好的压缩包文件所在位置
 */
-class backup
+class Backup
 {
 	private static $dbConfig; //数据库设置,包含DB_HOST,DB_PORT,DB_NAME,DB_USER,DB_PASS
 	private static $dataConfig; //备份名称,备份的目录,文件备份模式(1仅本地存储,2仅云端存储,3同时存储)

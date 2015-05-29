@@ -3,7 +3,7 @@
 /**
 * 
 */
-class youku 
+class Youku 
 {
 	
 	function __construct()

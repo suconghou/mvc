@@ -2,7 +2,7 @@
 /**
 * FTP类
 */
-class ftp
+class Ftp
 {
     private static $host;
     private static $port=21;

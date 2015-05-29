@@ -8,7 +8,7 @@
 *  S('class/baidu')->init()->getSongLink
 *  S('class/baidu')->getSongById()
 */
-class baidu
+class Baidu
 {
 
 	private static $data;

@@ -19,7 +19,7 @@
 * @blog http://blog.suconghou.cn
 * 
 */
-class uploader
+class Uploader
 {
 	private static $saeServer='http://suconghou.sinaapp.com/'; //SAE文件存储接口基地址,上传接口upload ,详情见sae_storage.class.php
 	private static $kupanKeyServer='http://api.suconghou.cn/kupan/key/susu'; //存储到酷盘时用到的密钥,见kupan.classs.php 私人存储,勿扰
