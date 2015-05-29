@@ -9,7 +9,7 @@
 /**
 * APP 主要控制类
 */
-final class app
+final class App
 {
 	private static $global;
 	/**
@@ -229,7 +229,7 @@ final class app
 			$path=VAR_PATH.'log'.DIRECTORY_SEPARATOR.date('Y-m-d').'.log';
 			$msg=strtoupper($type).'-'.date('Y-m-d H:i:s').' ==> '.(is_array($msg)?var_export($msg,true):$msg).PHP_EOL;
 			//error消息和开发模式,测试模式全部记录
-			if(strtoupper($type)=='ERROR'||DEBUG)
+			if(DEBUG or strtoupper($type)=='ERROR')
 			{
 				error_log($msg,3,$path);
 			}
@@ -354,11 +354,7 @@ final class app
 	{
 		try
 		{
-			if(!$file=self::get('sys-filecache'))
-			{
-				$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT);
-				self::set('sys-filecache',$file);
-			}
+			$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT);
 			if(is_file($file))
 			{
 				$data=unserialize(file_get_contents($file));
@@ -376,11 +372,7 @@ final class app
 	{
 		try
 		{
-			if(!$file=self::get('sys-filecache'))
-			{
-				$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT);
-				self::set('sys-filecache',$file);
-			}
+			$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT);
 			if(is_file($file))
 			{
 				$data=unserialize(file_get_contents($file));
@@ -398,11 +390,7 @@ final class app
 	{
 		try
 		{
-			if(!$file=self::get('sys-filecache'))
-			{
-				$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT);
-				self::set('sys-filecache',$file);
-			}
+			$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT);
 			if(is_null($key))
 			{
 				return is_file($file)&&unlink($file);
@@ -470,7 +458,7 @@ final class app
 		}
 		app::log($errormsg,'ERROR');
 		defined('STDIN')||(app::get('sys-error')&&exit('Error Found In Error Handler'))||(http_response_code($code)&&app::set('sys-error',true));
-		if(!DEBUG&&defined('ERROR_PAGE_404')&&defined('ERROR_PAGE_500')&&ERROR_PAGE_404&&ERROR_PAGE_500) //线上模式且自定义了404和500
+		if(!DEBUG&&defined('ERROR_PAGE_404')&&defined('ERROR_PAGE_500')) //线上模式且自定义了404和500
 		{
 			if(isset($GLOBALS['APP']['router'][0])&&is_file(CONTROLLER_PATH.$GLOBALS['APP']['router'][0].'.php'))
 			{
@@ -888,7 +876,7 @@ class Request
 			$allowed[]=is_int($key)?$value:$key;
 		}
 		$post=self::cleanData($_POST,$allowed,$clean);
-		return Validate::Rule($rule,$post,$callback);
+		return Validate::rule($rule,$post,$callback);
 	}
 	public static function filterGet($rule,$callback=null,$clean=false)
 	{
@@ -897,7 +885,7 @@ class Request
 			$allowed[]=is_int($key)?$value:$key;
 		}
 		$get=self::cleanData($_GET,$allowed,$clean);
-		return Validate::Rule($rule,$get,$callback);
+		return Validate::rule($rule,$get,$callback);
 	}
 	private static function cleanData($input,$allowed,$clean=false)
 	{
@@ -987,7 +975,7 @@ class Request
 */
 class Validate
 {
-	public static function Rule($rule,$data,$callback=null)
+	public static function rule($rule,$data,$callback=null)
 	{
 		try
 		{
@@ -1390,7 +1378,7 @@ function session($key,$val=null,$delete=false)
 			$res=array();
 			foreach ($key as  $k)
 			{
-				$res[$k]=Request::session($k);
+				$res[$k]=isset($_SESSION[$k])?$_SESSION[$k]:null;
 			}
 			return $res;
 		}
@@ -1400,7 +1388,7 @@ function session($key,$val=null,$delete=false)
 		}
 		else
 		{
-			return Request::session($key);
+			return isset($_SESSION[$k])?$_SESSION[$k]:null;
 		}
 	}
 	else
@@ -1416,7 +1404,7 @@ function cookie($key,$val=null,$expire=0)
 		if(is_array($key))
 		{
 			$res=array();
-			foreach ($$key as $k)
+			foreach ($key as $k)
 			{
 				$res[$k]=isset($_COOKIE[$key])?$_COOKIE[$key]:null;
 			}
@@ -1491,7 +1479,7 @@ function csrf_token($check=false)
 	{
 		if(!(isset($_REQUEST['_token']) && $_REQUEST['_token'] === $token))
 		{
-			return app::Error(500,'Csrf Token Not Match ! ');
+			return app::Error(404,'Csrf Token Not Match ! ');
 		}
 	}
 	else
@@ -1562,7 +1550,6 @@ function sendMail($mailTo, $mailSubject, $mailMessage)
 			{
 				throw new Exception("AUTH LOGIN - ".$lastmessage, 6);
 			}
-
 		}
 		fputs($fp, "MAIL FROM: <".preg_replace("/.*\<(.+?)\>.*/", "\\1", MAIL_USERNAME).">\r\n");
 		$lastmessage = fgets($fp, 512);
