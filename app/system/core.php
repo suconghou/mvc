@@ -1456,7 +1456,7 @@ function baseUrl($path=null)
 		$protocol=(isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) != 'off')) ? "https" : "http";
 		$host=isset($_SERVER['HTTP_HOST'])?$_SERVER['HTTP_HOST']:'';
 		$path=is_null($path)?null:(is_bool($path)?($path?$_SERVER['REQUEST_URI']:'/'.implode('/',$GLOBALS['APP']['router'])):'/'.ltrim($path,'/'));
-		return "{$protocol}://{$host}".$path;
+		return "{$protocol}://{$host}{$path}";
 	}
 }
 function encrypt($input,$key=null)

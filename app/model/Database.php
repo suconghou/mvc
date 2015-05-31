@@ -34,10 +34,8 @@
 *  $db->selectWhere() $db->getList() $db->count() 取得的缓存不能手动删除只能过期失效
 *  $db->deleteById() $db->updateById() $db->deleteWhere() $db->updateWhere() 会自动判断删除缓存,保持数据一致
 *  
-*
-*  该类只提供继承,不能直接实例化
 */
-abstract class Database extends DB
+class Database extends DB
 {
 	private  $orm;
 	private static $cache;
