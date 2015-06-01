@@ -542,7 +542,7 @@ class Database extends DB
 	/**
 	 * 获得某个表的某条件下按某字段排序的指定页的SELECT内容以及该条件下的总页数,缓存只能过期自动删除
 	 */
-	function getList($table,$page=1,$where=null,$column='id',$order='desc',$per=20,$selectcolumn='*')
+	function getList($table,$page=1,$where=null,$orderby='id desc',$per=20,$selectcolumn='*')
 	{
 		$offset=max(0,($page-1)*$per);
 		if($where)
@@ -562,7 +562,7 @@ class Database extends DB
 			{
 				$strk=$where;
 			}
-			$l="SELECT {$selectcolumn} FROM `{$table}` WHERE  ({$strk})  ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
+			$l="SELECT {$selectcolumn} FROM `{$table}` WHERE  ({$strk})  ORDER BY {$orderby} LIMIT {$offset},{$per} ";
 			$p="SELECT COUNT(1) FROM `{$table}` WHERE  ({$strk})  ";
 			if(self::$use)
 			{
@@ -587,7 +587,7 @@ class Database extends DB
 		}
 		else
 		{
-			$l="SELECT {$selectcolumn} FROM `{$table}` ORDER BY {$column} {$order} LIMIT {$offset},{$per} ";
+			$l="SELECT {$selectcolumn} FROM `{$table}` ORDER BY {$orderby} LIMIT {$offset},{$per} ";
 			$p="SELECT COUNT(1) FROM `{$table}` ";
 			if(self::$use)
 			{

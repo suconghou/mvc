@@ -9,9 +9,8 @@ define('VIEW_PATH',APP_PATH.'view'.DIRECTORY_SEPARATOR);//视图路径
 define('CONTROLLER_PATH',APP_PATH.'controller'.DIRECTORY_SEPARATOR); //控制器路径
 require LIB_PATH.'core.php';//载入核心
 
-define('GZIP',1);  //是否开启GZIP,在SAE若出错请关闭
+define('GZIP',0);  //是否开启GZIP,在SAE若出错请关闭
 define('MAX_URL_LENGTH',100); //URL最大长度限制
-define('REGEX_ROUTER',1);  //是否启用正则路由
 
 //自定义404,500路由,若设定请确保必须存在,系统定义Error404,Error500
 define('ERROR_PAGE_404','Error404');

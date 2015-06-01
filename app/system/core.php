@@ -599,13 +599,13 @@ function S($lib,$param=null)
 	}
 }
 //加载视图,传递参数,设置缓存
-function V($_v_,$_data_=array(),$fileCacheMinute=0)
+function V($v,$_data_=array(),$fileCacheMinute=0)
 {
 	if(defined('APP_TIME_SPEND'))
 	{
-		return template($_v_,$_data_);
+		return template($v,$_data_);
 	}
-	if((is_file($_v_=VIEW_PATH.$_v_.'.php'))||(is_file($_v_=VIEW_PATH.$_v_)))
+	if((is_file($_v_=VIEW_PATH.$v.'.php'))||(is_file($_v_=VIEW_PATH.$v)))
 	{
 		if($fileCacheMinute||(is_int($_data_)&&($_data_>0)))
 		{
