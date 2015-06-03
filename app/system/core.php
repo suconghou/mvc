@@ -270,72 +270,44 @@ final class App
 	}
 	/**
 	 * 异步(非阻塞)运行一个路由
-	 * php-fpm下运行回调,其他申明了回调使用curl,否则使用socket
 	 */
 	public static function async($router=null,$callback=false)
 	{
-		if(function_exists('fastcgi_finish_request') and fastcgi_finish_request())
+		if( (function_exists('fastcgi_finish_request')&&fastcgi_finish_request()) or (defined('STDIN')&&defined('STDOUT')) )
 		{
-			if(is_array($router))
-			{
-				$data=self::run($router);
-			}
-			else if(filter_var($router, FILTER_VALIDATE_URL))
-			{
-				$data=file_get_contents($router);
-			}
-			else
-			{
-				$data=$router;
-			}
+			$data=is_array($router)?self::run($router):file_get_contents($router);
 		}
 		else
 		{
 			$url=is_array($router)?baseUrl(implode('/', $router)):$router;
-			if(filter_var($url, FILTER_VALIDATE_URL))
+			if(extension_loaded('curl'))
 			{
-				if(function_exists('curl_init'))
+				$ch = curl_init();
+				$curlOpt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT_MS=>1,CURLOPT_NOSIGNAL=>1, CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
+				curl_setopt_array($ch, $curlOpt);
+				curl_exec($ch);
+				curl_close($ch);
+				$data=true;
+			}
+			else
+			{
+				$parts = parse_url($url);
+				$parts['path']=isset($parts['path'])?$parts['path']:'/';
+				$parts['port']=isset($parts['port']) ? $parts['port'] : 80;
+				$parts['query']=isset($parts['query'])?$parts['path'].'?'.$parts['query']:$parts['path'];
+				$fp = fsockopen($parts['host'],$parts['port'],$errno, $errstr,3);
+				if($fp)
 				{
-					$ch = curl_init();
-					$curlOpt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT_MS=>1,CURLOPT_NOSIGNAL=>1, CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
-					curl_setopt_array($ch, $curlOpt);
-					curl_exec($ch);
-					curl_close($ch);
+					stream_set_blocking($fp,0);
+					$out = 'GET '.$parts['query']." HTTP/1.1\r\nHost: ".$parts['host']."\r\nConnection: Close\r\n\r\n";
+					fwrite($fp, $out);
+					fclose($fp);
 					$data=true;
 				}
 				else
 				{
-					$parts = parse_url($url);
-					$parts['path']=isset($parts['path'])?$parts['path']:'/';
-					$parts['port']=isset($parts['port']) ? $parts['port'] : 80;
-					$parts['query']=isset($parts['query'])?$parts['path'].'?'.$parts['query']:$parts['path'];
-					$fp=false;
-					if(function_exists('stream_socket_client'))
-					{
-						$fp = stream_socket_client($parts['host'].':'.$parts['port'], $errno, $errstr,3);
-					}
-					else if(function_exists('fsockopen'))
-					{
-						$fp = fsockopen($parts['host'],$parts['port'],$errno, $errstr,3);
-					}
-					if($fp)
-					{
-						stream_set_blocking($fp,0);
-						$out = 'GET '.$parts['query']." HTTP/1.1\r\nHost: ".$parts['host']."\r\nConnection: Close\r\n\r\n";
-						fwrite($fp, $out);
-						fclose($fp);
-						$data=true;
-					}
-					else
-					{
-						$data=false;
-					}
+					$data=false;
 				}
-			
-			}
-			else
-			{
-				$data=$router;
 			}
 		}
 		return is_callable($callback)?$callback($data):$data;
