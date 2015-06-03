@@ -228,7 +228,7 @@ final class App
 		if(is_writable(VAR_PATH.'log'))
 		{
 			$path=VAR_PATH.'log'.DIRECTORY_SEPARATOR.date('Y-m-d').'.log';
-			$msg=strtoupper($type).'-'.date('Y-m-d H:i:s').' ==> '.(is_array($msg)?var_export($msg,true):$msg).PHP_EOL;
+			$msg=strtoupper($type).'-'.date('Y-m-d H:i:s').' ==> '.(is_scalar($msg)?$msg:PHP_EOL.print_r($msg,true)).PHP_EOL;
 			//error消息和开发模式,测试模式全部记录
 			if(DEBUG or strtoupper($type)=='ERROR')
 			{
@@ -272,49 +272,73 @@ final class App
 	 * 异步(非阻塞)运行一个路由
 	 * php-fpm下运行回调,其他申明了回调使用curl,否则使用socket
 	 */
-	public static function async($router,$callback=false)
+	public static function async($router=null,$callback=false)
 	{
-		$router=is_array($router)?implode('/', $router):$router;
-		$url=filter_var($router, FILTER_VALIDATE_URL)?$router:baseUrl($router);
-		if(function_exists('fastcgi_finish_request'))
+		if(function_exists('fastcgi_finish_request') and fastcgi_finish_request())
 		{
-			fastcgi_finish_request();
-			return is_callable($callback)?$callback(file_get_contents($url),$url):file_get_contents($url);
-		}
-		if($callback===false)
-		{
-			$parts = parse_url($url);
-			$parts['path']=isset($parts['path'])?$parts['path']:'/';
-			$parts['port']=isset($parts['port']) ? $parts['port'] : 80;
-			$parts['query']=isset($parts['query'])?$parts['path'].'?'.$parts['query']:$parts['path'];
-			if(function_exists('stream_socket_client'))
+			if(is_array($router))
 			{
-				$callback = stream_socket_client($parts['host'].':'.$parts['port'], $errno, $errstr,3);
+				$data=self::run($router);
 			}
-			else if(function_exists('fsockopen'))
+			else if(filter_var($router, FILTER_VALIDATE_URL))
 			{
-				$callback = fsockopen($parts['host'],$parts['port'],$errno, $errstr,3);
+				$data=file_get_contents($router);
 			}
-			if($callback)
+			else
 			{
-				stream_set_blocking($callback,0);
-				$out = 'GET '.$parts['query']." HTTP/1.1\r\nHost: ".$parts['host']."\r\nConnection: Close\r\n\r\n";
-				fwrite($callback, $out);
-				flush();
-				fclose($callback);
-				return true;
+				$data=$router;
 			}
-			return false;
 		}
 		else
 		{
-			$ch = curl_init();
-			$curlOpt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT_MS=>1,CURLOPT_NOSIGNAL=>1, CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
-			curl_setopt_array($ch, $curlOpt);
-			curl_exec($ch);
-			curl_close($ch);
-			return true;
+			$url=is_array($router)?baseUrl(implode('/', $router)):$router;
+			if(filter_var($url, FILTER_VALIDATE_URL))
+			{
+				if(function_exists('curl_init'))
+				{
+					$ch = curl_init();
+					$curlOpt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT_MS=>1,CURLOPT_NOSIGNAL=>1, CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
+					curl_setopt_array($ch, $curlOpt);
+					curl_exec($ch);
+					curl_close($ch);
+					$data=true;
+				}
+				else
+				{
+					$parts = parse_url($url);
+					$parts['path']=isset($parts['path'])?$parts['path']:'/';
+					$parts['port']=isset($parts['port']) ? $parts['port'] : 80;
+					$parts['query']=isset($parts['query'])?$parts['path'].'?'.$parts['query']:$parts['path'];
+					$fp=false;
+					if(function_exists('stream_socket_client'))
+					{
+						$fp = stream_socket_client($parts['host'].':'.$parts['port'], $errno, $errstr,3);
+					}
+					else if(function_exists('fsockopen'))
+					{
+						$fp = fsockopen($parts['host'],$parts['port'],$errno, $errstr,3);
+					}
+					if($fp)
+					{
+						stream_set_blocking($fp,0);
+						$out = 'GET '.$parts['query']." HTTP/1.1\r\nHost: ".$parts['host']."\r\nConnection: Close\r\n\r\n";
+						fwrite($fp, $out);
+						fclose($fp);
+						$data=true;
+					}
+					else
+					{
+						$data=false;
+					}
+				}
+			
+			}
+			else
+			{
+				$data=$router;
+			}
 		}
+		return is_callable($callback)?$callback($data):$data;
 	}
 	/**
 	 * 计算缓存位置,或删除缓存,传入路由数组或路由字符串
