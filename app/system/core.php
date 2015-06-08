@@ -1422,7 +1422,7 @@ function json($data,$callback=null)
 {
 	is_array($data)||parse_str($data,$data);
 	$data=json_encode($data);
-	if($callback&&(is_string($callback)||$callback=Request::get('jsoncallback')))
+	if($callback&&(is_string($callback)||$callback=Request::get('callback')))
 	{
 		exit($callback."(".$data.")");
 	}
