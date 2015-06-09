@@ -836,7 +836,7 @@ class Request
 	}
 	public static function isPost()
 	{
-		return isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'post';
+		return isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST';
 	}
 	public static function isRobot()
 	{
@@ -1385,7 +1385,7 @@ function session($key,$val=null,$delete=false)
 		}
 		else
 		{
-			return isset($_SESSION[$k])?$_SESSION[$k]:null;
+			return isset($_SESSION[$key])?$_SESSION[$key]:null;
 		}
 	}
 	else
