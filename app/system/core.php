@@ -486,31 +486,16 @@ final class App
 			$trace=debug_backtrace();
 			$i=count($trace)-1;
 			$li=null;
-			while($i>=0)
+			while($i-->=0)
 			{
-				if(!isset($trace[$i]['file']))
+				if(isset($trace[$i]['file']))
 				{
-					$i--;	continue;
+					$trace[$i]['class']=isset($trace[$i]['class'])?$trace[$i]['class']:null;
+					$trace[$i]['type']=isset($trace[$i]['type'])?$trace[$i]['type']:null;
+					$li.=$trace[$i]['file'].'=>'.$trace[$i]['class'].$trace[$i]['type'].$trace[$i]['function'].'() on line '.$trace[$i]['line'].$ln;
 				}
-				$trace[$i]['class']=isset($trace[$i]['class'])?$trace[$i]['class']:null;
-				$trace[$i]['type']=isset($trace[$i]['type'])?$trace[$i]['type']:null;
-				$li.=$trace[$i]['file'].'=>'.$trace[$i]['class'].$trace[$i]['type'].$trace[$i]['function'].'() on line '.$trace[$i]['line'].$ln;
-				$i--;
 			}
-			if(defined('STDIN'))
-			{
-				echo $errormsg,PHP_EOL,$li;
-				$errfile||exit;
-			}
-			else
-			{
-				if(!DEBUG)
-				{
-					$errormsg="Oops ! Something Error,Error Code:{$errno}";
-					$li="See the log for more information ! {$ln}";
-				}
-				exit("<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;'><p>{$errormsg}{$ln}{$li}</p></div>");
-			}
+			echo defined('STDIN')?($errfile?$errormsg.PHP_EOL.$li:exit($errormsg.PHP_EOL.$li)):exit(DEBUG?"<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;'><p>{$errormsg}{$ln}{$li}</p></div>":"<title>Error..</title><center><span style='font-size:300px;color:gray;font-family:黑体'>{$code}...</span></center>");
 		}
 
 	}
