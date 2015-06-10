@@ -18,7 +18,7 @@ class Site
 		{
 			$this->php53overWriteRouter();
 		}
-		self::$db=new mydb();
+		self::$db=new SiteDb();
 	}
 
 	/**
@@ -41,7 +41,6 @@ class Site
 	{
 		$self=$this;
 		app::route('\/?',function() use($self){
-			// echo "Single File Site in php5.3+";
 			$self->index();
 		});
 		app::route('\/post\/(\d+)\.html',function($id) use($self){
@@ -57,7 +56,7 @@ class Site
 	function post($id)
 	{
 		exit($id);
-		V('view_post',self::$db->getPost($id));
+		return V('view_post',self::$db->getPost($id));
 	}
 
 
@@ -70,7 +69,7 @@ class Site
 * db是最基础的数据库操作类,在框架核心内声明
 * database继承于db,然后又添加通用方法,增强,存放于app/model/下
 */
-class mydb extends database
+class SiteDb extends Database
 {
 	const postTable='post';
 
