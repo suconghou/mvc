@@ -59,7 +59,7 @@ final class App
 					$phar->startBuffering();
 					$phar->buildFromDirectory(ROOT,'/\.php$/');
 					$phar->stopBuffering();
-					return ("Files:{$p->count()}".PHP_EOL."Stored in:".$path.PHP_EOL);
+					return ("Files:{$phar->count()}".PHP_EOL."Stored in:".$path.PHP_EOL);
 				}
 				catch(Exception $e)
 				{
