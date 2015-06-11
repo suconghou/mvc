@@ -488,20 +488,15 @@ final class App
 		}
 		else
 		{
-			$ln=defined('STDIN')?PHP_EOL:'</p><p>';
-			$trace=debug_backtrace();
-			$i=count($trace)-1;
-			$li=null;
-			while($i-->=0)
+			foreach(debug_backtrace() as $trace)
 			{
-				if(isset($trace[$i]['file']))
+				if(isset($trace['file'],$trace['type']))
 				{
-					$trace[$i]['class']=isset($trace[$i]['class'])?$trace[$i]['class']:null;
-					$trace[$i]['type']=isset($trace[$i]['type'])?$trace[$i]['type']:null;
-					$li.=$trace[$i]['file'].'=>'.$trace[$i]['class'].$trace[$i]['type'].$trace[$i]['function'].'() on line '.$trace[$i]['line'].$ln;
+					$li[]=$trace['file'].'=>'.$trace['class'].$trace['type'].$trace['function'].'() on line '.$trace['line'];
 				}
 			}
-			echo defined('STDIN')?($errfile?$errormsg.PHP_EOL.$li:exit($errormsg.PHP_EOL.$li)):exit(DEBUG?"<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;'><p>{$errormsg}{$ln}{$li}</p></div>":"<title>Error..</title><center><span style='font-size:300px;color:gray;font-family:黑体'>{$code}...</span></center>");
+			$li=implode(defined('STDIN')?PHP_EOL:'</p><p>',array_reverse($li));
+			echo defined('STDIN')?($errfile?$errormsg.PHP_EOL.$li:exit($errormsg.PHP_EOL.$li)):exit(DEBUG?"<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;'><p>{$errormsg}</p><p>{$li}</p></div>":"<title>Error..</title><center><span style='font-size:300px;color:gray;font-family:黑体'>{$code}...</span></center>");
 		}
 
 	}
