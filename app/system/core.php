@@ -51,14 +51,20 @@ final class App
 			}
 			else
 			{
-				ini_get("phar.readonly") and exit('Please set phar.readonly Off in php.ini'.PHP_EOL);
-				$path=ROOT.rtrim($script,'php').'phar';
-				(is_file($path))&&unlink($path);
-				$p=new Phar($path,FilesystemIterator::CURRENT_AS_FILEINFO | FilesystemIterator::KEY_AS_FILENAME,'app.phar');
-				$p->startBuffering();
-				$p->buildFromDirectory(ROOT,'/\.php$/');
-				$p->stopBuffering();
-				return ("Files:{$p->count()}".PHP_EOL."Stored in:".$path.PHP_EOL);
+				try
+				{
+					$path=ROOT.rtrim($script,'php').'phar';
+					(is_file($path))&&unlink($path);
+					$phar=new Phar($path);
+					$phar->startBuffering();
+					$phar->buildFromDirectory(ROOT,'/\.php$/');
+					$phar->stopBuffering();
+					return ("Files:{$p->count()}".PHP_EOL."Stored in:".$path.PHP_EOL);
+				}
+				catch(Exception $e)
+				{
+					return $e->getMessage();
+				}
 			}
 		}
 	}
