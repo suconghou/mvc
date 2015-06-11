@@ -13,7 +13,7 @@ class Faster
 	}
 	function add($fun)
 	{
-		$id=uniqid();
+		$id=uniqid().rand(100,999);
 		self::$event[$id]=$fun;
 		return $this;
 	}
