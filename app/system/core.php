@@ -9,7 +9,7 @@
 /**
 * APP 主要控制类
 */
-final class App
+class App
 {
 	private static $global;
 	/**
@@ -170,7 +170,7 @@ final class App
 
 	}
 	/**
-	 * 内部转向,可以指定一个方法,控制器保持原有的
+	 * 内部转向,转到其他控制器的方法执行,可传递参数,捕获返回
 	 */
 	public static function run($router)
 	{
