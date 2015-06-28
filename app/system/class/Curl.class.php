@@ -5,16 +5,12 @@
 * @author suconghou <suconghou@126.com>
 * @version v1.3 <2014.7.19>
 * @link http://blog.suconghou.cn
-* $a=$curl->quick_exec($url);
-* add 第一个参数网址数组，第二个header，第三个nobody，第四个超时时间
-* 默认返回正文，超时10秒
-* $a=$curl->add($url_arr,1,0)->add($url_arr2)->exec();
+* $a=$curl::post($url,$data);
 * $a=$curl->add($url)->exec();
-* $curl->post($url,$post_data);
 * $b=$curl->add($url)->fetch('img');img/src/url/href/或者自定义正则
 * 
 * 
-* http请求,GET,POST,PUT,DELETE
+* http请求,GET,POST,PUT,DELETE,HEAD
 * 发送文件,多线程并发抓取
 * 
 * 
@@ -43,7 +39,7 @@ class Curl
 		return self::http_get_contents($url,$timeout);
 	}
 	
-	public static function post($url,$data,$timeout=10)
+	public static function post($url,$data=array(),$timeout=10)
 	{
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
@@ -70,7 +66,7 @@ class Curl
 		
 	}
 	
-	public static function delete($url,$data,$timeout=10)
+	public static function delete($url,$data=array(),$timeout=10)
 	{
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
@@ -118,7 +114,7 @@ class Curl
 		return $result;
 	}
 	
-	public static function http_post_contents($url,$data,$timeout=10)
+	public static function http_post_contents($url,$data=array(),$timeout=10)
 	{
 		$header='';
 		foreach(self::$headers as $key=>$val)
