@@ -1163,9 +1163,9 @@ class DB extends PDO
 		{
 			$dbType=defined('DB')&&DB?true:false;
 		}
-		if($dbType)//使用sqlite
+		if(!self::$pdo)
 		{
-			if(self::$pdo==null)
+			if($dbType)
 			{
 				try
 				{
@@ -1179,10 +1179,7 @@ class DB extends PDO
 					return app::Error(500,'Open Sqlite Database Error ! '.$e->getMessage());
 				}
 			}
-		}
-		else///使用mysql
-		{
-			if(self::$pdo==null)
+			else
 			{
 				$dsn='mysql:host='.DB_HOST.';dbname='.DB_NAME.';port='.DB_PORT.';charset=UTF8';
 				try
