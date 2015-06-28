@@ -91,6 +91,21 @@ class Curl
 		}
 		return false;
 	}
+	
+	public static function header($url,$timeout=3)
+	{
+		$ch=self::initCurl($url,$timeout);
+		if($ch)
+		{
+			curl_setopt_array($ch,array(CURLOPT_HEADER=>1,CURLOPT_NOBODY=>1));
+			curl_exec($ch);
+			$info=curl_getinfo($ch);
+			curl_close($ch);
+			return $info;
+		}
+		return false;
+	}
+	
 	/**
 	 * CURL 发送文件
 	 * $data = array("username" => $username,"password"  => $password,"file"  => "@".realpath("1.jpg") );
