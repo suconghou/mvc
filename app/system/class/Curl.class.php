@@ -98,8 +98,17 @@ class Curl
 		if($ch)
 		{
 			curl_setopt_array($ch,array(CURLOPT_HEADER=>1,CURLOPT_NOBODY=>1));
-			curl_exec($ch);
+			$header=explode(PHP_EOL,curl_exec($ch));
 			$info=curl_getinfo($ch);
+			foreach ($header as $item)
+			{
+				$params=explode(': ',$item);
+				if(count($params)==2)
+				{
+					list($k,$v)=$params;
+					$info[$k]=$v;
+				}
+			}
 			curl_close($ch);
 			return $info;
 		}
@@ -163,8 +172,6 @@ class Curl
 	
 	///////////////////////////// 多线程请求 /////////////////////////
 	
-	//增加一个/组请求
-	//url为array
 	function add($url,$header=0,$nobody=0,$timeout=10)
 	{
 		$this->mh=$this->mh?$this->mh:curl_multi_init();
