@@ -12,153 +12,190 @@
 * $a=$curl->add($url)->exec();
 * $curl->post($url,$post_data);
 * $b=$curl->add($url)->fetch('img');img/src/url/href/或者自定义正则
+* 
+* 
+* http请求,GET,POST,PUT,DELETE
+* 发送文件,多线程并发抓取
+* 
+* 
 */
 class Curl 
 {
 	private $mh;
-	private $ch;
+	private $ch=array();
+	
+	private static $headers=array(
+								'Referer'=>'http://www.baidu.com',
+								'User-Agent'=>'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36',
+								'Accept'=>'*/*'
+							);
 
-	function __construct()
+	
+	public static function get($url,$timeout=3)
 	{
-		 $this->mh=curl_multi_init();//创建批处理cURL句柄
+		$ch=self::initCurl($url,$timeout);
+		if($ch)
+		{
+			$result=curl_exec($ch);
+			curl_close($ch);
+			return $result;
+		}
+		return self::http_get_contents($url,$timeout);
 	}
+	
+	public static function post($url,$data,$timeout=10)
+	{
+		$ch=self::initCurl($url,$timeout);
+		if($ch)
+		{
+			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($data)?http_build_query($data):$data));
+			$result=curl_exec($ch);
+			curl_close($ch);
+			return $result;
+		}
+		return self::http_post_contents($url,$data,$timeout);
+	}
+	
+	public static function put($url,$data=array(),$timeout=10)
+	{
+		$ch=self::initCurl($url,$timeout);
+		if($ch)
+		{
+			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($data)?http_build_query($data):$data,CURLOPT_CUSTOMREQUEST=>'put'));
+			$result=curl_exec($ch);
+			curl_close($ch);
+			return $result;
+		}
+		return false;
+		
+	}
+	
+	public static function delete($url,$data,$timeout=10)
+	{
+		$ch=self::initCurl($url,$timeout);
+		if($ch)
+		{
+			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($data)?http_build_query($data):$data,CURLOPT_CUSTOMREQUEST=>'delete'));
+			$result=curl_exec($ch);
+			curl_close($ch);
+			return $result;
+		}
+		return false;
+	}
+	
+	public static function head($url,$timeout=3)
+	{
+		$ch=self::initCurl($url,$timeout);
+		if($ch)
+		{
+			curl_setopt_array($ch,array(CURLOPT_NOBODY=>true,CURLOPT_CUSTOMREQUEST=>'head'));
+			$result=curl_exec($ch);
+			curl_close($ch);
+			return $result;
+		}
+		return false;
+	}
+	/**
+	 * CURL 发送文件
+	 * $data = array("username" => $username,"password"  => $password,"file"  => "@".realpath("1.jpg") );
+	 */
+	public static function sendFile($url,$data,$timeout=10)
+	{
+		return self::post($url,$data,$timeout);
+	}
+	
+	
+	public static function http_get_contents($url,$timeout=3)
+	{
+		$header='';
+		foreach(self::$headers as $key=>$val)
+		{
+			$header.=$key.':'.$val.PHP_EOL;
+		}
+		$options = array('http' => array('method'=>'GET','timeout'=>$timeout,'header'=>$header));
+		$context = stream_context_create($options);
+		$result  = file_get_contents($url, false, $context);
+		return $result;
+	}
+	
+	public static function http_post_contents($url,$data,$timeout=10)
+	{
+		$header='';
+		foreach(self::$headers as $key=>$val)
+		{
+			$header.=$key.':'.$val.PHP_EOL;
+		}
+		$data=is_array($data)?http_build_query($data):$data;
+		$options = array('http' => array('method'=>'POST','timeout'=>$timeout,'header'=>$header,'content' => $data));
+		$context = stream_context_create($options);
+		$result  = file_get_contents($url, false, $context);
+		return $result;
+	}
+	
+	public static function setHeader($header)
+	{
+		self::$headers=array_merge(self::$headers,$header);
+		return self::$headers;
+	}
+	
+	private static function initCurl($url,$timeout=3)
+	{
+		if(extension_loaded('curl'))
+		{
+			$ch=curl_init($url);
+			curl_setopt_array($ch, array(CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
+			return $ch;
+		}
+		return false;
+	}
+	
+	
+	///////////////////////////// 多线程请求 /////////////////////////
+	
 	//增加一个/组请求
 	//url为array
-	function add($url,$header=0,$no_body=0,$timeout=10)
+	function add($url,$header=0,$nobody=0,$timeout=10)
 	{
-		if(is_null($this->mh))
+		$this->mh=$this->mh?$this->mh:curl_multi_init();
+		$url=is_array($url)?$url:array($url);
+		foreach($url as $k=>$u)
 		{
-			self::__construct();
-		}
-		if(is_array($url))
-		{
-			$url_array=$url;
-		}
-		else
-		{
-			$url_array=array($url);
-		}
-		foreach ($url_array as $key=>$value)
-		{  
-			$this->ch[$key]=curl_init();   
-			curl_setopt_array($this->ch[$key], array(CURLOPT_URL=>$value,CURLOPT_HEADER=>$header,CURLOPT_TIMEOUT=>$timeout,CURLOPT_NOBODY=>$no_body,CURLOPT_RETURNTRANSFER=>1));
-			curl_multi_add_handle($this->mh,$this->ch[$key]);
+			$ch=curl_init($u);
+			curl_setopt_array($ch,array(CURLOPT_NOBODY=>$nobody,CURLOPT_HEADER=>$header,CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
+			curl_multi_add_handle($this->mh,$ch);
+			$this->ch[$k]=$ch;
 		}
 		return $this;
 	}
 
 	///执行所有请求
-	function exec($one=null)
+	function exec($url=null)
 	{
-		if(!($this->mh&&$this->ch))return false;
+		$this->mh=$this->mh?$this->mh:curl_multi_init();
+		if($url)
+		{
+			$this->add($url);
+		}
 		$running=null;
 		do
 		{
 			curl_multi_exec($this->mh, $running);
 			curl_multi_select($this->mh);
 		}
-		while ($running > 0);
-		foreach ($this->ch as $key => $value)
+		while ($running>0);
+		foreach ($this->ch as $k=>$v)
 		{
-		   $result[$key]=curl_multi_getcontent($value);
-		   curl_multi_remove_handle($this->mh,$value);
-		   curl_close($value);
+		   $this->ch[$k]=curl_multi_getcontent($v);
+		   curl_multi_remove_handle($this->mh,$v);
+		   curl_close($v);
 		}
 		curl_multi_close($this->mh);
-		$this->mh=$this->ch=null;
-		if($one)
-		{
-			$out=null;
-			foreach ($result as $key => $value)
-			{
-				$out.=$value;
-			}
-			return $out;
-		}
-		else
-		{
-			return $result;             
-		}
-	}
-
-	//快速发起忽略返回值的并行请求
-	function quickExec($url)
-	{
-		if(!$this->mh)
-		{
-			$this->mh=curl_multi_init();
-		}
-		if(is_array($url))
-		{
-			$url_array=&$url;
-		}
-		else
-		{
-			$url_array=array($url);
-		}
-		foreach ($url_array as $key => $value)
-		{
-
-			$this->ch[$key]=curl_init();           
-			curl_setopt_array($this->ch[$key], array(CURLOPT_URL=>$value,CURLOPT_HEADER=>0,CURLOPT_TIMEOUT=>1,CURLOPT_NOBODY=>1));
-			curl_multi_add_handle($this->mh,$this->ch[$key]);
-		}
-		$running=null;
-		do
-		{
-			curl_multi_exec($this->mh,$running);
-		}
-		while($running > 0);
-		foreach ($this->ch as $key => $value)
-		{
-		   curl_multi_remove_handle($this->mh,$value);
-		   curl_close($value);
-		}
-		curl_multi_close($this->mh);
-		$this->mh=$this->ch=null;
-		return true;
-
-	}
-	/**
-	 * CURL 发起POST
-	 */
-	static function post($url,$post_string=null,$timeout=5)
-	{
-		$ch=curl_init();
-		curl_setopt_array($ch, array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>$timeout,
-			CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($post_string)?http_build_query($post_string):$post_string));
-		$result=curl_exec($ch);
-		curl_close($ch);
+		$result=implode('',$this->ch);
+		$this->mh=null;
+		$this->ch=array();
 		return $result;
 	}
-	/**
-	 * CURL 发起GET
-	 */
-	static function get($url,$timeout=5)
-	{
-		$ch=curl_init($url);
-		curl_setopt_array($ch, array(CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT=>$timeout, CURLOPT_RETURNTRANSFER=>1,CURLOPT_HEADER=>0));
-		$result=curl_exec($ch);
-		curl_close($ch);
-		return $result;
-	}
-	/**
-	 * CURL 发送文件
-	 * $data = array("username" => $username,"password"  => $password,"file"  => "@".realpath("1.jpg") );
-	 */
-	static function sendFile($url,$post_data,$timeout=20)
-	{
-		$curl = curl_init($url);
-		curl_setopt($curl, CURLOPT_POST, 1 );
-		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0 );
-		curl_setopt($curl, CURLOPT_POSTFIELDS,$post_data);
-		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-		curl_setopt($curl, CURLOPT_TIMEOUT, $timeout);
-		$result = curl_exec($curl);
-		$error = curl_error($curl);
-		return $error ? $error : $result;
 
-	}
 	/**
 	 * 内部规则 
 	 * img  提取 http://xxxx.jpg  图片全地址
@@ -168,19 +205,11 @@ class Curl
 	 */
 	function fetch($type,$url=null,$index=null)
 	{
-		if($url)
-		{
-			$res=$this->add($url)->exec(true);
-		}
-		else
-		{
-			$res=$this->exec(true);
-		}
+		$res=$this->exec($url);
 		$regex['img']='/https?:\/\/[a-z0-9_-]+(\.[a-z0-9_-]+){1,5}(\/[a-z0-9_-]+){1,9}\.(jpg|jpeg|png|gif|bmp)/i';
 		$regex['src']='/<img.+?src=(\"|\')(.{5,}?)(\"|\').+?\/?>/i';
 		$regex['url']='/https?:\/\/[a-z0-9_-]+(\.[a-z0-9_-]+){1,5}(\/[a-z0-9_-]+){0,9}(\.\w+)?/i';
 		$regex['href']='/<a.+?href=(\"|\')(.+?)(\"|\').+?>.+?<\/a>/i';
-
 		switch ($type)
 		{
 			case 'img':
@@ -210,11 +239,11 @@ class Curl
 	{
 		if(preg_match_all($regex,$html,$matches))
 		{
-			if(is_null($index))
+			if($index and isset($matches[$index]))
 			{
-				return $matches;
+				return array_unique($matches[$index]);
 			}
-			return isset($matches[$index])?array_unique($matches[$index]):array();
+			return $matches;
 		}
 		return array();
 
