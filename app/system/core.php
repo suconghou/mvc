@@ -1418,10 +1418,18 @@ function byteFormat($size,$dec=2)
 	return round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i];
 }
 //外部重定向,会立即结束脚本以发送header,内部重定向app::run(array);
-function redirect($url,$seconds=0,$code=302)
+function redirect($url,$timeout=0)
 {
-	http_response_code($code);
-	exit(header("Refresh: {$seconds}; url={$url}"));
+	$timeout=abs(intval($timeout));
+	if($timeout>200)
+	{
+		header("Location: {$url}",true,$timeout);
+	}
+	else
+	{
+		header("Refresh: {$timeout}; url={$url}");
+	}
+	exit(header("Cache-Control: no-cache",true));
 }
 function baseUrl($path=null)
 {
