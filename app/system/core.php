@@ -1421,7 +1421,7 @@ function byteFormat($size,$dec=2)
 function redirect($url,$timeout=0)
 {
 	$timeout=abs(intval($timeout));
-	if(in_array($timeout,array(301,302,307)))
+	if(in_array($timeout,array(0,301,302,307)))
 	{
 		header("Location: {$url}",true,$timeout);
 	}
