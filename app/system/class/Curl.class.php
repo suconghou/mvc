@@ -176,12 +176,12 @@ class Curl
 	{
 		$this->mh=$this->mh?$this->mh:curl_multi_init();
 		$url=is_array($url)?$url:array($url);
-		foreach($url as $k=>$u)
+		foreach($url as $u)
 		{
 			$ch=curl_init($u);
 			curl_setopt_array($ch,array(CURLOPT_NOBODY=>$nobody,CURLOPT_HEADER=>$header,CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
 			curl_multi_add_handle($this->mh,$ch);
-			$this->ch[$k]=$ch;
+			$this->ch[$u]=$ch;
 		}
 		return $this;
 	}
@@ -201,9 +201,9 @@ class Curl
 			curl_multi_select($this->mh);
 		}
 		while ($running>0);
-		foreach ($this->ch as $k=>$v)
+		foreach ($this->ch as $u=>$v)
 		{
-		   $this->ch[$k]=curl_multi_getcontent($v);
+		   $this->ch[$u]=curl_multi_getcontent($v);
 		   curl_multi_remove_handle($this->mh,$v);
 		   curl_close($v);
 		}
