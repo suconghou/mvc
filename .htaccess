@@ -1,5 +1,4 @@
 AddDefaultCharset UTF-8
-php_value default_charset UTF-8
 Options -Indexes
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
