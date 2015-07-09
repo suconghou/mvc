@@ -53,13 +53,23 @@ class App
 			{
 				try
 				{
-					$path=ROOT.rtrim($script,'php').'phar';
-					(is_file($path))&&unlink($path);
-					$phar=new Phar($path);
+					$pharName=rtrim($script,'php').'phar';
+					$path=ROOT.$pharName;
+					is_file($path) and unlink($path);
+					$phar=new Phar($path,FilesystemIterator::CURRENT_AS_FILEINFO | FilesystemIterator::KEY_AS_FILENAME,$pharName);
 					$phar->startBuffering();
-					$phar->buildFromDirectory(ROOT,'/\.php$/');
+					$dirObj=new RecursiveIteratorIterator(new RecursiveDirectoryIterator(ROOT),RecursiveIteratorIterator::SELF_FIRST);
+					foreach ($dirObj as $file)
+					{
+						if(preg_match('/\\.php$/i',$file))
+						{
+							$phar->addFromString(substr($file,strlen(ROOT)),php_strip_whitespace($file));
+						}
+					}
+					$stub="<?php Phar::mapPhar('$pharName');require 'phar://{$pharName}/{$script}';__HALT_COMPILER();";
+					$phar->setStub($stub);
 					$phar->stopBuffering();
-					return ("Files:{$phar->count()}".PHP_EOL."Stored in:".$path.PHP_EOL);
+					return ("{$phar->count()} Files Stored In ".$path.PHP_EOL);
 				}
 				catch(Exception $e)
 				{
