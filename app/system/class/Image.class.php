@@ -12,7 +12,7 @@
 class Image 
 {
 	const dict='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'; //产生验证码的字典
-	private static $cachePath=CACHE_PATH; //缓存路径
+	private static $cachePath; //缓存路径
 
 	function __construct($auto=false)
 	{

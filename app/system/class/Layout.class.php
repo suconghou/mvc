@@ -225,6 +225,11 @@ class Layout
 
 }
 
+
+
+
+
+
 // 几个布局函数
 
 /**
@@ -295,3 +300,46 @@ function select($data,$current=null,$name=null,$class=null,$id=null)
 	return $html;
 }
 
+
+
+class Assets
+{
+	
+	private static $pathMap=array(
+								'css'=>'/static/css/',
+								'js'=>'/static/js/',
+								'img'=>'/static/img/',
+								'font'=>'/static/font/',
+								'icon'=>'/static/icon/'
+							);
+	
+	public function __construct()
+	{
+		
+	}
+	
+	public static function js()
+	{
+		
+	}
+	
+	public static function css()
+	{
+		
+	}
+	
+	public static function img()
+	{
+		
+	}
+	
+	public static function set()
+	{
+		
+	}
+	
+	public static function get()
+	{
+		
+	}
+}

@@ -69,11 +69,11 @@ class App
 					$stub="<?php Phar::mapPhar('$pharName');require 'phar://{$pharName}/{$script}';__HALT_COMPILER();";
 					$phar->setStub($stub);
 					$phar->stopBuffering();
-					return ("{$phar->count()} Files Stored In ".$path.PHP_EOL);
+					echo "{$phar->count()} Files Stored In ".$path.PHP_EOL;
 				}
 				catch(Exception $e)
 				{
-					return $e->getMessage();
+					echo $e->getMessage().PHP_EOL;
 				}
 			}
 		}
@@ -139,45 +139,47 @@ class App
 	 */
 	private static function process($router)
 	{
-		$GLOBALS['APP']['router']=$router;
-		$file=is_object($router[1])?self::fileCache($router[0]):self::fileCache($router); 
-		if(is_file($file))//存在缓存文件
+		if(!is_object($router))
 		{
-			$expire=filemtime($file);
-			$now=time();
-			if($now<$expire) ///缓存未过期
+			$GLOBALS['APP']['router']=$router;
+			$file=is_object($router[1])?self::fileCache($router[0]):self::fileCache($router); 
+			if(is_file($file))//存在缓存文件
 			{
-				header("Expires: ".gmdate("D, d M Y H:i:s", $expire)." GMT");
-				header("Cache-Control: max-age=".($expire-$now));
-				if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']))
+				$expire=filemtime($file);
+				$now=time();
+				if($now<$expire) ///缓存未过期
 				{
-					header('Last-Modified: ' . $_SERVER['HTTP_IF_MODIFIED_SINCE']);	 
-					return http_response_code(304);
+					header("Expires: ".gmdate("D, d M Y H:i:s", $expire)." GMT");
+					header("Cache-Control: max-age=".($expire-$now));
+					if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']))
+					{
+						header('Last-Modified: ' . $_SERVER['HTTP_IF_MODIFIED_SINCE']);	 
+						return http_response_code(304);
+					}
+					else
+					{
+						header('Last-Modified: ' . gmdate('D, d M y H:i:s',$now). ' GMT');	 
+						return readfile($file);
+					}
 				}
-				else
+				else //缓存已过期
 				{
-					header('Last-Modified: ' . gmdate('D, d M y H:i:s',$now). ' GMT');	 
-					return readfile($file);
+					try
+					{
+						unlink($file);  ///删除过期文件
+					}
+					catch(Exception $e)
+					{
+						app::log($e->getMessage(),'ERROR');
+					}
+					return self::run($router);
 				}
 			}
-			else //缓存已过期
+			else
 			{
-				try
-				{
-					unlink($file);  ///删除过期文件
-				}
-				catch(Exception $e)
-				{
-					app::log($e->getMessage(),'ERROR');
-				}
 				return self::run($router);
 			}
 		}
-		else
-		{
-			return self::run($router);
-		}
-
 	}
 	/**
 	 * 内部转向,转到其他控制器的方法执行,可传递参数,捕获返回
@@ -235,7 +237,6 @@ class App
 		}
 		else
 		{
-			$arr=is_array($arr)?$arr:array(strval($arr));			
 			$GLOBALS['APP']['regexRouter'][]=array($regex,$arr);
 		}
 	}
@@ -261,6 +262,7 @@ class App
 		{
 			foreach ($GLOBALS['APP']['regexRouter'] as $regex=>$item)
 			{
+
 				$regex=is_array($item)?$item[0]:$regex;
 				if(preg_match('/^'.$regex.'$/', $uri,$matches)) //能够匹配正则路由
 				{
@@ -273,9 +275,9 @@ class App
 					}
 					else
 					{
-						if(count($item[1])==1)
+						if(is_string($item[1])) //plugin loader
 						{
-							$item[1][]=DEFAULT_ACTION;
+							return call_user_func_array('S',array_merge(array($item[1]),$matches));
 						}
 						return array_merge($item[1],$matches);
 					}
@@ -527,9 +529,10 @@ class App
 // End of class app
 
 //加载model
-function M($model,$param=null)
+function M($model)
 {
-	$arr=explode('/',$model);
+	$arguments=func_get_args();
+	$arr=explode('/',array_shift($arguments));
 	$m=end($arr);
 	$GLOBALS['APP']['model'][$m]=isset($GLOBALS['APP']['model'][$m])?$GLOBALS['APP']['model'][$m]:$m;
 	if($GLOBALS['APP']['model'][$m] instanceof $m)
@@ -541,21 +544,16 @@ function M($model,$param=null)
 		$modelFile=MODEL_PATH.$model.'.php';
 		(is_file($modelFile) && require_once $modelFile)||app::Error(500,'Load Model '.$m.' Failed , Mdoel File '.$modelFile.' Not Found ! ');
 		class_exists($m)||app::Error(500,'Model File '.$modelFile .' Does Not Contain Class '.$m);
-		if(is_null($param))
-		{
-			$GLOBALS['APP']['model'][$m]=new $m();
-		}
-		else
-		{
-			$GLOBALS['APP']['model'][$m]=new $m($param);
-		}
+		$class = new ReflectionClass($m);
+		$GLOBALS['APP']['model'][$m]=$class->newInstanceArgs($arguments);
 		return $GLOBALS['APP']['model'][$m];
 	}
 }
 //加载类库
-function S($lib,$param=null)
+function S($lib)
 {
-	$arr=explode('/',$lib);
+	$arguments=func_get_args();
+	$arr=explode('/',array_shift($arguments));
 	$l=end($arr);
 	$GLOBALS['APP']['lib'][$l]=isset($GLOBALS['APP']['lib'][$l])?$GLOBALS['APP']['lib'][$l]:$l;
 	if($GLOBALS['APP']['lib'][$l] instanceof $l)
@@ -568,14 +566,8 @@ function S($lib,$param=null)
 		{
 			require_once $classFile;
 			class_exists($l)||app::Error(500,'Library File '.$classFile .' Does Not Contain Class '.$l);
-			if(is_null($param))
-			{
-				$GLOBALS['APP']['lib'][$l]=new $l();
-			}
-			else
-			{
-				$GLOBALS['APP']['lib'][$l]=new $l($param);
-			}
+			$class = new ReflectionClass($l);
+			$GLOBALS['APP']['lib'][$l]=$class->newInstanceArgs($arguments);
 			return $GLOBALS['APP']['lib'][$l];
 
 		}
