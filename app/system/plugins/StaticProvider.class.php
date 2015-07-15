@@ -6,13 +6,15 @@
 */
 class StaticProvider
 {
-	const route='\/static\/(css|style|js)(?:\/(\w+))';
+	const route='\/(?:([\w-]+)\/)static\/(css|style|js)(?:\/([\w-\.]+))';
 
 	private static $debug=false;
 
+	private static $project;
 
-	function __construct($type=null,$name=null)
+	function __construct($project=null,$type=null,$name=null)
 	{
+		self::$project=$project;
 		if($type or $name)
 		{
 			return $this->init($type,$name);
@@ -34,18 +36,43 @@ class StaticProvider
 	function init($type,$name=null)
 	{
 		self::$debug=isset($_GET['debug']);
-		$filePath='static'.DIRECTORY_SEPARATOR.$type.DIRECTORY_SEPARATOR.$name;
 		if($type=='js')
 		{
-			$filePath.='.js';
-			if(is_file($filePath))
+			$files=array();
+			$basePath='static'.DIRECTORY_SEPARATOR.'js'.DIRECTORY_SEPARATOR;
+			if(self::$project)
 			{
-				return self::compileJs($filePath);
+				$basePath=self::$project.DIRECTORY_SEPARATOR.$basePath;
+			}
+			foreach(explode('-',rtrim($name,'.js')) as $file)
+			{
+				if($file and $filePath=$basePath.$file.'.js')
+				{
+					if(!in_array($filePath,$files))
+					{
+						if(is_file($filePath))
+						{
+							$files[]=$filePath;
+						}
+						else
+						{
+							return false;
+						}
+					}
+				}
+			}
+			if($files)
+			{
+				return self::compileJs($files);
 			}
 		}
 		else
 		{
-			$filePath.='.less';
+			$filePath=rtrim('static'.DIRECTORY_SEPARATOR.$type.DIRECTORY_SEPARATOR.$name,'.css').'.less';
+			if(self::$project)
+			{
+				$filePath=self::$project.DIRECTORY_SEPARATOR.$filePath;
+			}
 			if(is_file($filePath))
 			{
 				return self::compileLess($filePath);
@@ -86,43 +113,78 @@ class StaticProvider
 		}
 		catch(Exception $e)
 		{
-			echo $e->getMessage();			
+			echo $e->getMessage();
 		}
 	}
 
-	public static function compileJs($filePath)
+	public static function compileJs($files)
 	{
+		$key=implode('-',$files);
+		$cacheObject=self::getItem($key);
+		$cacheObject=$cacheObject?$cacheObject:array('updated'=>0,'compiled'=>'','files'=>array());
+		$lastUpdate=&$cacheObject['updated'];
+		$fileList=&$cacheObject['files'];
+		$fileTimes=array();
+		foreach($files as $file)
+		{
+			$ftime=filemtime($file);
+			$fileTimes[]=$ftime;
+			if(!(isset($cacheObject['ftime-'.$file]) and $cacheObject['ftime-'.$file]>=$ftime))
+			{
+				$fileList[$file]=file_get_contents($file);
+				$cacheObject['ftime-'.$file]=$ftime;
+			}
+		}
+		ob_end_clean() and ob_start('ob_gzhandler');
+		header('Content-type: text/javascript');
+		self::$debug or header("Cache-Control: max-age=86400");
+		if($lastUpdate>=max($fileTimes))
+		{
+			$contents=$cacheObject['compiled'];
+			$code=isset($_SERVER['HTTP_IF_NONE_MATCH'])&&$_SERVER['HTTP_IF_NONE_MATCH']=="W/{$lastUpdate}"?304:200;
+			header("Etag: W/{$lastUpdate}");
+			header('X-Cache: Hit',true,$code);
+			self::$debug or header("Expires: ".gmdate("D, d M Y H:i:s",$lastUpdate+86400)." GMT");
+			echo $code==304?null:$contents;
+		}
+		else
+		{
+			$contents=self::compressJs(implode(PHP_EOL,$fileList));
+			$cacheObject['compiled']=$contents;
+			$lastUpdate=time();
+			self::setItem($key,$cacheObject);
+			header("Etag: W/{$lastUpdate}");
+			header('X-Cache: Miss',true,200);
+			self::$debug or header("Expires: ".gmdate("D, d M Y H:i:s",$lastUpdate+86400)." GMT");
+			echo $contents;	
+		}
 
+	}
+
+	public static function compressJs($data)
+	{
+		if(self::$debug)
+		{
+			return $data;
+		}
+		$packer=new JSqueeze;
+		return $packer->squeeze($data,true,false);
 	}
 
 	private static function setItem($key,$data)
 	{
-		$filename=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5($key);
+		$filename=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT.$key);
 		return file_put_contents($filename,serialize($data));
 	}
 
 	private static function getItem($key)
 	{
-		$filename=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5($key);
+		$filename=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT.$key);
 		if(is_file($filename))
 		{
 			return unserialize(file_get_contents($filename));
 		}
 	}
 
-	private static function getMapData()
-	{
-
-	}
-
-	private static function getCssPath($key)
-	{
-		
-	}
-
-	private static function getJsPath($key)
-	{
-
-	}
 
 }

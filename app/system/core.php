@@ -1324,7 +1324,7 @@ if(!function_exists('http_response_code'))
 		if(isset($headers[$code]))
 		{
 			$text=$headers[$code];
-			header("{$header} {$code} {$text}", TRUE, $code);
+			header("{$header} {$code} {$text}",true,$code);
 		}
 	}
 }
