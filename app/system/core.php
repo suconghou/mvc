@@ -767,22 +767,10 @@ class Request
 		}
 		return $data;
 	}
-	public static function ip()
+	public static function ip($default=null)
 	{
-		if ($ip=self::getVar('server','HTTP_X_FORWARDED_FOR'))
-			return $ip;
-		else if ($ip=self::getVar('server','HTTP_CLIENT_IP'))
-			return $ip;
-		else if ($ip=self::getVar('server','REMOTE_ADDR'))
-			return $ip;
-		else if ($ip=getenv("HTTP_X_FORWARDED_FOR"))
-			return $ip;
-		else if ($ip=getenv("HTTP_CLIENT_IP"))
-			return $ip;
-		else if ($ip=getenv("REMOTE_ADDR"))
-			return $ip;
-		else return null;
-
+		$ip=getenv('REMOTE_ADDR');
+		return $ip?$ip:(isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:$default);
 	}
 	public static function info($key=null,$default=null)
 	{
