@@ -1,340 +1,233 @@
 <?php
 /**
 * 基础控制器类,继承此类以获得请求拦截
-* 该控制器不包含输出操作
-* 包含条件过滤等
-* IP黑名单
-* REFER黑名单
-* GET,POST,SESSION,频次过滤
-* 非ajax过滤
-* 非POST过滤
-* 开启ajax跨域
-* 自定义过滤条件
-* 辅助函数
-* 在其他控制器中调用 $this->ip()->refer()->session()->post()->get()->defender();
-* 此控制器不能通过URl访问
 */
-abstract class base 
+class base
 {
-	private static $ip;
-	private static $refer; //限制refer,包含关系也会限制
-	private static $frequency; //频次
-	private static $get;
-	private static $post;
-	private static $session;
-	private static $cookie;
-	private static $ajax;
 
-	private static $blockTime=10; //超出频次禁止时间
+	private static $version;
+
+	private static $baseUrl;
+
+	private static $pathMap=array('css'=>'/static/css/','style'=>'/static/style/','js'=>'/static/js/','img'=>'/static/img/');
 
 	
 	function __construct()
 	{
-		$this->auto()->defender(); //开启自动过滤
 		$this->globalIndex(); //全局加载的
 	}
-	function index(){}
-	function globalIndex()
+
+	private final function globalIndex()
 	{
-		 
+		return $this->firewall();
 	}
 
 	/**
 	 * 可以设置,自动过滤的内容
 	 */
-	private function auto($use=false)
+	private final function firewall($use=false)
 	{
 		if($use)
 		{
-			$ip=array('127.0.0.10'); //设定自动过滤IP
-			$refer=array('http://127.0.0.1'); //设定自动过滤refer
-			$this->frequency(5,1)->refer($refer)->ip($ip);
+			try
+			{
+				$ip=array('127.0.0.1');
+				return $this->IpBlacklist($ip)->SpiderBlock()->BusyBlock();
+			}
+			catch(Exception $e)
+			{
+				header('HTTP/1.1 403 Forbidden',true,403);
+				app::log($e->getMessage(),'ERROR');
+			}
 
 		}
-	
-		
 		return $this; 
 	}
 	/**
 	 * 开启跨域资源共享
 	 */
-	function cors($domain=null)
+	public static final function cors($allow=array())
 	{
-		if($domain)
+		$allow=is_array($allow)?$allow:array($allow);
+		if($allow)
 		{
-			header("Access-Control-Allow-Origin:{$domain}");
+			header('Access-Control-Allow-Origin: '.join(', ',$allow));
 		}
 		else
 		{
-			header('Access-Control-Allow-Origin:*');
+			header('Access-Control-Allow-Origin: *');
 		}
-		header('Access-Control-Allow-Headers:Origin, X-Requested-With, Content-Type, Accept');
+		return header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
 	}
-	/**
-	 * 是否已登录用户,登陆返回其中信息,否则返回json或跳转
-	 */
-	function isLogin($user='USERID',$addr='/')
+	
+	public static final function onlyCli()
 	{
-		$ret=$this->session($user)->defender(true); //没有此SESSION则返回错误信息而不是直接过滤
-		if($ret) //没有此SESSION
-		{
-			if(Request::isAjax())
-			{
-				exit(json_encode(array('code'=>-1,'msg'=>'please login !')));
-			}
-			else
-			{
-				redirect($addr);
-			}
-		}
-		return session($user);
+		return Request::isCli()||exit;
 	}
-	/**
-	 * 阻断非CLI请求
-	 */
-	function cli()
-	{
-		Request::isCli()||exit;
-		return $this;
-	}
-	function get($arr)
-	{
-		self::$get=is_array($arr)?$arr:array($arr);
-		return $this;
-	}
-	function post($arr)
-	{
-		self::$post=is_array($arr)?$arr:array($arr);
 
-		return $this;
-	}
-	function session($arr)
+	public static final function onlyAjax()
 	{
-		self::$session=is_array($arr)?$arr:array($arr);
-		return $this;
+		return Request::isAjax()||exit;
 	}
-	function cookie($arr)
-	{
-		self::$cookie=is_array($arr)?$arr:array($arr);
-		return $this;
-	}
-	function ip($arr)
-	{
-		self::$ip=is_array($arr)?$arr:array($arr);
-		return $this;
-	}
-	function refer($arr)
-	{
-		self::$refer=is_array($arr)?$arr:array($arr);
-		return $this;
-	}
-	function ajax($a=true)
-	{
-		self::$ajax=$a;
-		return $this;
-	}
-	/**
-	 * 关联数组,或者一个整数 $f['5']=20; 5秒20次 , 次数不宜设置太大
-	 * $ip 限定此IP的频次还是此浏览器(session)频次,依据IP可以防止抓取
-	 */
-	function frequency($arr=15,$ip=false)
-	{
-		self::$frequency=is_array($arr)?$arr:array('5'=>$arr);
-		$this->frequencyIp=$ip;
-		return $this;
-	}
-	function defender($ret=false) //过滤动作
-	{
-		$info=Request::info();
 
-		if(self::$ip)
-		{
-			if(in_array($info['ip'],self::$ip))
-			{
-				$hit['ip']=&$info['ip'];
-				goto block;
-			}
-		
-		}
-		if(self::$ajax)
-		{
-			if(!$info['ajax'])
-			{
-				$hit['ajax']=&$info['ajax'];
-				goto block;
-			}
-		}
-		if(self::$refer)
-		{
-			while(list($k,$v)=each(self::$refer))
-			{
-				if(stripos($info['refer'],$v)!==false)
-				{
-					$hit['refer']=&$info['refer'];
-					goto block;
-				}
-			}
+	public static final function onlyPost()
+	{
+		return Request::isPost()||exit;
+	}
 
-		}
-		if(self::$session)
-		{
-			$session=Request::session();
-			while(list($k,$v)=each(self::$session))
-			{
-				if(!isset($session[$v]))
-				{
-					$hit['session']=$v;
-					goto block;
-				}
-			}
-		}
-		if(self::$cookie)
-		{
-			$cookie=Request::cookie();
-			while(list($k,$v)=each(self::$cookie))
-			{
-				if(!isset($cookie[$v]))
-				{
-					$hit['cookie']=$v;
-					goto block;
-				}
-			}	
-		}
-		if(self::$post)
-		{
-			$post=Request::post();
-			while(list($k,$v)=each(self::$post))
-			{
-				if(!isset($post[$v]))
-				{
-					$hit['post']=$v;
-					goto block;
-				}
-			}	
 
-		}
-		if(self::$get)
+	public final function IpBlacklist(Array $ips,Clouse $callback=null)
+	{
+		$ip=Request::ip();
+		if(!$ip || in_array($ips,$ip))
 		{
-			$get=Request::get();
-			while(list($k,$v)=each(self::$get))
+			if($callback)
 			{
-				if(!isset($get[$v]))
-				{
-					$hit['get']=$v;
-					goto block;
-				}
-			}	
+				return $callback($ip);
+			}
+			throw new Exception("block the ip {$ip}",1);
+		}
+		return $this;
+	}
 
-		}
-		if(self::$frequency)
+	public final function SpiderBlock(Clouse $callback=null)
+	{
+		if(Request::isSpider())
 		{
-			session_start();
-			if($this->frequencyIp) //依据IP
+			if($callback)
 			{
-				$this->current_id=session_id();
-				session_write_close();
-				$host=md5(Request::ip());
-				session_id($host);
+				return $callback();
 			}
-			$ssid='frequency';
-			$data=json_decode(session($ssid),1);
-			$data[$ssid][]=APP_START_TIME;
-			list($k,$v)=each(self::$frequency);
-			$size=count($data[$ssid]);
-			if($size>$v)
+			throw new Exception("block spider",2);
+		}
+		return $this;
+	}
+	
+	public final function BusyBlock($times=30,Clouse $callback=null)
+	{
+		list($k,$v)=is_array($times)?$times:array(1=>$times);
+		$ip=Request::ip();
+		if($ip)
+		{
+			$key=md5($ip);
+			$dir=sys_get_temp_dir().DIRECTORY_SEPARATOR.'BusyBlock'.DIRECTORY_SEPARATOR.substr($key,0,2);
+			is_dir($dir) or mkdir($dir,0777,true);
+			$file=$dir.DIRECTORY_SEPARATOR.substr($key,-6);
+			$now=time();
+			if(is_file($file))
 			{
-				$sec=APP_START_TIME-$data[$ssid][$size-$v];
-				if($sec<$k)
+				$data=unserialize(file_get_contents($file));
+				$data[$ip]=isset($data[$ip])?$data[$ip]:array($now);
+				$size=count($data[$ip]);
+				if($size>$v)
 				{
-					$data['block']=APP_START_TIME+self::$blockTime; ///超出限制
-				}
-				if($size>$k*$v+20)
-				{
-					unset($data[$ssid]);
-				}
-			}
-			if(isset($data['block'])) //阻挡此请求
-			{
-				if($data['block']<APP_START_TIME)
-				{
-					unset($data['block']);
+					$ltime=$data[$ip][$size-$v];
 				}
 				else
 				{
-					session($ssid,$data);
-					$t=intval($data['block']-APP_START_TIME);
-					if($this->frequencyIp)
-					{
-						session_write_close();
-						session_id($this->current_id); //还原
-						session_start();
-					}
-					$this->frequencyBlock($t); //执行拦截
-					exit;
+					$data[$ip][]=$now;
+					return $this;
 				}
-			}
-			session($ssid,$data); //未达到拦截要求,记录数据
-			if($this->frequencyIp)
-			{
-				session_write_close();
-				session_id($this->current_id); //还原
-				session_start();
-			}
-			
-		}
-		block:		
-		if(isset($hit))
-		{
-			if($ret)
-			{
-				return $hit;
 			}
 			else
 			{
-				$this->block($hit);					
+				$data[$ip][]=$now;
+				file_put_contents($file,serialize($data));
+				return $this;
 			}
 		}
-		else
+		throw new Exception("busy block ip {$ip}",3);
+	}
+
+	function Error404($msg=null)
+	{
+		echo $msg;
+	}
+	function Error500($msg=null)
+	{
+		echo $msg;
+	}
+
+	/**********************************魔术方法********************************/
+
+
+	public static final function __callStatic($method,$args=null)
+	{
+		echo "__callStatic";
+	}
+
+	public  final function __invoke()
+	{
+		echo "__invoke";
+	}
+
+	public final function __set()
+	{
+
+	}
+
+	public final function __get()
+	{
+
+
+	}
+
+	/**********************************资源以及版本管理********************************/
+
+	public static final function version($version)
+	{
+		self::$version='?ver='.md5($version);
+		return self::$version;
+	}
+
+	public static final function url($url)
+	{
+		self::$baseUrl=$url;
+		return self::$baseUrl;
+	}
+
+	public static final function setPath($type,$value)
+	{
+		self::$pathMap[$type]='/'.trim($value,'/').'/';
+		return self::$pathMap;
+	}
+
+	public static final function css($css,$project=null)
+	{
+		$links=array();
+		$version=DEBUG?'?debug':self::$version;
+		$css=is_array($css)?$css:array($css);
+		$basePath=$project?rtrim(self::$baseUrl,'/').'/'.$project:rtrim(self::$baseUrl,'/');
+		$basePath=$basePath.self::$pathMap['css'];
+		foreach ($css as $item)
 		{
-			return null;
+			$links[]="<link rel='stylesheet' href='{$basePath}{$item}{$version}'>";
 		}
-	}
-	/**
-	 * 命中预定设置
-	 * @param $hit , 因何原因,是一个数组
-	 */
-	private function block($hit)
-	{
-		list($k,$v)=each($hit);
-		http_response_code(403);
-		exit('禁止'.$k.$v);	
-	}
-	/**
-	 * 超过最高频次设置
-	 * @param $t 还有多少秒后恢复正常访问
-	 */
-	private function frequencyBlock($t)
-	{
-		http_response_code(403);
-		exit('禁止'.$t);
+		return implode('',$links);
 	}
 
-	function Error404($msg)
+	public static final function js($js,$project=null)
 	{
-		echo $msg;
-	}
-	function Error500($msg)
-	{
-		echo $msg;
+		$links=array();
+		$version=DEBUG?'?debug':self::$version;
+		$js=is_array($js)?$js:array($js);
+		$basePath=$project?rtrim(self::$baseUrl,'/').'/'.$project:rtrim(self::$baseUrl,'/');
+		$basePath=$basePath.self::$pathMap['js'];
+		foreach ($js as $item)
+		{
+			$links[]="<script src='{$basePath}{$item}{$version}'></script>";
+		}
+		return implode('',$links);
 	}
 
-	#################################用户自定义扩展############################################
+	/**********************************应用程序配置区**********************************/
+	
 	/**
 	 *  检查用户是否登录
 	 */
 	function isUserLogin($addr='/')
 	{
-		return $this->isLogin('USERID',$addr);
+		
 	}
 
 	/**
@@ -342,7 +235,7 @@ abstract class base
 	 */
 	function isAdminLogin($addr='/')
 	{
-		return $this->isLogin('ADMINID',$addr);
+		
 	}
 
 	

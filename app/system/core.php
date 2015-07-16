@@ -4,7 +4,7 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.8.7
+ * @version 1.8.8
  */
 /**
 * APP 主要控制类
@@ -149,16 +149,16 @@ class App
 				$now=time();
 				if($now<$expire) ///缓存未过期
 				{
-					header("Expires: ".gmdate("D, d M Y H:i:s", $expire)." GMT");
-					header("Cache-Control: max-age=".($expire-$now));
+					header('Expires: '.gmdate('D, d M Y H:i:s',$expire).' GMT');
+					header('Cache-Control: max-age='.($expire-$now));
+					header('X-Cache: Hit',true);
 					if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']))
 					{
-						header('Last-Modified: ' . $_SERVER['HTTP_IF_MODIFIED_SINCE']);	 
-						return http_response_code(304);
+						return header('Last-Modified: '.$_SERVER['HTTP_IF_MODIFIED_SINCE'],true,304);	 
 					}
 					else
 					{
-						header('Last-Modified: ' . gmdate('D, d M y H:i:s',$now). ' GMT');	 
+						header('Last-Modified: '.gmdate('D, d M y H:i:s',$now).' GMT',true,200);	 
 						return readfile($file);
 					}
 				}
@@ -262,7 +262,6 @@ class App
 		{
 			foreach ($GLOBALS['APP']['regexRouter'] as $regex=>$item)
 			{
-
 				$regex=is_array($item)?$item[0]:$regex;
 				if(preg_match('/^'.$regex.'$/', $uri,$matches)) //能够匹配正则路由
 				{
@@ -455,7 +454,7 @@ class App
 		}
 	}
 	//异常处理 404 500等
-	public static function Error($errno, $errstr, $errfile=null, $errline=null)
+	public static function Error($errno,$errstr,$errfile=null,$errline=null)
 	{
 		if((DEBUG<2)&&in_array($errno,array(E_NOTICE,E_WARNING)))
 		{
@@ -562,7 +561,7 @@ function S($lib)
 	}
 	else
 	{
-		if(is_file($classFile=LIB_PATH.$lib.'.class.php'))///是类库文件
+		if(is_file($classFile=LIB_PATH.$lib.'.class.php'))
 		{
 			require_once $classFile;
 			class_exists($l)||app::Error(500,'Library File '.$classFile .' Does Not Contain Class '.$l);
@@ -597,14 +596,13 @@ function V($v,$_data_=array(),$fileCacheMinute=0)
 			$GLOBALS['APP']['cache']['time']=intval($cacheTime*60);
 			$GLOBALS['APP']['cache']['file']=true;
 		}
-		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));//耗时
+		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));
 		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-APP_START_MEMORY));
 		(is_array($_data_)&&!empty($_data_))&&extract($_data_);
 		include $_v_;
-		if(!empty($GLOBALS['APP']['cache']['file']))//启用了缓存,并且启用了文件缓存
+		if(!empty($GLOBALS['APP']['cache']['file']))
 		{
 			$expire=intval(time()+$GLOBALS['APP']['cache']['time']);
-			//生成文件缓存
 			$contents=ob_get_contents();
 			$router=$GLOBALS['APP']['router'];
 			//与缓存检测时一致,闭包路由也可以使用文件缓存
@@ -814,7 +812,7 @@ class Request
 	{
 		return isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST';
 	}
-	public static function isRobot()
+	public static function isSpider()
 	{
 		$agent=isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:null;
 		if($agent)
@@ -1141,7 +1139,7 @@ class Validate
 */
 class DB extends PDO 
 {
-	private  static $pdo;///单例模式
+	private static $pdo;
 
 	function __construct($dbType=null)
 	{
@@ -1206,7 +1204,7 @@ class DB extends PDO
 			return app::Error(500,'Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
 		}
 	}
-	////运行Sql,以多维数组方式返回结果集
+	//运行Sql,以多维数组方式返回结果集
 	public static function getData($sql)
 	{
 		try
@@ -1298,24 +1296,6 @@ class DB extends PDO
 
 }//end class db
 
-if(!function_exists('http_response_code'))
-{
-	function http_response_code($code)
-	{
-		$header=(substr(php_sapi_name(),0,3)=='cgi')?'Status: ':'HTTP/1.1 ';
-		static $headers=array(
-							200	=> 'OK', 201	=> 'Created', 202	=> 'Accepted', 203	=> 'Non-Authoritative Information', 204	=> 'No Content', 205	=> 'Reset Content', 206	=> 'Partial Content',
-							300	=> 'Multiple Choices', 301	=> 'Moved Permanently', 302	=> 'Found', 304	=> 'Not Modified', 305	=> 'Use Proxy', 307	=> 'Temporary Redirect',
-							400	=> 'Bad Request', 401	=> 'Unauthorized', 403	=> 'Forbidden', 404	=> 'Not Found', 405	=> 'Method Not Allowed', 406	=> 'Not Acceptable', 407	=> 'Proxy Authentication Required', 408	=> 'Request Timeout', 409	=> 'Conflict', 410	=> 'Gone', 411	=> 'Length Required', 412	=> 'Precondition Failed', 413	=> 'Request Entity Too Large', 414	=> 'Request-URI Too Long', 415	=> 'Unsupported Media Type', 416	=> 'Requested Range Not Satisfiable', 417	=> 'Expectation Failed',
-							500	=> 'Internal Server Error', 501	=> 'Not Implemented', 502	=> 'Bad Gateway', 503	=> 'Service Unavailable', 504	=> 'Gateway Timeout', 505	=> 'HTTP Version Not Supported'
-							);
-		if(isset($headers[$code]))
-		{
-			$text=$headers[$code];
-			header("{$header} {$code} {$text}",true,$code);
-		}
-	}
-}
 function __autoload($class)
 {
 	if(is_file($modelFile=MODEL_PATH.$class.'.php'))
@@ -1485,7 +1465,7 @@ function sendMail($mailTo, $mailSubject, $mailMessage)
 		$headers .= "Date: ".date("r")."\r\n";
 		list($msec, $sec) = explode(" ", microtime());
 		$headers .= "Message-ID: <".date("YmdHis", $sec).".".($msec * 1000000).".".MAIL_USERNAME.">\r\n";
-		if(!$fp = fsockopen(MAIL_SERVER,MAIL_PORT, $errno, $errstr, 10))
+		if(!$fp = fsockopen(MAIL_SERVER,defined('MAIL_PORT')?MAIL_PORT:25, $errno, $errstr, 3))
 		{
 			throw new Exception("Unable to connect to the SMTP server", 1);
 		}
@@ -1495,13 +1475,13 @@ function sendMail($mailTo, $mailSubject, $mailMessage)
 		{
 			throw new Exception("CONNECT - ".$lastmessage, 2);
 		}
-		fputs($fp, (MAIL_AUTH ? 'EHLO' : 'HELO')." befen\r\n");
+		fputs($fp,"EHLO befen\r\n");
 		$lastmessage = fgets($fp, 512);
 		if(substr($lastmessage, 0, 3) != 220 && substr($lastmessage, 0, 3) != 250)
 		{
 			throw new Exception("HELO/EHLO - ".$lastmessage, 3);
 		}
-		while(1)
+		while(true)
 		{
 			if(substr($lastmessage, 3, 1) != '-' || empty($lastmessage))
 			{
@@ -1509,25 +1489,22 @@ function sendMail($mailTo, $mailSubject, $mailMessage)
 			}
 			$lastmessage = fgets($fp, 512);
 		}
-		if(MAIL_AUTH)
+		fputs($fp, "AUTH LOGIN\r\n");$lastmessage = fgets($fp, 512);
+		if(substr($lastmessage, 0, 3) != 334)
 		{
-			fputs($fp, "AUTH LOGIN\r\n");$lastmessage = fgets($fp, 512);
-			if(substr($lastmessage, 0, 3) != 334)
-			{
-				throw new Exception($lastmessage, 4);
-			}
-			fputs($fp, base64_encode(MAIL_USERNAME)."\r\n");
-			$lastmessage = fgets($fp, 512);
-			if(substr($lastmessage, 0, 3) != 334)
-			{
-				throw new Exception("AUTH LOGIN - ".$lastmessage, 5);
-			}
-			fputs($fp, base64_encode(MAIL_PASSWORD)."\r\n");
-			$lastmessage = fgets($fp, 512);
-			if(substr($lastmessage, 0, 3) != 235)
-			{
-				throw new Exception("AUTH LOGIN - ".$lastmessage, 6);
-			}
+			throw new Exception($lastmessage, 4);
+		}
+		fputs($fp, base64_encode(MAIL_USERNAME)."\r\n");
+		$lastmessage = fgets($fp, 512);
+		if(substr($lastmessage, 0, 3) != 334)
+		{
+			throw new Exception("AUTH LOGIN - ".$lastmessage, 5);
+		}
+		fputs($fp, base64_encode(MAIL_PASSWORD)."\r\n");
+		$lastmessage = fgets($fp, 512);
+		if(substr($lastmessage, 0, 3) != 235)
+		{
+			throw new Exception("AUTH LOGIN - ".$lastmessage, 6);
 		}
 		fputs($fp, "MAIL FROM: <".preg_replace("/.*\<(.+?)\>.*/", "\\1", MAIL_USERNAME).">\r\n");
 		$lastmessage = fgets($fp, 512);
@@ -1582,4 +1559,4 @@ function sendMail($mailTo, $mailSubject, $mailMessage)
 	
 }
 
-// end  of file core.php
+// end of file core.php
