@@ -44,7 +44,7 @@ class StaticProvider
 			{
 				$basePath=self::$project.DIRECTORY_SEPARATOR.$basePath;
 			}
-			foreach(explode('-',rtrim($name,'.js')) as $file)
+			foreach(explode('-',str_ireplace('.js','',$name)) as $file)
 			{
 				if($file and $filePath=$basePath.$file.'.js')
 				{
@@ -56,7 +56,7 @@ class StaticProvider
 						}
 						else
 						{
-							return false;
+							return header('HTTP/1.1 404 Not Found',true,404);
 						}
 					}
 				}
@@ -65,10 +65,11 @@ class StaticProvider
 			{
 				return self::compileJs($files);
 			}
+			return header('HTTP/1.1 404 Not Found',true,404);
 		}
 		else
 		{
-			$filePath=rtrim('static'.DIRECTORY_SEPARATOR.$type.DIRECTORY_SEPARATOR.$name,'.css').'.less';
+			$filePath=str_ireplace('.css','','static'.DIRECTORY_SEPARATOR.$type.DIRECTORY_SEPARATOR.$name).'.less';
 			if(self::$project)
 			{
 				$filePath=self::$project.DIRECTORY_SEPARATOR.$filePath;
@@ -77,6 +78,7 @@ class StaticProvider
 			{
 				return self::compileLess($filePath);
 			}
+			return header('HTTP/1.1 404 Not Found',true,404);
 		}
 	}
 
