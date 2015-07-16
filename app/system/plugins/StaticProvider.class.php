@@ -6,7 +6,7 @@
 */
 class StaticProvider
 {
-	const route='\/(?:([\w-]+)\/)static\/(css|style|js)(?:\/([\w-\.]+))';
+	const route='\/(?:([\w\-]+)\/)?static\/(css|style|js)(?:\/([\w\-\.]+))';
 
 	private static $debug=false;
 
