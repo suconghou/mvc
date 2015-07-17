@@ -10,7 +10,6 @@ class base
 	private static $baseUrl;
 
 	private static $pathMap=array('css'=>'/static/css/','style'=>'/static/style/','js'=>'/static/js/','img'=>'/static/img/');
-
 	
 	function __construct()
 	{
@@ -22,27 +21,31 @@ class base
 		return $this->firewall();
 	}
 
-	/**
-	 * 可以设置,自动过滤的内容
-	 */
 	private final function firewall($use=false)
 	{
 		if($use)
 		{
 			try
 			{
-				$ip=array('127.0.0.1');
-				return $this->IpBlacklist($ip)->SpiderBlock()->BusyBlock();
+				$ip=array('127.0.0.2');
+				return $this->IpBlacklist($ip)->SpiderBlock()->BusyBlock([1,20]);
 			}
 			catch(Exception $e)
 			{
-				header('HTTP/1.1 403 Forbidden',true,403);
-				app::log($e->getMessage(),'ERROR');
+				$msg=$e->getMessage();
+				app::log($msg,'ERROR');
+				return self::forbidden($msg);
 			}
-
 		}
 		return $this; 
 	}
+
+	private static final function forbidden($msg=null)
+	{
+		echo $msg;
+		exit(header('HTTP/1.1 403 Forbidden',true,403));
+	}
+
 	/**
 	 * 开启跨域资源共享
 	 */
@@ -62,87 +65,97 @@ class base
 	
 	public static final function onlyCli()
 	{
-		return Request::isCli()||exit;
+		return Request::isCli()||self::forbidden();
 	}
 
 	public static final function onlyAjax()
 	{
-		return Request::isAjax()||exit;
+		return Request::isAjax()||self::forbidden();
 	}
 
 	public static final function onlyPost()
 	{
-		return Request::isPost()||exit;
+		return Request::isPost()||self::forbidden();
 	}
 
-
-	public final function IpBlacklist(Array $ips,Clouse $callback=null)
+	public final function IpBlacklist(Array $ips,Closure $callback=null)
 	{
 		$ip=Request::ip();
-		if(!$ip || in_array($ips,$ip))
+		if(!$ip || in_array($ip,$ips))
 		{
 			if($callback)
 			{
 				return $callback($ip);
 			}
-			throw new Exception("block the ip {$ip}",1);
+			throw new Exception("IpBlacklist Block {$ip}",1);
 		}
 		return $this;
 	}
 
-	public final function SpiderBlock(Clouse $callback=null)
+	public final function SpiderBlock(Closure $callback=null)
 	{
 		if(Request::isSpider())
 		{
+			$ip=Request::ip();
 			if($callback)
 			{
-				return $callback();
+				return $callback($ip);
 			}
-			throw new Exception("block spider",2);
+			throw new Exception("SpiderBlock Block {$ip}",2);
 		}
 		return $this;
 	}
 	
-	public final function BusyBlock($times=30,Clouse $callback=null)
+	public final function BusyBlock(array $hz=array(1,30),Closure $callback=null)
 	{
-		list($k,$v)=is_array($times)?$times:array(1=>$times);
 		$ip=Request::ip();
 		if($ip)
 		{
 			$key=md5($ip);
+			$now=time();
+			$seconds=intval($hz[0]*60);
+			$times=intval($hz[1]);
 			$dir=sys_get_temp_dir().DIRECTORY_SEPARATOR.'BusyBlock'.DIRECTORY_SEPARATOR.substr($key,0,2);
 			is_dir($dir) or mkdir($dir,0777,true);
 			$file=$dir.DIRECTORY_SEPARATOR.substr($key,-6);
-			$now=time();
 			if(is_file($file))
 			{
 				$data=unserialize(file_get_contents($file));
-				$data[$ip]=isset($data[$ip])?$data[$ip]:array($now);
-				$size=count($data[$ip]);
-				if($size>$v)
+				$data[$ip]=isset($data[$ip])?$data[$ip]:array(0,0);
+				list($currentTimes,$lastAccess)=$data[$ip];
+				$currentTimes=($now-$lastAccess)>$seconds?0:$currentTimes+1;
+				$data[$ip]=array($currentTimes,$now);
+				file_put_contents($file,serialize($data));
+				if($currentTimes>$times)
 				{
-					$ltime=$data[$ip][$size-$v];
+					if($callback)
+					{
+						return $callback($ip);
+					}
+					throw new Exception("BusyBlock Block {$ip}",4);
 				}
-				else
-				{
-					$data[$ip][]=$now;
-					return $this;
-				}
+				return $this;
 			}
 			else
 			{
-				$data[$ip][]=$now;
+				$data[$ip]=array(0,0);
 				file_put_contents($file,serialize($data));
 				return $this;
 			}
 		}
-		throw new Exception("busy block ip {$ip}",3);
+		if($callback)
+		{
+			return $callback($ip);
+		}
+		throw new Exception("BusyBlock Block {$ip}",3);
 	}
 
 	function Error404($msg=null)
 	{
 		echo $msg;
+
 	}
+
 	function Error500($msg=null)
 	{
 		echo $msg;
@@ -150,33 +163,36 @@ class base
 
 	/**********************************魔术方法********************************/
 
+	public final function __call($method,$args=null)
+	{
+		return self::Error404("{$method} not found");
+	}
 
 	public static final function __callStatic($method,$args=null)
 	{
-		echo "__callStatic";
+		return self::Error404("{$method} not found");
 	}
 
-	public  final function __invoke()
+	public final function __set($key,$value)
 	{
-		echo "__invoke";
+		$this->$key=$value;
 	}
 
-	public final function __set()
+	public final function __get($key)
 	{
-
+		return isset($this->$key)?$this->$key:null;
 	}
 
-	public final function __get()
+	public final function __isset($key)
 	{
-
-
+		return isset($this->$key);
 	}
 
 	/**********************************资源以及版本管理********************************/
 
 	public static final function version($version)
 	{
-		self::$version='?ver='.md5($version);
+		self::$version=DEBUG?'?debug':'?ver='.md5($version);
 		return self::$version;
 	}
 
@@ -194,30 +210,62 @@ class base
 
 	public static final function css($css,$project=null)
 	{
-		$links=array();
-		$version=DEBUG?'?debug':self::$version;
-		$css=is_array($css)?$css:array($css);
-		$basePath=$project?rtrim(self::$baseUrl,'/').'/'.$project:rtrim(self::$baseUrl,'/');
-		$basePath=$basePath.self::$pathMap['css'];
-		foreach ($css as $item)
-		{
-			$links[]="<link rel='stylesheet' href='{$basePath}{$item}{$version}'>";
-		}
-		return implode('',$links);
+		return self::assets($css,'css',$project);
 	}
 
 	public static final function js($js,$project=null)
 	{
+		return self::assets($js,'js',$project);
+	}
+
+	public static final function img($src,$project=null)
+	{
+		return self::assets($src,'img',$project);
+	}
+
+	private static final function assets($asset,$type,$project=null)
+	{
 		$links=array();
-		$version=DEBUG?'?debug':self::$version;
-		$js=is_array($js)?$js:array($js);
+		$version=self::$version;
+		$asset=is_array($asset)?$asset:array($asset);
 		$basePath=$project?rtrim(self::$baseUrl,'/').'/'.$project:rtrim(self::$baseUrl,'/');
-		$basePath=$basePath.self::$pathMap['js'];
-		foreach ($js as $item)
+		$basePath=$basePath.self::$pathMap[$type];
+		switch ($type)
 		{
-			$links[]="<script src='{$basePath}{$item}{$version}'></script>";
+			case 'css':
+				foreach ($asset as $item)
+				{
+					$links[]="<link rel='stylesheet' href='{$basePath}{$item}{$version}'>";
+				}
+				break;
+			case 'js':
+				foreach ($asset as $item)
+				{
+					$links[]="<script src='{$basePath}{$item}{$version}'></script>";
+				}
+				break;
+			case 'img':
+				foreach ($asset as $item)
+				{
+					$links[]="<img src='{$basePath}{$item}{$version}'>";
+				}
+				break;
+			default:
+				break;
 		}
 		return implode('',$links);
+	}
+
+	public static final function lib($item,$load='main')
+	{
+		$version=self::$version;
+		$script="<script src='{$item}{$version}' data-load='{$load}' data-ver='{$version}' id='js-main'></script>";
+		return $script;
+	}
+
+	public static final function meta()
+	{
+
 	}
 
 	/**********************************应用程序配置区**********************************/

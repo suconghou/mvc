@@ -143,11 +143,11 @@ class App
 		{
 			$GLOBALS['APP']['router']=$router;
 			$file=is_object($router[1])?self::fileCache($router[0]):self::fileCache($router); 
-			if(is_file($file))//存在缓存文件
+			if(is_file($file))
 			{
 				$expire=filemtime($file);
 				$now=time();
-				if($now<$expire) ///缓存未过期
+				if($now<$expire)
 				{
 					header('Expires: '.gmdate('D, d M Y H:i:s',$expire).' GMT');
 					header('Cache-Control: max-age='.($expire-$now));
@@ -162,11 +162,11 @@ class App
 						return readfile($file);
 					}
 				}
-				else //缓存已过期
+				else
 				{
 					try
 					{
-						unlink($file);  ///删除过期文件
+						unlink($file);
 					}
 					catch(Exception $e)
 					{
@@ -221,9 +221,9 @@ class App
 		$GLOBALS['APP']['controller'][$controllerName]=isset($GLOBALS['APP']['controller'][$controllerName])?$GLOBALS['APP']['controller'][$controllerName]:$controllerName;
 		if(!$GLOBALS['APP']['controller'][$controllerName] instanceof $controllerName)
 		{
-			$GLOBALS['APP']['controller'][$controllerName]=new $controllerName($router);///实例化控制器	
+			$GLOBALS['APP']['controller'][$controllerName]=new $controllerName($router);
 		}
-		return call_user_func_array(array($GLOBALS['APP']['controller'][$controllerName],$action), array_slice($router,$param));//传入参数
+		return is_callable(array($GLOBALS['APP']['controller'][$controllerName],$action))?call_user_func_array(array($GLOBALS['APP']['controller'][$controllerName],$action),array_slice($router,$param)):self::Error(404,'Request Controller Class '.$controllerName.' Method '.$action.' Is Not Callable');
 
 	}
 	/**
@@ -231,7 +231,7 @@ class App
 	 */
 	public static function route($regex,$arr)
 	{
-		if(is_object($arr))
+		if($arr instanceof Clouse)
 		{
 			$GLOBALS['APP']['regexRouter'][$regex]=$arr;
 		}
@@ -258,12 +258,12 @@ class App
 	 */
 	private static function regexRouter($uri)
 	{
-		if(!empty($GLOBALS['APP']['regexRouter']))//存在正则路由
+		if(!empty($GLOBALS['APP']['regexRouter']))
 		{
 			foreach ($GLOBALS['APP']['regexRouter'] as $regex=>$item)
 			{
 				$regex=is_array($item)?$item[0]:$regex;
-				if(preg_match('/^'.$regex.'$/', $uri,$matches)) //能够匹配正则路由
+				if(preg_match('/^'.$regex.'$/', $uri,$matches))
 				{
 					$url=$matches[0];
 					unset($matches[0],$GLOBALS['APP']['regexRouter']);
@@ -285,49 +285,11 @@ class App
 		}
 		return array();
 	}
-	/**
-	 * 异步(非阻塞)运行一个路由
-	 */
-	public static function async($router=null,$callback=false)
+	public static function async($router=null,Closure $callback=null)
 	{
-		if( (function_exists('fastcgi_finish_request')&&fastcgi_finish_request()) or (defined('STDIN')&&defined('STDOUT')) )
-		{
-			$data=is_array($router)?self::run($router):file_get_contents($router);
-		}
-		else
-		{
-			$url=is_array($router)?baseUrl(implode('/', $router)):$router;
-			if(extension_loaded('curl'))
-			{
-				$ch = curl_init();
-				$curlOpt = array(CURLOPT_URL=>$url,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_TIMEOUT_MS=>1,CURLOPT_NOSIGNAL=>1, CURLOPT_HEADER=>0,CURLOPT_NOBODY=>1,CURLOPT_RETURNTRANSFER=>1);
-				curl_setopt_array($ch, $curlOpt);
-				curl_exec($ch);
-				curl_close($ch);
-				$data=true;
-			}
-			else
-			{
-				$parts = parse_url($url);
-				$parts['path']=isset($parts['path'])?$parts['path']:'/';
-				$parts['port']=isset($parts['port']) ? $parts['port'] : 80;
-				$parts['query']=isset($parts['query'])?$parts['path'].'?'.$parts['query']:$parts['path'];
-				$fp = fsockopen($parts['host'],$parts['port'],$errno, $errstr,3);
-				if($fp)
-				{
-					stream_set_blocking($fp,0);
-					$out = 'GET '.$parts['query']." HTTP/1.1\r\nHost: ".$parts['host']."\r\nConnection: Close\r\n\r\n";
-					fwrite($fp, $out);
-					fclose($fp);
-					$data=true;
-				}
-				else
-				{
-					$data=false;
-				}
-			}
-		}
-		return is_callable($callback)?$callback($data):$data;
+		function_exists('fastcgi_finish_request')&&fastcgi_finish_request();
+		$data=($router instanceof Closure)?$router():self::run($router);
+		return $callback?$callback($data):$data;
 	}
 	/**
 	 * 计算缓存位置,或删除缓存,传入路由数组或路由字符串
@@ -427,14 +389,15 @@ class App
 		}
 
 	}
-	public static function timer($function,$exit=false,$callback=null)
+	public static function timer(Closure $function,$exit=false,Closure $callback=null)
 	{
 		while(true)
 		{
-			is_callable($function)&&$function();
-			if(is_callable($exit)?$exit():$exit)
+			$data=$function();
+			$break=($exit instanceof Closure)?$exit($data):$exit;
+			if($break)
 			{
-				return is_callable($callback)?$callback():null;
+				return $callback?$callback($data):$data;
 			}
 		}
 	}
@@ -470,7 +433,7 @@ class App
 			$errormsg="ERROR({$errno}) {$errstr} in {$errfile} on line {$errline} ";
 			$code=500;
 		}
-		app::log($errormsg,'ERROR');
+		$errno==404 || app::log($errormsg,'ERROR');
 		defined('STDIN')||(app::get('sys-error')&&exit('Error Found In Error Handler'))||(http_response_code($code)&&app::set('sys-error',true));
 		if(!DEBUG&&defined('ERROR_PAGE_404')&&defined('ERROR_PAGE_500')) //线上模式且自定义了404和500
 		{
@@ -488,9 +451,9 @@ class App
 				$GLOBALS['APP']['controller'][$errorController]=isset($GLOBALS['APP']['controller'][$errorController])?$GLOBALS['APP']['controller'][$errorController]:$errorController;
 				if(!$GLOBALS['APP']['controller'][$errorController] instanceof $errorController)
 				{
-					$GLOBALS['APP']['controller'][$errorController]=new $errorController($errorRouter);///实例化控制器	
+					$GLOBALS['APP']['controller'][$errorController]=new $errorController($errorRouter);
 				}
-				exit(call_user_func_array(array($GLOBALS['APP']['controller'][$errorController],$errorRouter[1]), array($errormsg)));//传入参数
+				exit(is_callable(array($GLOBALS['APP']['controller'][$errorController],$errorRouter[1]))?call_user_func_array(array($GLOBALS['APP']['controller'][$errorController],$errorRouter[1]),array($errormsg)):'Error Handler Is Not Callable');
 			}
 			else
 			{
@@ -513,14 +476,11 @@ class App
 	}
 	public static function Shutdown()
 	{
-		if(DEBUG)
+		$lastError=error_get_last();
+		if($lastError)
 		{
-			$lastError=error_get_last();
-			if($lastError)
-			{
-				$errormsg="ERROR({$lastError['type']}) {$lastError['message']} in {$lastError['file']} on line {$lastError['line']} ";
-				return app::log($errormsg,'ERROR');
-			}
+			$errormsg="ERROR({$lastError['type']}) {$lastError['message']} in {$lastError['file']} on line {$lastError['line']} ";
+			return app::log($errormsg,'ERROR');
 		}
 	}
 
@@ -815,60 +775,41 @@ class Request
 	public static function isSpider()
 	{
 		$agent=isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:null;
-		if($agent)
-		{
-			return preg_match('/(spider|bot|slurp|crawler)/i', strtolower($agent));
-		}
-		return true;
+		return $agent?preg_match('/(spider|bot|slurp|crawler)/i',$agent):true;
 	}
-	public static function isMoblie()
+	public static function isMobile()
 	{
 		$agent=isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:null;
-		$regexMatch="/(nokia|iphone|android|motorola|^mot\-|softbank|foma|docomo|kddi|up\.browser|up\.link|";
-		$regexMatch.="htc|dopod|blazer|netfront|helio|hosin|huawei|novarra|CoolPad|webos|techfaith|palmsource|";
-		$regexMatch.="blackberry|alcatel|amoi|ktouch|nexian|samsung|^sam\-|s[cg]h|^lge|ericsson|philips|sagem|wellcom|bunjalloo|maui|";
-		$regexMatch.="symbian|smartphone|midp|wap|phone|windows ce|iemobile|^spice|^bird|^zte\-|longcos|pantech|gionee|^sie\-|portalmmm|";
-		$regexMatch.="jig\s browser|hiptop|^ucweb|^benq|haier|^lct|opera\s*mobi|opera\*mini|320x320|240x320|176x220";
-		$regexMatch.=")/i";
-		return preg_match($regexMatch, strtolower($agent));
+		$regexMatch="/(nokia|iphone|android|motorola|ktouch|samsung|symbian|blackberry|CoolPad|huawei|hosin|htc|smartphone)/i";
+		return preg_match($regexMatch,$agent);
 	}
-	public static function ua()
+	public static function ua($default=null)
 	{
-		return self::getVar('server','HTTP_USER_AGENT');
+		return isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:$default;
 	}
-	public static function refer()
+	public static function refer($default=null)
 	{
-		return self::getvar('server','HTTP_REFERER');
+		return isset($_SERVER['HTTP_REFERER'])?$_SERVER['HTTP_REFERER']:$default;
 	}
-	public static function filterPost($rule,$callback=null,$clean=false)
+	public static function filterPost(Array $rule,Closure $callback=null,$clean=false)
 	{
-		foreach ($rule as $key => $value)
-		{
-			$allowed[]=is_int($key)?$value:$key;
-		}
+		$allowed=array_keys($rule);
 		$post=self::cleanData($_POST,$allowed,$clean);
 		return Validate::rule($rule,$post,$callback);
 	}
-	public static function filterGet($rule,$callback=null,$clean=false)
+	public static function filterGet(Array $rule,Closure $callback=null,$clean=false)
 	{
-		foreach ($rule as $key => $value)
-		{
-			$allowed[]=is_int($key)?$value:$key;
-		}
+		$allowed=array_keys($rule);
 		$get=self::cleanData($_GET,$allowed,$clean);
 		return Validate::rule($rule,$get,$callback);
 	}
-	private static function cleanData($input,$allowed,$clean=false)
+	private static function cleanData(Array $input,Array $allowed,$clean=false)
 	{
-		foreach(array_keys($input) as $key )
+		foreach ($input as $key => $value)
 		{
-			if ( !in_array($key,$allowed)||!$key )
+			if(!in_array($key,$allowed))
 			{
-				 unset($input[$key]);
-			}
-			if($clean)
-			{
-				$input[$key]=self::clean($input[$key]);
+				unset($input[$key]);
 			}
 		}
 		foreach ($allowed as $item)
@@ -876,6 +817,10 @@ class Request
 			if(!isset($input[$item]))
 			{
 				$input[$item]=null;
+			}
+			else if($clean)
+			{
+				$input[$item]=self::clean($input[$item]);
 			}
 		}
 		return $input;
@@ -946,19 +891,19 @@ class Request
 */
 class Validate
 {
-	public static function rule($rule,$data,$callback=null)
+	public static function rule($rule,$data,Closure $callback=null)
 	{
 		try
 		{
 			foreach($rule as $k=>&$item)
 			{
-				if(isset($data[$k])&&$data[$k]!='')//存在要验证的数据
+				if(isset($data[$k])&&$data[$k])//存在要验证的数据
 				{
 					foreach($item as $type=>$msg)
 					{
-						if(is_object($msg)) //是一个过滤器
+						if($msg instanceof Closure) //是一个过滤器
 						{
-							$data[$k]=$msg($data[$k]);
+							$data[$k]=$msg($data[$k],$k);
 						}
 						else if(is_int($type))
 						{
@@ -976,25 +921,17 @@ class Validate
 				}
 				else if(isset($item['require'])) //标记为require,却不存在
 				{
-					throw new Exception($item['require'], -1);
+					throw new Exception($item['require'], -100);
 				}
 			}
 
 		}
 		catch(Exception $e)
 		{
-			$data=json_encode(array('code'=>$e->getCode(),'msg'=>$e->getMessage()));
-			if(is_callable($callback))
-			{
-				$callback($data,$e);
-			}
-			else if($callback)
-			{
-				exit($data);
-			}
-			return false;
+			$data=array('code'=>$e->getCode(),'msg'=>$e->getMessage());
+			return $callback?$callback($data,json_encode($data)):false;
 		}
-		if(!empty($sw)&&is_array($sw))
+		if(!empty($sw))
 		{
 			foreach($sw as $from=>$to)
 			{
@@ -1004,7 +941,6 @@ class Validate
 		}
 		return $data; //数据全部校验通过
 	}
-
 	private static function typeChecker($item,$type,$msg)
 	{
 		switch ($type)
@@ -1012,56 +948,58 @@ class Validate
 			case 'require':
 				if(empty($item))
 				{
-					throw new Exception($msg, -1);
+					throw new Exception($msg, -101);
 				}
 				break;
 			case 'email':
 				if(!self::email($item))
 				{
-					throw new Exception($msg, -2);
+					throw new Exception($msg, -102);
 				}
 				break;
 			case 'username':
 				if(!self::username($item))
 				{
-					throw new Exception($msg, -3);
+					throw new Exception($msg, -103);
 				}
 				break;
 			case 'password':
 				if(!self::password($item))
 				{
-					throw new Exception($msg, -4);
+					throw new Exception($msg, -104);
 				}
 				break;
 			case 'phone':
 				if(!self::phone($item))
 				{
-					throw new Exception($msg, -5);
+					throw new Exception($msg, -105);
 				}
 				break;
 			case 'url':
 				if(!self::url($item))
 				{
-					throw new Exception($msg, -6);
+					throw new Exception($msg, -106);
 				}
 				break;
 			case 'ip':
 				if(!self::ip($item))
 				{
-					throw new Exception($msg, -7);
+					throw new Exception($msg, -107);
 				}
 				break;
 			case 'idcard':
 				if(!self::idcard($item))
 				{
-					throw new Exception($msg, -8);
+					throw new Exception($msg, -108);
 				}
 				break;
 			default:
-				throw new Exception("Error Type Rule {$type}", -404);
+				if(!self::this($type,$item))
+				{
+					throw new Exception($msg, -109);
+				}
 				break;
 		}
-
 	}
 	private static function mixedChecker($item,$mixed,$msg)
 	{
@@ -1070,19 +1008,19 @@ class Validate
 			case 'minlength':
 				if(strlen($item)<$mixed[1])
 				{
-					throw new Exception($msg, -9);
+					throw new Exception($msg, -201);
 				}
 				break;
 			case 'maxlength':
 				if(strlen($item)>$mixed[1])
 				{
-					throw new Exception($msg, -10);
+					throw new Exception($msg, -202);
 				}
 				break;
 			case 'eq':
 				if($item!=$mixed[1])
 				{
-					throw new Exception($msg, -11);
+					throw new Exception($msg, -203);
 				}
 				break;
 			default:
@@ -1104,10 +1042,6 @@ class Validate
 	}
 	public static function ip($ip)
 	{
-		if(function_exists('ip2long'))
-		{
-			return (ip2long($ip)!==false);  			
-		}
 		return filter_var($ip,FILTER_VALIDATE_IP);
 	}
 	//中国大陆身份证号(15位或18位)
@@ -1131,9 +1065,7 @@ class Validate
 	{
 		return preg_match($pattern, $subject);
 	}
-
 }
-
 /**
 * model 层,可以静态方式使用
 */
