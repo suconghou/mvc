@@ -231,7 +231,7 @@ class App
 	 */
 	public static function route($regex,$arr)
 	{
-		if($arr instanceof Clouse)
+		if($arr instanceof Closure)
 		{
 			$GLOBALS['APP']['regexRouter'][$regex]=$arr;
 		}
