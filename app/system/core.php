@@ -1212,14 +1212,7 @@ class DB extends PDO
 	public static function __callStatic($method,$args=null)
 	{
 		$instance=M(get_called_class());
-		if($method=='instance')
-		{
-			return $instance;
-		}
-		else
-		{
-			return call_user_func_array(array($instance,ltrim($method,'_')), $args);
-		}
+		return $method=='instance'?$instance:call_user_func_array(array($instance,ltrim($method,'_')),$args);
 	}
 
 }//end class db
@@ -1304,7 +1297,7 @@ function json(Array $data,$callback=null)
 	$data=json_encode($data);
 	$callback=$callback===true?(empty($_GET['callback'])?null:$_GET['callback']):$callback;
 	$data=$callback?$callback."(".$data.")":$data;
-	header('Content-Type: text/'.$callback?'javascript':'json',true,200);
+	header('Content-Type: text/'.($callback?'javascript':'json'),true,200);
 	exit($data);
 }
 function byteFormat($size,$dec=2)
