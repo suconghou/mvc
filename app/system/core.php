@@ -1299,26 +1299,24 @@ function cookie($key,$val=null,$expire=0)
 	}
 
 }
-function json($data,$callback=null)
+function json(Array $data,$callback=null)
 {
-	is_array($data)||parse_str($data,$data);
 	$data=json_encode($data);
-	if($callback&&(is_string($callback)||$callback=Request::get('callback')))
-	{
-		exit($callback."(".$data.")");
-	}
+	$callback=$callback===true?(empty($_GET['callback'])?null:$_GET['callback']):$callback;
+	$data=$callback?$callback."(".$data.")":$data;
+	header('Content-Type: text/'.$callback?'javascript':'json',true,200);
 	exit($data);
 }
 function byteFormat($size,$dec=2)
 {
-	$size=max(abs($size),1);
+	$size=max($size,0);
 	$unit=array("B","KB","MB","GB","TB","PB","EB","ZB","YB");
-	return round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i];
+	return $size>=1024?round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i]:$size.' B';
 }
 //外部重定向,会立即结束脚本以发送header,内部重定向app::run(array);
 function redirect($url,$timeout=0)
 {
-	$timeout=abs(intval($timeout));
+	$timeout=intval($timeout);
 	if(in_array($timeout,array(0,301,302,307)))
 	{
 		header("Location: {$url}",true,$timeout);
@@ -1327,7 +1325,7 @@ function redirect($url,$timeout=0)
 	{
 		header("Refresh: {$timeout}; url={$url}");
 	}
-	exit(header("Cache-Control: no-cache",true));
+	exit(header("Cache-Control: max-age=0, no-cache, must-revalidate, proxy-revalidate",true));
 }
 function baseUrl($path=null)
 {

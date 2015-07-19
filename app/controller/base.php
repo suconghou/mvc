@@ -54,13 +54,13 @@ class base
 		$allow=is_array($allow)?$allow:array($allow);
 		if($allow)
 		{
-			header('Access-Control-Allow-Origin: '.join(', ',$allow));
+			header('Access-Control-Allow-Origin: '.join(', ',$allow),true);
 		}
 		else
 		{
-			header('Access-Control-Allow-Origin: *');
+			header('Access-Control-Allow-Origin: *',true);
 		}
-		return header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
+		return header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept',true);
 	}
 	
 	public static final function onlyCli()
