@@ -742,19 +742,15 @@ class Request
 	}
 	public static function serverInfo($key=null,$default=null)
 	{
-		$info['server_ip']=gethostbyname(self::getVar('server',"SERVER_NAME"));///服务器IP
-		$info['max_exectime']=ini_get('max_execution_time');//最大执行时间
-		$info['max_upload']=ini_get('file_uploads')?ini_get('upload_max_filesize'):0;///最大上传
-		$info['php_vision']=PHP_VERSION;////php版本
-		$info['os']=PHP_OS;///操作系统类型
-		$info['run_mode']=php_sapi_name();//php 运行方式
+		$info['php_os']=PHP_OS;
+		$info['php_sapi']=PHP_SAPI;
+		$info['php_vision']=PHP_VERSION;
 		$info['post_max_size']=ini_get('post_max_size');
-		if($key)
-		{
-			return isset($info[$key])?$info[$key]:$default;
-		}
+		$info['max_execution_time']=ini_get('max_execution_time');
+		$info['server_ip']=gethostbyname($_SERVER['SERVER_NAME']);
+		$info['upload_max_filesize']=ini_get('file_uploads')?ini_get('upload_max_filesize'):0;
+		if($key) {return isset($info[$key])?$info[$key]:$default;}
 		return $info;
-
 	}
 	public static function isCli()
 	{
