@@ -257,7 +257,7 @@ class Curl
 	{
 		if(preg_match_all($regex,$html,$matches))
 		{
-			if($index and isset($matches[$index]))
+			if(!is_null($index) && isset($matches[$index]))
 			{
 				return array_unique($matches[$index]);
 			}

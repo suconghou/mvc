@@ -42,7 +42,7 @@ else
 
 /*************************************应用程序配置区*************************************/
 
-app::route('\/(?:([\w\-]+)\/)?static\/(css|style|js)(?:\/([\w\-\.]+))','plugins/StaticProvider');
+app::route('\/(?:([\w\-]+)\/)?static\/(css|style|js)(?:\/([\w\-\.]+))','Plugins/StaticProvider');
 
 base::version(1234);
 

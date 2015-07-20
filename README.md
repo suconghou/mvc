@@ -35,7 +35,6 @@ try_files $uri $uri/ /index.php?$args;
 对于`apache`
 
 ```
-AddDefaultCharset UTF-8
 Options -Indexes
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f

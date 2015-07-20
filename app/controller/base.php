@@ -11,7 +11,7 @@ class base
 
 	private static $pathMap=array('css'=>'/static/css/','style'=>'/static/style/','js'=>'/static/js/','img'=>'/static/img/');
 	
-	private function __construct()
+	public function __construct()
 	{
 		$this->globalIndex(); //全局加载的
 	}

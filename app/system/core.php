@@ -1222,7 +1222,7 @@ function __autoload($class)
 		require_once $controllerFile;
 		return class_exists($class)||app::Error(500,'Load File '.$controllerFile.' Succeed,But Not Found Class '.$class);
 	}
-	else if(is_file($libFile=LIB_PATH.'class'.DIRECTORY_SEPARATOR."{$class}.class.php"))
+	else if(is_file($libFile=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.class.php"))
 	{
 		require_once $libFile;
 		return class_exists($class)||app::Error(500,'Load File '.$libFile.' Succeed,But Not Found Class '.$class);
