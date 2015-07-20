@@ -11,17 +11,17 @@ class base
 
 	private static $pathMap=array('css'=>'/static/css/','style'=>'/static/style/','js'=>'/static/js/','img'=>'/static/img/');
 	
-	function __construct()
+	private function __construct()
 	{
 		$this->globalIndex(); //全局加载的
 	}
 
-	private final function globalIndex()
+	final private function globalIndex()
 	{
 		return $this->firewall();
 	}
 
-	private final function firewall($use=false)
+	final private function firewall($use=false)
 	{
 		if($use)
 		{
@@ -40,7 +40,7 @@ class base
 		return $this; 
 	}
 
-	private static final function forbidden($msg=null)
+	final private static function forbidden($msg=null)
 	{
 		echo $msg;
 		exit(header('HTTP/1.1 403 Forbidden',true,403));
@@ -49,7 +49,7 @@ class base
 	/**
 	 * 开启跨域资源共享
 	 */
-	public static final function cors($allow=array())
+	final public static function cors($allow=array())
 	{
 		$allow=is_array($allow)?$allow:array($allow);
 		if($allow)
@@ -63,22 +63,22 @@ class base
 		return header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept',true);
 	}
 	
-	public static final function onlyCli()
+	final public static function onlyCli()
 	{
 		return Request::isCli()||self::forbidden();
 	}
 
-	public static final function onlyAjax()
+	final public static function onlyAjax()
 	{
 		return Request::isAjax()||self::forbidden();
 	}
 
-	public static final function onlyPost()
+	final public static function onlyPost()
 	{
 		return Request::isPost()||self::forbidden();
 	}
 
-	public final function IpBlacklist(Array $ips,Closure $callback=null)
+	final public function IpBlacklist(Array $ips,Closure $callback=null)
 	{
 		$ip=Request::ip();
 		if(!$ip || in_array($ip,$ips))
@@ -92,7 +92,7 @@ class base
 		return $this;
 	}
 
-	public final function SpiderBlock(Closure $callback=null)
+	final public function SpiderBlock(Closure $callback=null)
 	{
 		if(Request::isSpider())
 		{
@@ -106,7 +106,7 @@ class base
 		return $this;
 	}
 	
-	public final function BusyBlock(array $hz=array(1,30),Closure $callback=null)
+	final public function BusyBlock(array $hz=array(1,30),Closure $callback=null)
 	{
 		$ip=Request::ip();
 		if($ip)
@@ -150,80 +150,80 @@ class base
 		throw new Exception("BusyBlock Block {$ip}",3);
 	}
 
-	function Error404($msg=null)
+	public function Error404($msg=null)
 	{
 		echo $msg;
 
 	}
 
-	function Error500($msg=null)
+	public function Error500($msg=null)
 	{
 		echo $msg;
 	}
 
 	/**********************************魔术方法********************************/
 
-	public final function __call($method,$args=null)
+	final public function __call($method,$args=null)
 	{
 		return self::Error404("{$method} not found");
 	}
 
-	public static final function __callStatic($method,$args=null)
+	final public static function __callStatic($method,$args=null)
 	{
 		return self::Error404("{$method} not found");
 	}
 
-	public final function __set($key,$value)
+	final public function __set($key,$value)
 	{
 		$this->$key=$value;
 	}
 
-	public final function __get($key)
+	final public function __get($key)
 	{
 		return isset($this->$key)?$this->$key:null;
 	}
 
-	public final function __isset($key)
+	final public function __isset($key)
 	{
 		return isset($this->$key);
 	}
 
 	/**********************************资源以及版本管理********************************/
 
-	public static final function version($version)
+	final public static function version($version)
 	{
 		self::$version=DEBUG?'?debug':'?ver='.md5($version);
 		return self::$version;
 	}
 
-	public static final function url($url)
+	final public static function url($url)
 	{
 		self::$baseUrl=$url;
 		return self::$baseUrl;
 	}
 
-	public static final function setPath($type,$value)
+	final public static function setPath($type,$value)
 	{
 		self::$pathMap[$type]='/'.trim($value,'/').'/';
 		return self::$pathMap;
 	}
 
-	public static final function css($css,$project=null)
+	final public static function css($css,$project=null)
 	{
 		return self::assets($css,'css',$project);
 	}
 
-	public static final function js($js,$project=null)
+	final public static function js($js,$project=null)
 	{
 		return self::assets($js,'js',$project);
 	}
 
-	public static final function img($src,$project=null)
+	final public static function img($src,$project=null)
 	{
 		return self::assets($src,'img',$project);
 	}
 
-	private static final function assets($asset,$type,$project=null)
+	final private static function assets($asset,$type,$project=null)
 	{
 		$links=array();
 		$version=self::$version;
@@ -256,14 +256,14 @@ class base
 		return implode('',$links);
 	}
 
-	public static final function lib($item,$load='main')
+	final public static function lib($item,$load='main')
 	{
 		$version=self::$version;
 		$script="<script src='{$item}{$version}' data-load='{$load}' data-ver='{$version}' id='js-main'></script>";
 		return $script;
 	}
 
-	public static final function meta()
+	final public static function meta()
 	{
 
 	}
@@ -273,7 +273,7 @@ class base
 	/**
 	 *  检查用户是否登录
 	 */
-	function isUserLogin($addr='/')
+	final protected function isUserLogin($addr='/')
 	{
 		
 	}
@@ -281,7 +281,7 @@ class base
 	/**
 	 * 检查管理员是否登录
 	 */
-	function isAdminLogin($addr='/')
+	final protected function isAdminLogin($addr='/')
 	{
 		
 	}

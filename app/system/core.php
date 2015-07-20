@@ -1069,11 +1069,11 @@ class DB extends PDO
 {
 	private static $pdo;
 
-	function __construct($dbType=null)
+	public function __construct($dbType=null)
 	{
 		self::init($dbType);
 	}
-	private static function init($dbType=null)
+	final private static function init($dbType=null)
 	{
 		if(is_null($dbType))
 		{
@@ -1119,7 +1119,7 @@ class DB extends PDO
 
 	}
 	//运行Sql语句,不返回结果集,但会返回成功与否,不能用于select
-	public static function runSql($sql)
+	final public static function runSql($sql)
 	{
 		try
 		{
@@ -1133,7 +1133,7 @@ class DB extends PDO
 		}
 	}
 	//运行Sql,以多维数组方式返回结果集
-	public static function getData($sql)
+	final public static function getData($sql)
 	{
 		try
 		{
@@ -1148,7 +1148,7 @@ class DB extends PDO
 		}
 	}
 	//运行Sql,以数组方式返回结果集第一条记录
-	public static function getLine($sql)
+	final public static function getLine($sql)
 	{
 		try
 		{
@@ -1163,7 +1163,7 @@ class DB extends PDO
 		}
 	}
 	//运行Sql,返回结果集第一条记录的第一个字段值
-	public static function getVar($sql)
+	final public static function getVar($sql)
 	{
 		try
 		{
@@ -1177,12 +1177,12 @@ class DB extends PDO
 			return app::Error(500,'Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
 		}
 	}
-	public static function lastId()
+	final public static function lastId()
 	{
 		return self::ready()->lastInsertId();
 	}
 	//返回原生的PDO对象
-	public static function getInstance($current=true)
+	final public static function getInstance($current=true)
 	{
 		if($current)
 		{
@@ -1197,19 +1197,19 @@ class DB extends PDO
 			return $pdo;
 		}
 	}
-	public  function quote($string, $paramtype = null)
+	final public  function quote($string, $paramtype = null)
 	{
 		return self::ready()->quote($string, $paramtype);
 	}
-	private static  function ready()
+	final private static  function ready()
 	{
 		return self::$pdo?self::$pdo:self::init();
 	}
-	public function __call($method,$args=null)
+	final public function __call($method,$args=null)
 	{
 		return app::Error(500,'Call Error Method '.$method.' In Class '.get_called_class());
 	}
-	public static function __callStatic($method,$args=null)
+	final public static function __callStatic($method,$args=null)
 	{
 		$instance=M(get_called_class());
 		return $method=='instance'?$instance:call_user_func_array(array($instance,ltrim($method,'_')),$args);
