@@ -52,7 +52,7 @@ class base
 	final public static function cors($allow=array())
 	{
 		$allow=is_array($allow)?$allow:array($allow);
-		if($allow)
+		if(!empty($allow))
 		{
 			header('Access-Control-Allow-Origin: '.join(', ',$allow),true);
 		}
@@ -116,7 +116,7 @@ class base
 			$seconds=intval($hz[0]*60);
 			$times=intval($hz[1]);
 			$dir=sys_get_temp_dir().DIRECTORY_SEPARATOR.'BusyBlock'.DIRECTORY_SEPARATOR.substr($key,0,2);
-			is_dir($dir) or mkdir($dir,0777,true);
+			is_dir($dir) || mkdir($dir,0777,true);
 			$file=$dir.DIRECTORY_SEPARATOR.substr($key,-6);
 			if(is_file($file))
 			{
@@ -138,7 +138,7 @@ class base
 			}
 			else
 			{
-				$data[$ip]=array(0,0);
+				$data=array($ip=>array(0,0));
 				file_put_contents($file,serialize($data));
 				return $this;
 			}

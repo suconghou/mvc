@@ -21,7 +21,7 @@
 *  decrById($table,$column,$id,$num=1)
 *  搜索  
 *  searchByColumn($table,$column,$search)
-*  searchByTable($table,$cloumn,$search)
+*  searchByTable($table,$column,$search)
 *  数据列表
 *  getList($table,$column,$page=1,$order='desc',$per=20,$where=null)
 * 
@@ -39,14 +39,14 @@ class Database extends DB
 {
 	private  $orm;
 	private static $cache;
-	private static $expire=600;  //600秒缓存时间
+	private static $expire=600;
 	private static $use=false;
-	const type='memcache';  //memcache,redis,file,三者其中之一
+	const type='memcache';  // memcache,redis,file,三者其中之一
 
 	/**
 	 * $cfg ,id or array ,where string
 	 */
-	function __construct($cfg=null,$column='*')
+	public function __construct($cfg=null,$column='*')
 	{
 		$this->orm['table'] = get_called_class();
 		if(!is_null($cfg))
@@ -68,7 +68,7 @@ class Database extends DB
 	/**
 	 *  可调用的缓存开关,第一次开启缓存时会初始化cacher
 	 */	
-	function cache($on,$expire=0)
+	final public function cache($on,$expire=0)
 	{
 		if(is_null(self::$cache)&&$on)
 		{
@@ -91,7 +91,7 @@ class Database extends DB
 	/**
 	 * 清除某个cache值
 	 */
-	function delCache($table,$id)
+	final public function delCache($table,$id)
 	{
 		if(self::$cache&&self::$use)
 		{
@@ -103,7 +103,7 @@ class Database extends DB
 	/**
 	 * 根据ID获得某个表的一行数据
 	 */
-	function selectById($table,$id,$column='*')
+	final public function selectById($table,$id,$column='*')
 	{
 		$id=intval($id);
 		$sql="SELECT {$column} FROM `{$table}` WHERE id='{$id}' ";
@@ -130,7 +130,7 @@ class Database extends DB
 	/**
 	 * 根据ID删除某个表的一行
 	 */
-	function deleteById($table,$id)
+	final public function deleteById($table,$id)
 	{
 		$id=intval($id);
 		$sql="DELETE FROM `{$table}` WHERE id={$id} ";
@@ -140,7 +140,7 @@ class Database extends DB
 	/**
 	 * 根据ID更新某个表
 	 */
-	function updateById($table,$id,$data)
+	final public function updateById($table,$id,$data)
 	{
 		$id=intval($id);
 		$v=array();
@@ -157,7 +157,7 @@ class Database extends DB
 	/**
 	 * 返回自增ID
 	 */
-	function insertData($table,$data)
+	final public function insertData($table,$data)
 	{
 		$k=$v=array();
 		foreach ($data as $key => $value)
@@ -176,7 +176,7 @@ class Database extends DB
 	}
 	// END selectById, updateById, deleteById, insertData 四种基本类型
 	///缓存结果不能更新直到过期
-	function selectWhere($table,$where=null,$orderlimit=null,$column='*')
+	final public function selectWhere($table,$where=null,$orderlimit=null,$column='*')
 	{	
 		if($where)
 		{
@@ -248,7 +248,7 @@ class Database extends DB
 	/**
 	 * 若缺少id字段,会使缓存无法更新,直到过期时间
 	 */
-	function deleteWhere($table,$where=null)
+	final public function deleteWhere($table,$where=null)
 	{
 		if($where)
 		{
@@ -272,7 +272,7 @@ class Database extends DB
 		{
 			$sql="DELETE  FROM `{$table}` ";
 		}
-		if(is_array($where) and isset($where['id']))
+		if(is_array($where) && isset($where['id']))
 		{
 			$this->delCache($table,$where['id']);
 		}
@@ -282,7 +282,7 @@ class Database extends DB
 	/**
 	 * 若缺少id字段,会使缓存无法更新,直到过期时间
 	 */
-	function updateWhere($table,$where,$data)
+	final public function updateWhere($table,$where,$data)
 	{
 		$k=$v=array();
 		if(is_array($where))
@@ -322,7 +322,7 @@ class Database extends DB
 				);
 
 	**/
-	function multInsert($table,$dataArr,$callback=null)
+	final public function multInsert($table,$dataArr,$callback=null)
 	{
 		$pdo=$this->getInstance();
 		$pdo->beginTransaction();
@@ -375,7 +375,7 @@ class Database extends DB
 					'19'=>array('name'=>'name19','pass'=>'22')
 				);
 	 **/
-	function multUpdate($table,$idArr,$callback=null)
+	final public function multUpdate($table,$idArr,$callback=null)
 	{
 		$pdo=$this->getInstance();
 		$pdo->beginTransaction();
@@ -425,7 +425,7 @@ class Database extends DB
 	/**
 	 * 批量删除
 	 */
-	function multDelete($table,$idArr,$cloumn='id')
+	final public function multDelete($table,$idArr,$column='id')
 	{
 		if(is_array($idArr))
 		{
@@ -441,7 +441,7 @@ class Database extends DB
 	/**
 	 * 批量map查找
 	 */
-	function multSelect($table,$idArr,$selectcolumn='*',$cloumn='id')
+	final public function multSelect($table,$idArr,$selectcolumn='*',$column='id')
 	{
 		if(is_array($idArr))
 		{
@@ -451,13 +451,13 @@ class Database extends DB
 		{
 			$str=$idArr;
 		}
-		$sql="select {$selectcolumn} from `{$table}` where {$cloumn} in ({$str}) ";
+		$sql="select {$selectcolumn} from `{$table}` where {$column} in ({$str}) ";
 		$ret=$this->getData($sql);
 		$res=array();
 		foreach ($ret as $item)
 		{
-			$id=$item[$cloumn];
-			unset($item[$cloumn]);
+			$id=$item[$column];
+			unset($item[$column]);
 			$res[$id]=count($item)==1?current($item):$item;
 		}
 		return $res;
@@ -467,7 +467,7 @@ class Database extends DB
 	/**
 	 * 将某个表的某个字段自增1
 	 */
-	function incrById($table,$column,$id,$num=1)
+	final public function incrById($table,$column,$id,$num=1)
 	{
 		$id=intval($id);
 		$sql="UPDATE `{$table}` SET {$column}={$column}+{$num} WHERE id={$id} ";
@@ -478,20 +478,20 @@ class Database extends DB
 	/**
 	 * 将某个表的某个字段减去1
 	 */
-	function decrById($table,$column,$id,$num=1)
+	final public function decrById($table,$column,$id,$num=1)
 	{
 		$id=intval($id);
 		$sql="UPDATE `{$table}` SET {$column}={$column}-{$num} WHERE id={$id} ";
 		$this->delCache($table,$id);
 		return $this->runSql($sql);
 	}
-	function existId($table,$id,$select='*')
+	final public function existId($table,$id,$select='*')
 	{
 		$sql="SELECT {$select} FROM `{$table}` WHERE id='{$id}' ";
 		$data=$this->getLine($sql);
 		return empty($data)?false:$data;
 	}
-	function existWhere($table,$where,$select='*')
+	final public function existWhere($table,$where,$select='*')
 	{
 		if(is_array($where))
 		{
@@ -514,7 +514,7 @@ class Database extends DB
 	/**
 	 * 按栏目搜索
 	 */
-	function searchByColumn($table,$column,$search,$selectcolumn='*',$num=50)
+	final public function searchByColumn($table,$column,$search,$selectcolumn='*',$num=50)
 	{
 		$sql="SELECT {$selectcolumn} FROM `{$table}` WHERE {$column} LIKE  '%{$search}%' LIMIT {$num}";
 		if(self::$use)
@@ -542,7 +542,7 @@ class Database extends DB
 	/**
 	 * 获得某个表的某条件下按某字段排序的指定页的SELECT内容以及该条件下的总页数,缓存只能过期自动删除
 	 */
-	function getList($table,$page=1,$where=null,$orderby='id desc',$per=20,$selectcolumn='*')
+	final public function getList($table,$page=1,$where=null,$orderby='id desc',$per=20,$selectcolumn='*')
 	{
 		$offset=max(0,($page-1)*$per);
 		if($where)
@@ -614,7 +614,7 @@ class Database extends DB
 	/**
 	 * 对某条件计数
 	 */
-	function count($table,$where=null)
+	final public function count($table,$where=null)
 	{
 		if($where)
 		{
@@ -654,11 +654,11 @@ class Database extends DB
 	}
 
 	///////////////////////ORM////////////////////////
-	function __get($key)
+	final public function __get($key)
 	{
 		return isset($this->orm['instance'][$key])?$this->orm['instance'][$key]:null;
 	}
-	function __set($key,$value)
+	final public function __set($key,$value)
 	{
 		if(empty($this->orm['instance']))
 		{
@@ -673,7 +673,7 @@ class Database extends DB
 			}
 		}
 	}
-	function __invoke($data=null)
+	final public function __invoke($data=null)
 	{
 		if($data)
 		{
@@ -696,13 +696,12 @@ class Database extends DB
 		}
 		
 	}
-	function __toString()
+	final public function __toString()
 	{
 		return isset($this->orm['instance'])?var_export($this->orm['instance'],true):null;
 	}
-	function save($data=null)
+	final public function save($data=null)
 	{
-		var_dump($this->orm);
 		if(!isset($this->orm['instance']))
 		{
 			return $this->insertData($this->orm['table'],$this->orm['data']);
@@ -723,14 +722,14 @@ class Database extends DB
 			return isset($this->orm['instance'][0])?false:true;
 		}
 	}
-	function delete()
+	final public function delete()
 	{
 		if(!empty($this->orm['instance']))
 		{
 			return $this->deleteById($this->orm['table'],$this->orm['instance']['id']);
 		}
 	}
-	function __destruct()
+	public function __destruct()
 	{
 		
 	}
