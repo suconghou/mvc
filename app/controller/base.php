@@ -150,6 +150,15 @@ class base
 		throw new Exception("BusyBlock Block {$ip}",3);
 	}
 
+	public function gitpull($key=null)
+	{
+		if($key=='password')
+		{
+			$cmd='git pull origin master';
+			return passthru($cmd);
+		}
+	}
+
 	public function Error404($msg=null)
 	{
 		echo $msg;

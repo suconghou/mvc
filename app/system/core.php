@@ -33,7 +33,7 @@ class App
 	private static function runCli()
 	{
 		$script=array_shift($GLOBALS['argv']);
-		$phar=substr($script,-4)=='phar';
+		$phar=substr(__FILE__,0,4)=='phar';
 		if($GLOBALS['argc']>1)
 		{
 			$_SERVER['REQUEST_URI']=null;
