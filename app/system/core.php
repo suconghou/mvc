@@ -55,7 +55,7 @@ class App
 				{
 					$pharName=rtrim($script,'php').'phar';
 					$path=ROOT.$pharName;
-					is_file($path) and unlink($path);
+					is_file($path) && unlink($path);
 					$phar=new Phar($path,FilesystemIterator::CURRENT_AS_FILEINFO | FilesystemIterator::KEY_AS_FILENAME,$pharName);
 					$phar->startBuffering();
 					$dirObj=new RecursiveIteratorIterator(new RecursiveDirectoryIterator(ROOT),RecursiveIteratorIterator::SELF_FIRST);
@@ -247,7 +247,7 @@ class App
 			$path=VAR_PATH.'log'.DIRECTORY_SEPARATOR.date('Y-m-d').'.log';
 			$msg=strtoupper($type).'-'.date('Y-m-d H:i:s').' ==> '.(is_scalar($msg)?$msg:PHP_EOL.print_r($msg,true)).PHP_EOL;
 			//error消息和开发模式,测试模式全部记录
-			if(DEBUG or strtoupper($type)=='ERROR')
+			if(DEBUG || strtoupper($type)=='ERROR')
 			{
 				error_log($msg,3,$path);
 			}
@@ -477,7 +477,7 @@ class App
 	public static function Shutdown()
 	{
 		$lastError=error_get_last();
-		if($lastError)
+		if(!empty($lastError))
 		{
 			$errormsg="ERROR({$lastError['type']}) {$lastError['message']} in {$lastError['file']} on line {$lastError['line']} ";
 			return app::log($errormsg,'ERROR');
@@ -827,22 +827,16 @@ class Request
 		{
 			case 'post':
 				return isset($_POST[$var])?($clean?self::clean($_POST[$var]):$_POST[$var]):$default;
-				break;
 			case 'get':
 				return isset($_GET[$var])?($clean?self::clean($_GET[$var]):$_GET[$var]):$default;
-				break;
 			case 'cookie':
 				return isset($_COOKIE[$var])?($clean?self::clean($_COOKIE[$var]):$_COOKIE[$var]):$default;
-				break;
 			case 'server':
 				return isset($_SERVER[$var])?$_SERVER[$var]:$default;
-				break;
-			case 'session': ///此处为获取session的方式
+			case 'session':
 				return isset($_SESSION[$var])?$_SESSION[$var]:$default;
-				break;
 			default:
 				return false;
-				break;
 		}
 	}
 	/**
@@ -1021,7 +1015,6 @@ class Validate
 				break;
 			default:
 				throw new Exception("Error Mixed Rule {$mixed[0]}", -500);
-				break;
 		}
 	}
 	public static function email($email)
