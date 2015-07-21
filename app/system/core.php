@@ -789,13 +789,19 @@ class Request
 	}
 	public static function filterPost(Array $rule,Closure $callback=null,$clean=false)
 	{
-		$allowed=array_keys($rule);
+		foreach ($rule as $key => $value)
+		{
+			$allowed[]=is_int($key)?$value:$key;
+		}
 		$post=self::cleanData($_POST,$allowed,$clean);
 		return Validate::rule($rule,$post,$callback);
 	}
 	public static function filterGet(Array $rule,Closure $callback=null,$clean=false)
 	{
-		$allowed=array_keys($rule);
+		foreach ($rule as $key => $value)
+		{
+			$allowed[]=is_int($key)?$value:$key;
+		}
 		$get=self::cleanData($_GET,$allowed,$clean);
 		return Validate::rule($rule,$get,$callback);
 	}
@@ -919,7 +925,7 @@ class Validate
 		catch(Exception $e)
 		{
 			$data=array('code'=>$e->getCode(),'msg'=>$e->getMessage());
-			return $callback?$callback($data,json_encode($data)):false;
+			return $callback?$callback(json_encode($data),$data):false;
 		}
 		if(!empty($sw))
 		{

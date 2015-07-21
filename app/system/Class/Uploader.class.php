@@ -71,7 +71,7 @@ class Uploader
 			$destination=self::$uploadDir.date('Ymd');
 			if(!is_readable($destination))
 	    	{
-	        	is_file($destination) or mkdir($destination,0700);
+	        	is_dir($destination) || mkdir($destination,0777);
 	    	}
 	    	$destination=$destination.'/'.$ret['msg'];
 			move_uploaded_file($_FILES[$name]['tmp_name'], $destination);
