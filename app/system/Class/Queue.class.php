@@ -24,7 +24,7 @@ class Queue
     
     public function __construct($driver=true)
     {
-        self::$cache=S('class/Cache',$driver);
+        self::$cache=S('Class/Cache',$driver);
         if($driver=='redis')
         {
             //使用redis队列功能

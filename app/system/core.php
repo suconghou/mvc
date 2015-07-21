@@ -349,7 +349,7 @@ class App
 			{
 				$data=unserialize(file_get_contents($file));
 			}
-			$data[$key]=$value;
+			$data=array($key=>$value);
 			return file_put_contents($file,serialize($data));
 		}
 		catch(Exception $e)
@@ -476,6 +476,7 @@ class App
 		}
 		else
 		{
+			$li=array();
 			foreach(debug_backtrace() as $trace)
 			{
 				if(isset($trace['file'],$trace['type']))
@@ -794,6 +795,7 @@ class Request
 	}
 	public static function filterPost(Array $rule,Closure $callback=null,$clean=false)
 	{
+		$allowed=array();
 		foreach ($rule as $key => $value)
 		{
 			$allowed[]=is_int($key)?$value:$key;
@@ -803,6 +805,7 @@ class Request
 	}
 	public static function filterGet(Array $rule,Closure $callback=null,$clean=false)
 	{
+		$allowed=array();
 		foreach ($rule as $key => $value)
 		{
 			$allowed[]=is_int($key)?$value:$key;

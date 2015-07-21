@@ -21,12 +21,12 @@ class Ajax
 	private $post_string;
 	private $result;
  
-	function __construct()
+	public function __construct()
 	{
 		$this->run();
 	}
 	
-	function run($debug=false)
+	public function run($debug=false)
 	{
 		if(isset($_REQUEST['url']))
 		{
@@ -61,14 +61,11 @@ class Ajax
 		}
 	}
 
-	function debug()
+	public function debug()
 	{
-		var_dump($this->get);
-		var_dump($this->post);
-		var_dump($this->get_string);
-		var_dump($this->post_string);
+		echo ($this->get).PHP_EOL.($this->post).PHP_EOL.($this->get_string).PHP_EOL.($this->post_string);
 	}
-	function runAjax()
+	public function runAjax()
 	{
 		if (empty($this->post))///没有post数据,但可能有get
 		{
@@ -82,7 +79,7 @@ class Ajax
 	}
  
 	///三种版本的post,get,优先使用curl
-	function post()
+	public function post()
 	{
 		if (extension_loaded('curl'))
 		{   
@@ -126,7 +123,7 @@ class Ajax
 		}
 	}
 	
-	function get()
+	public function get()
 	{
 		if (extension_loaded('curl'))//已修正端口号问题
 		{
@@ -144,6 +141,7 @@ class Ajax
 			$url=$this->query_string(1);
 			$out = 'GET ' . $url . "\r\nConnection: Close\r\n\r\n";
 			fwrite($fp, $out);
+			$data=$header='';
 			while ($str = trim(fgets($fp, 4096)))
 			{
 				 $header .= $str;
@@ -161,14 +159,14 @@ class Ajax
 		}
 	}
  
-	function implode_with_key($assoc, $inglue = '=', $outglue = '&')
+	private function implode_with_key($assoc, $inglue = '=', $outglue = '&')
 	{
 		$return = null;
 		foreach ($assoc as $tk => $tv) $return .= $outglue.$tk.$inglue.$tv;
 		return substr($return,1);
 	}
  
-	function query_string($type=0)
+	private function query_string($type=0)
 	{
 		$parts = parse_url($this->url);
 		$host_port=$parts['host'];

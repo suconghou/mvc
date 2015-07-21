@@ -10,15 +10,16 @@
 
 class KuwoMusic 
 {
-	static $q=null;//搜索词
-	static $type='aac|mp3';///默认搜索的类型
-	static $rn='10';//默认每页显示多少个
+	private static $q=null;//搜索词
+	private static $type='aac|mp3';///默认搜索的类型
+	private static $rn='10';//默认每页显示多少个
 	//初始化
-	function __construct()
+	public function __construct()
 	{
+		
 	}
 	//获得指定页的搜索结果
-	function search($q,$page=0)
+	public function search($q,$page=0)
 	{
 		$rn=self::$rn;
 		$url="http://search.kuwo.cn/r.s?all={$q}&rformat=json&encoding=utf8&pn={$page}&rn={$rn}";
@@ -27,7 +28,7 @@ class KuwoMusic
 		return $out;
 	}
 	///由ID获得真实地址
-	function getlink($id,$type=null)
+	public function getlink($id,$type=null)
 	{
 		$t=$type?$type:self::$type;
 		$url="http://antiserver.kuwo.cn/anti.s?response=url&type=convert_url&format={$t}&rid={$id}";
@@ -35,7 +36,7 @@ class KuwoMusic
 
 	}
 	///信息的缩略和整合
-	function getinfo($q,$page=0)
+	public function getinfo($q,$page=0)
 	{
 		$res=$this->search($q,$page);
 		$json=json_decode($res);
@@ -49,7 +50,7 @@ class KuwoMusic
 		}
 		return isset($info)?$info:null;
 	}
-	function quicklink($q,$type=null,$i=0)
+	public function quicklink($q,$type=null,$i=0)
 	{
 		$res=$this->search($q);
 		$json=json_decode($res);

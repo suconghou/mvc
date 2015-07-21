@@ -12,20 +12,20 @@ class StaticProvider
 
 	private static $project;
 
-	function __construct($project=null,$type=null,$name=null)
+	public function __construct($project=null,$type=null,$name=null)
 	{
 		self::$project=$project;
 		if($type or $name)
 		{
-			return $this->init($type,$name);
+			$this->init($type,$name);
 		}
 		else
 		{
-			return $this->overWriteRouter();
+			$this->overWriteRouter();
 		}
 	}
 
-	function overWriteRouter()
+	public function overWriteRouter()
 	{
 		app::route(self::route,function($type,$name=null)
 		{
@@ -33,7 +33,7 @@ class StaticProvider
 		});
 	}
 
-	function init($type,$name=null)
+	public function init($type,$name=null)
 	{
 		self::$debug=isset($_GET['debug']);
 		if($type=='js')
