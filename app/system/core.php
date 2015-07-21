@@ -17,14 +17,14 @@ class App
 	 */
 	public static function start()
 	{
-		defined('STDIN')||(GZIP?ob_start("ob_gzhandler"):ob_start());
-		define('APP_START_TIME',microtime(true));
-		define('APP_START_MEMORY',memory_get_usage());
-		date_default_timezone_set('PRC');//设置时区
-		set_include_path(LIB_PATH);//此路径下可直接include
+		self::set('sys-start-time',microtime(true));
+		self::set('sys-start-memory',memory_get_usage());
 		error_reporting(DEBUG?E_ALL:0);
-		set_error_handler(array('app','Error'));///异常处理
+		set_include_path(LIB_PATH);
+		date_default_timezone_set('PRC');
+		set_error_handler(array('app','Error'));
 		register_shutdown_function(array('app','Shutdown'));
+		defined('STDIN')||(GZIP?ob_start("ob_gzhandler"):ob_start());
 		return defined('STDIN')?self::runCli():self::process(self::init());
 	}
 	/**
@@ -291,6 +291,20 @@ class App
 		$data=($router instanceof Closure)?$router():self::run($router);
 		return $callback?$callback($data):$data;
 	}
+	public static function cost($type=null)
+	{
+		switch ($type)
+		{
+			case 'time':
+				return round((microtime(true)-self::get('sys-start-time',0)),4);
+			case 'memory':
+				return byteFormat(memory_get_usage()-self::get('sys-start-memory',0));
+			case 'query':
+				return self::get('sys-sql-count',0);
+			default:
+				return array('time'=>round((microtime(true)-self::get('sys-start-time',0)),4),'memory'=>byteFormat(memory_get_usage()-self::get('sys-start-memory',0)),'query'=>self::get('sys-sql-count',0));
+		}
+	}
 	/**
 	 * 计算缓存位置,或删除缓存,传入路由数组或路由字符串
 	 */
@@ -542,41 +556,32 @@ function S($lib)
 	}
 }
 //加载视图,传递参数,设置缓存
-function V($v,$_data_=array(),$fileCacheMinute=0)
+function V($v,$data=null,$fileCacheMinute=0)
 {
-	if(defined('APP_TIME_SPEND'))
+	if($fileCacheMinute||(is_int($data)&&($data>0)))
 	{
-		return template($v,$_data_);
+		$cacheTime=$fileCacheMinute?$fileCacheMinute:$data;
+		$GLOBALS['APP']['cache']['time']=intval($cacheTime*60);
+		$GLOBALS['APP']['cache']['file']=true;
 	}
-	if((is_file($_v_=VIEW_PATH.$v.'.php'))||(is_file($_v_=VIEW_PATH.$v)))
+	if(!empty($GLOBALS['APP']['cache']['file']))
 	{
-		if($fileCacheMinute||(is_int($_data_)&&($_data_>0)))
-		{
-			$cacheTime=$fileCacheMinute?$fileCacheMinute:$_data_;
-			$GLOBALS['APP']['cache']['time']=intval($cacheTime*60);
-			$GLOBALS['APP']['cache']['file']=true;
-		}
-		define('APP_TIME_SPEND',round((microtime(true)-APP_START_TIME),4));
-		define('APP_MEMORY_SPEND',byteFormat(memory_get_usage()-APP_START_MEMORY));
-		(is_array($_data_)&&!empty($_data_))&&extract($_data_);
-		include $_v_;
-		if(!empty($GLOBALS['APP']['cache']['file']))
+		$callback=function($buffer)
 		{
 			$expire=intval(time()+$GLOBALS['APP']['cache']['time']);
-			$contents=ob_get_contents();
 			$router=$GLOBALS['APP']['router'];
 			//与缓存检测时一致,闭包路由也可以使用文件缓存
 			$file=is_object($router[1])?app::fileCache($router[0]):app::fileCache($router);
-			file_put_contents($file,$contents);
+			file_put_contents($file,$buffer);
 			touch($file,$expire);
-		}
-		defined('STDIN')||(ob_end_flush()&&flush());
+			defined('STDIN')||(ob_end_flush()&&flush());
+		};
 	}
 	else
 	{
-		return app::Error(404,'View File '.$_v_.' Not Found ! ');
+		$callback=null;
 	}
-
+	return template($v,is_array($data)?$data:null,$callback);
 }
 //缓存,第一个参数为缓存时间,第二个为是否文件缓存
 function C($time,$file=false)
@@ -604,12 +609,12 @@ function C($time,$file=false)
 	}
 }
 
-function template($_v_,$_data_=array())///加载模版
+function template($_v_,Array $_data_=null,Closure $callback=null)
 {
 	if((is_file($_v_=VIEW_PATH.$_v_.'.php'))||(is_file($_v_=VIEW_PATH.$_v_)))
 	{
 		(is_array($_data_)&&!empty($_data_))&&extract($_data_);
-		return include $_v_;
+		return $callback?((include $_v_)&&$callback(ob_get_contents())):include $_v_;
 	}
 	else
 	{
@@ -777,7 +782,7 @@ class Request
 	{
 		$agent=isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:null;
 		$regexMatch="/(nokia|iphone|android|motorola|ktouch|samsung|symbian|blackberry|CoolPad|huawei|hosin|htc|smartphone)/i";
-		return preg_match($regexMatch,$agent);
+		return $agent?preg_match($regexMatch,$agent):true;
 	}
 	public static function ua($default=null)
 	{
