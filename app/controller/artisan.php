@@ -6,7 +6,7 @@
 final class artisan extends base
 {
 	
-	function __construct()
+	public function __construct()
 	{
 		$this->onlyCli();
 	}
@@ -18,6 +18,7 @@ final class artisan extends base
 
 	public function release($update=true)
 	{
+		function_exists('opcache_reset')&&opcache_reset();
 		if(substr(__FILE__,0,4)!='phar')
 		{
 			$update?$this->update(0,true):null;
