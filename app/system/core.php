@@ -543,7 +543,6 @@ function S($lib)
 			$class = new ReflectionClass($l);
 			$GLOBALS['APP']['lib'][$l]=$class->newInstanceArgs($arguments);
 			return $GLOBALS['APP']['lib'][$l];
-
 		}
 		else if(is_file($file=LIB_PATH.$lib.'.php'))
 		{
@@ -1072,71 +1071,53 @@ class Validate
 /**
 * model 层,可以静态方式使用
 */
-class DB extends PDO 
+class DB
 {
 	private static $pdo;
 
-	public function __construct($dbType=null)
+	final private static function init()
 	{
-		self::init($dbType);
-	}
-	final private static function init($dbType=null)
-	{
-		if(is_null($dbType))
-		{
-			$dbType=defined('DB')&&DB?true:false;
-		}
 		if(!self::$pdo)
 		{
-			if($dbType)
+			$dbUser=defined('DB_USER')?DB_USER:null;
+			$dbPass=defined('DB_PASS')?DB_PASS:null;
+			$options=array(PDO::ATTR_PERSISTENT=>TRUE,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC);
+			try
+			{
+				self::$pdo=new PDO(DB_DSN,$dbUser,$dbPass,$options);
+			}
+			catch (PDOException $e)
 			{
 				try
 				{
-					self::$pdo=new PDO("sqlite:".SQLITE);
-					self::$pdo->exec('PRAGMA synchronous=OFF');
-					self::$pdo->exec('PRAGMA cache_size =8000');
-					self::$pdo->exec('PRAGMA temp_store = MEMORY');
+					self::$pdo=new PDO(DB_DSN,$dbPass,$dbUser,$options);
 				}
-				catch (PDOException $e)
+				catch(PDOException $e)
 				{
-					return app::Error(500,'Open Sqlite Database Error ! '.$e->getMessage());
+					return app::Error(500,$e->getMessage());
 				}
 			}
-			else
+			if(!empty(static::$initCmd) && is_array(static::$initCmd))
 			{
-				$dsn='mysql:host='.DB_HOST.';dbname='.DB_NAME.';port='.DB_PORT.';charset=UTF8';
-				try
+				foreach (static::$initCmd as $cmd)
 				{
-					self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array(PDO::ATTR_PERSISTENT=>TRUE,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION));
-				}
-				catch (PDOException $e)
-				{
-					try
-					{
-						self::$pdo= new PDO ($dsn,DB_USER,DB_PASS,array(PDO::ATTR_PERSISTENT=>TRUE,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION));
-					}
-					catch(PDOException $e)
-					{
-						return app::Error(500,'Connect Mysql Database Error ! '.$e->getMessage());
-					}
+					self::$pdo->exec($cmd);
 				}
 			}
 		}
 		return self::$pdo;
-
 	}
 	//运行Sql语句,不返回结果集,但会返回成功与否,不能用于select
 	final public static function runSql($sql)
 	{
 		try
 		{
-			$rs=self::ready()->exec($sql);
 			app::set('sys-sql-count',app::get('sys-sql-count')+1);
-			return $rs;
+			return self::ready()->exec($sql);
 		}
 		catch (PDOException $e)
 		{
-			return app::Error(500,'Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
+			return app::Error(500,"Run Sql [ {$sql} ] Error : ".$e->getMessage());
 		}
 	}
 	//运行Sql,以多维数组方式返回结果集
@@ -1144,14 +1125,13 @@ class DB extends PDO
 	{
 		try
 		{
-			$rs=self::ready()->query($sql);
 			app::set('sys-sql-count',app::get('sys-sql-count')+1);
-			if(FALSE==$rs) {return array();}
-			return $rs->fetchAll(PDO::FETCH_ASSOC);
+			$rs=self::ready()->query($sql);
+			return $rs===false?array():$rs->fetchAll(PDO::FETCH_ASSOC);
 		}
 		catch (PDOException $e)
 		{
-			return app::Error(500,'Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
+			return app::Error(500,"Run Sql [ {$sql} ] Error : ".$e->getMessage());
 		}
 	}
 	//运行Sql,以数组方式返回结果集第一条记录
@@ -1159,14 +1139,13 @@ class DB extends PDO
 	{
 		try
 		{
-			$rs=self::ready()->query($sql);
 			app::set('sys-sql-count',app::get('sys-sql-count')+1);
-			if(FALSE==$rs) {return array();}
-			return $rs->fetch(PDO::FETCH_ASSOC);
+			$rs=self::ready()->query($sql);
+			return $rs===false?array():$rs->fetch(PDO::FETCH_ASSOC);
 		}
 		catch (PDOException $e)
 		{
-			return app::Error(500,'Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
+			return app::Error(500,"Run Sql [ {$sql} ] Error : ".$e->getMessage());
 		}
 	}
 	//运行Sql,返回结果集第一条记录的第一个字段值
@@ -1174,39 +1153,22 @@ class DB extends PDO
 	{
 		try
 		{
-			$rs=self::ready()->query($sql);
 			app::set('sys-sql-count',app::get('sys-sql-count')+1);
-			if(FALSE==$rs) {return null;}
-			return $rs->fetchColumn();
+			$rs=self::ready()->query($sql);
+			return $rs===false?null:$rs->fetchColumn();
 		}
 		catch (PDOException $e)
 		{
-			return app::Error(500,'Run Sql [ '.$sql.' ] Error : '.$e->getMessage());
+			return app::Error(500,"Run Sql [ {$sql} ] Error : ".$e->getMessage());
 		}
 	}
 	final public static function lastId()
 	{
 		return self::ready()->lastInsertId();
 	}
-	//返回原生的PDO对象
 	final public static function getInstance($current=true)
 	{
-		if($current)
-		{
-			return self::ready();
-		}
-		else
-		{
-			$origin=self::$pdo;
-			self::$pdo=null;
-			$pdo=self::init(!(defined('DB')&&DB));//相反的
-			self::$pdo=$origin;
-			return $pdo;
-		}
-	}
-	final public  function quote($string, $paramtype = null)
-	{
-		return self::ready()->quote($string, $paramtype);
+		return self::ready();
 	}
 	final private static  function ready()
 	{
@@ -1214,12 +1176,15 @@ class DB extends PDO
 	}
 	final public function __call($method,$args=null)
 	{
-		return app::Error(500,'Call Error Method '.$method.' In Class '.get_called_class());
+		return self::__callStatic($method,$args);
 	}
 	final public static function __callStatic($method,$args=null)
 	{
-		$instance=M(get_called_class());
-		return $method=='instance'?$instance:call_user_func_array(array($instance,ltrim($method,'_')),$args);
+		if(method_exists(self::ready(),$method))
+		{
+			return call_user_func_array(array(self::$pdo,$method),$args);
+		}
+		return app::Error(500,'Call Error Method '.$method.' In Class '.get_called_class());
 	}
 
 }//end class db
@@ -1301,7 +1266,7 @@ function cookie($key,$val=null,$expire=0)
 }
 function json(Array $data,$callback=null)
 {
-	$data=json_encode($data);
+	$data=json_encode($data,JSON_UNESCAPED_UNICODE);
 	$callback=$callback===true?(empty($_GET['callback'])?null:$_GET['callback']):$callback;
 	$data=$callback?$callback."(".$data.")":$data;
 	header('Content-Type: text/'.($callback?'javascript':'json'),true,200);

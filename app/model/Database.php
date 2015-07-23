@@ -37,6 +37,8 @@
 */
 class Database extends DB
 {
+	protected static $initCmd=array('SET NAMES UTF8');
+	protected static $initCmdSqlite=array('PRAGMA SYNCHRONOUS=OFF','PRAGMA CACHE_SIZE=8000','PRAGMA TEMP_STORE=MEMORY');
 	private  $orm;
 	private static $cache;
 	private static $expire=600;
