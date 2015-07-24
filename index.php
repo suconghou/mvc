@@ -25,14 +25,12 @@ if(DEBUG)
 }
 else
 {
-	define('DB_DSN','mysql:unix_socket=/var/run/mysql.sock;port=3306;dbname=blog;charset=utf8');
+	define('DB_DSN','mysql:unix_socket=/var/run/mysql.sock;dbname=blog;charset=utf8');
 	define('DB_USER','root');
 	define('DB_PASS','root');
 }
 
-// 开启如下配置使用SQLITE数据库
-// define('SQLITE',VAR_PATH.'project.db');
-// define('DB',1);
+
 // 开启如下配置可使用sendMail
 // define('MAIL_SERVER','smtp.126.com');
 // define('MAIL_USERNAME','suconghou@126.com');
