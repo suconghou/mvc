@@ -55,7 +55,7 @@ class Database extends DB
 			$v[]=$key.'='.$value;
 		}
 		$strv=implode(',',$v);  
-		$sql="UPDATE {$table} SET {$strv} WHERE id ='{$id}' ";
+		$sql="UPDATE {$table} SET {$strv} WHERE id ={$id} ";
 		return self::runSql($sql);
 	}
 
