@@ -49,7 +49,7 @@ class base
 	/**
 	 * 开启跨域资源共享
 	 */
-	final public static function cors($allow=array())
+	final protected static function cors($allow=array())
 	{
 		$allow=is_array($allow)?$allow:array($allow);
 		if(!empty($allow))
@@ -63,22 +63,22 @@ class base
 		return header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept',true);
 	}
 	
-	final public static function onlyCli()
+	final protected static function onlyCli()
 	{
 		return Request::isCli()||self::forbidden();
 	}
 
-	final public static function onlyAjax()
+	final protected static function onlyAjax()
 	{
 		return Request::isAjax()||self::forbidden();
 	}
 
-	final public static function onlyPost()
+	final protected static function onlyPost()
 	{
 		return Request::isPost()||self::forbidden();
 	}
 
-	final public function IpBlacklist(Array $ips,Closure $callback=null)
+	final protected function IpBlacklist(Array $ips,Closure $callback=null)
 	{
 		$ip=Request::ip();
 		if(!$ip || in_array($ip,$ips))
@@ -92,7 +92,7 @@ class base
 		return $this;
 	}
 
-	final public function SpiderBlock(Closure $callback=null)
+	final protected function SpiderBlock(Closure $callback=null)
 	{
 		if(Request::isSpider())
 		{
@@ -106,7 +106,7 @@ class base
 		return $this;
 	}
 	
-	final public function BusyBlock(array $hz=array(1,30),Closure $callback=null)
+	final protected function BusyBlock(array $hz=array(1,30),Closure $callback=null)
 	{
 		$ip=Request::ip();
 		if($ip)
@@ -150,7 +150,7 @@ class base
 		throw new Exception("BusyBlock Block {$ip}",3);
 	}
 
-	public function gitpull($key=null)
+	private function gitpull($key=null)
 	{
 		if($key=='password')
 		{
@@ -159,13 +159,13 @@ class base
 		}
 	}
 
-	public function Error404($msg=null)
+	protected function Error404($msg=null)
 	{
 		echo $msg;
 
 	}
 
-	public function Error500($msg=null)
+	protected function Error500($msg=null)
 	{
 		echo $msg;
 	}
