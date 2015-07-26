@@ -1081,7 +1081,7 @@ class DB
 		{
 			$dbUser=defined('DB_USER')?DB_USER:null;
 			$dbPass=defined('DB_PASS')?DB_PASS:null;
-			$options=array(PDO::ATTR_PERSISTENT=>TRUE,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC);
+			$options=array(PDO::ATTR_PERSISTENT=>TRUE,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>1);
 			try
 			{
 				self::$pdo=new PDO(DB_DSN,$dbUser,$dbPass,$options);
@@ -1090,7 +1090,7 @@ class DB
 			{
 				try
 				{
-					self::$pdo=new PDO(DB_DSN,$dbPass,$dbUser,$options);
+					self::$pdo=new PDO(DB_DSN,$dbUser,$dbPass,$options);
 				}
 				catch(PDOException $e)
 				{

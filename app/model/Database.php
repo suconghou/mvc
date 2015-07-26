@@ -7,28 +7,28 @@ class Database extends DB
 {
 	protected static $initCmd=array('SET NAMES UTF8');
 	protected static $initCmdSqlite=array('PRAGMA SYNCHRONOUS=OFF','PRAGMA CACHE_SIZE=8000','PRAGMA TEMP_STORE=MEMORY');
-	private  $orm;
 
-	public function __construct($cfg=null,$column='*')
+	public function __construct()
 	{
-		$this->orm['table']=self::table();
-		if(!is_null($cfg))
-		{
-			if(is_numeric($cfg))
-			{
-				$this->orm['instance']=$this->selectById($this->orm['table'],$cfg,$column);
-			}
-			else
-			{
-				$this->orm['instance']=$this->selectWhere($this->orm['table'],$cfg,null,$column);
-			}
-			$this->orm['instance']=$this->orm['instance']?$this->orm['instance']:false;
-		}
+		
 	}
 
-	public static function table()
+	final public static function find($where,$column='*')
 	{
-		return get_called_class();
+		$table=isset(static::$table)?static::$table:get_called_class();
+		return is_numeric($where)?self::selectById($table,$where,$column):self::selectWhere($table,$where,null,$column);
+	}
+
+	final public static function delete($where)
+	{
+		$table=isset(static::$table)?static::$table:get_called_class();
+		return is_numeric($where)?self::deleteById($table,$where):self::deleteWhere($table,$where);
+	}
+
+	final public static function update($where,$data)
+	{
+		$table=isset(static::$table)?static::$table:get_called_class();
+		return is_numeric($where)?self::updateById($table,$where,$data):self::updateWhere($table,$where,$data);
 	}
 
 	final public static function selectById($table=null,$id,$column='*')
@@ -339,86 +339,6 @@ class Database extends DB
 		
 	}
 
-	final public function __get($key)
-	{
-		return isset($this->orm['instance'][$key])?$this->orm['instance'][$key]:null;
-	}
-
-	final public function __set($key,$value)
-	{
-		if(empty($this->orm['instance']))
-		{
-			$this->orm['data'][$key]=$value;
-		}
-		else
-		{
-			if(array_key_exists($key, $this->orm['instance']) && ($this->orm['instance'][$key] !== $value))
-			{
-				$this->orm['data'][$key]=$value;
-				$this->orm['instance'][$key]=$value;
-			}
-		}
-	}
-
-	final public function __invoke($data=null)
-	{
-		if($data)
-		{
-			if(!isset($this->orm['instance']))
-			{
-				return $this->insertData($this->orm['table'],$data);
-			}
-			else if($this->orm['instance']===false)
-			{
-				return false;
-			}
-			else
-			{
-				return $this->updateWhere($this->orm['table'],$this->orm['instance'],$data);
-			}
-		}
-		else
-		{
-			return isset($this->orm['instance'])?$this->orm['instance']:null;
-		}
-		
-	}
-
-	final public function __toString()
-	{
-		return isset($this->orm['instance'])?var_export($this->orm['instance'],true):null;
-	}
-	
-	final public function save($data=null)
-	{
-		if(!isset($this->orm['instance']))
-		{
-			return $this->insertData($this->orm['table'],$this->orm['data']);
-		}
-		else if(!empty($this->orm['data']))
-		{
-			if($this->orm['instance']===false)
-			{
-				return false;
-			}
-			else
-			{
-				return $this->updateWhere($this->orm['table'],$this->orm['instance'],$this->orm['data']);
-			}
-		}
-		else
-		{
-			return isset($this->orm['instance'][0])?false:true;
-		}
-	}
-
-	final public function delete()
-	{
-		if(!empty($this->orm['instance']))
-		{
-			return $this->deleteWhere($this->orm['table'],$this->orm['instance']);
-		}
-	}
 	
 }
 // end class database
