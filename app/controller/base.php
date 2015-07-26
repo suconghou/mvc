@@ -46,10 +46,7 @@ class base
 		exit(header('HTTP/1.1 403 Forbidden',true,403));
 	}
 
-	/**
-	 * 开启跨域资源共享
-	 */
-	final protected static function cors($allow=array())
+	final private static function cors($allow=array())
 	{
 		$allow=is_array($allow)?$allow:array($allow);
 		if(!empty($allow))
@@ -63,17 +60,17 @@ class base
 		return header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept',true);
 	}
 	
-	final protected static function onlyCli()
+	final private static function onlyCli()
 	{
 		return Request::isCli()||self::forbidden();
 	}
 
-	final protected static function onlyAjax()
+	final private static function onlyAjax()
 	{
 		return Request::isAjax()||self::forbidden();
 	}
 
-	final protected static function onlyPost()
+	final private static function onlyPost()
 	{
 		return Request::isPost()||self::forbidden();
 	}
@@ -159,27 +156,21 @@ class base
 		}
 	}
 
-	protected function Error404($msg=null)
-	{
-		echo $msg;
-
-	}
-
-	protected function Error500($msg=null)
-	{
-		echo $msg;
-	}
 
 	/**********************************魔术方法********************************/
 
 	final public function __call($method,$args=null)
 	{
-		return self::Error404("{$method} not found");
+		return app::Error(404,"Call Error Method {$method} In Class ".get_called_class());
 	}
 
 	final public static function __callStatic($method,$args=null)
 	{
-		return self::Error404("{$method} not found");
+		if(method_exists(__CLASS__,$method))
+		{
+			return call_user_func_array("self::{$method}",$args);
+		}
+		return app::Error(404,"Call Error Static Method {$method} In Class ".get_called_class());
 	}
 
 	final public function __set($key,$value)
@@ -199,35 +190,35 @@ class base
 
 	/**********************************资源以及版本管理********************************/
 
-	final public static function version($version)
+	final private static function version($version)
 	{
 		self::$version=DEBUG?'?debug':'?ver='.md5($version);
 		return self::$version;
 	}
 
-	final public static function url($url)
+	final private static function url($url)
 	{
 		self::$baseUrl=$url;
 		return self::$baseUrl;
 	}
 
-	final public static function setPath($type,$value)
+	final private static function setPath($type,$value)
 	{
 		self::$pathMap[$type]='/'.trim($value,'/').'/';
 		return self::$pathMap;
 	}
 
-	final public static function css($css,$project=null)
+	final private static function css($css,$project=null)
 	{
 		return self::assets($css,'css',$project);
 	}
 
-	final public static function js($js,$project=null)
+	final private static function js($js,$project=null)
 	{
 		return self::assets($js,'js',$project);
 	}
 
-	final public static function img($src,$project=null)
+	final private static function img($src,$project=null)
 	{
 		return self::assets($src,'img',$project);
 	}
@@ -250,7 +241,7 @@ class base
 			case 'js':
 				foreach ($asset as $item)
 				{
-					$links[]="<script src='{$basePath}{$item}{$version}'></script>";
+					$links[]="<script src='{$basePath}{$item}{$version}' defer></script>";
 				}
 				break;
 			case 'img':
@@ -265,20 +256,44 @@ class base
 		return implode('',$links);
 	}
 
-	final public static function lib($item,$load='main')
+	final private static function lib($item,$main='main',$ext=array())
 	{
 		$version=self::$version;
-		$script="<script src='{$item}{$version}' data-load='{$load}' data-ver='{$version}' id='js-main'></script>";
+		$base=array('main'=>$main,'ver'=>$version);
+		$ext=array_merge($base,$ext);
+		foreach ($ext as $key => $value)
+		{
+			$ext[$key]="data-{$key}='{$value}'";
+		}
+		$script="<script src='{$item}{$version}' ".implode(' ',$ext)." id='js-main' defer></script>";
 		return $script;
 	}
 
-	final public static function meta()
+	final private static function meta($title=null,$description=null,$keywords=null,$ext=array(),$ie=true)
 	{
-
+		$meta=array("<meta charset='UTF-8'>","<title>{$title}</title>","<meta http-equiv=X-UA-Compatible content='IE=edge,chrome=1'>");
+		$base=array('renderer'=>'webkit','viewport'=>'width=device-width, initial-scale=1.0,maximum-scale=1.0, user-scalable=no','description'=>$description,'keywords'=>$keywords);
+		$ext=array_merge($base,$ext);
+		foreach ($ext as $name => $content)
+		{
+			$meta[]="<meta name='{$name}' content='{$content}'>";
+		}
+		$ie=$ie?"<!--[if lt IE 9]><script src='//cdn.bootcss.com/html5shiv/r29/html5.min.js'></script><script src='//cdn.bootcss.com/respond.js/1.4.2/respond.min.js'></script><![endif]-->":null;
+		return implode('',$meta).$ie;
 	}
 
 	/**********************************应用程序配置区**********************************/
 	
+	protected function Error404($msg=null)
+	{
+		echo $msg;
+	}
+
+	protected function Error500($msg=null)
+	{
+		echo $msg;
+	}
+
 	/**
 	 *  检查用户是否登录
 	 */
