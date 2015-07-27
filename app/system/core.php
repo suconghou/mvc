@@ -613,6 +613,8 @@ function template($_v_,Array $_data_=null,Closure $callback=null)
 {
 	if((is_file($_v_=VIEW_PATH.$_v_.'.php'))||(is_file($_v_=VIEW_PATH.$_v_)))
 	{
+		header('X-Xss-Protection:1; mode=block',true);
+		header('X-Frame-Options:DENY',true);
 		(is_array($_data_)&&!empty($_data_))&&extract($_data_);
 		return $callback?((include $_v_)&&$callback(ob_get_contents())):include $_v_;
 	}
@@ -829,7 +831,7 @@ class Request
 			}
 			else if($clean)
 			{
-				$input[$item]=self::clean($input[$item]);
+				$input[$item]=self::clean($input[$item],$clean);
 			}
 		}
 		return $input;
@@ -839,11 +841,11 @@ class Request
 		switch ($type)
 		{
 			case 'post':
-				return isset($_POST[$var])?($clean?self::clean($_POST[$var]):$_POST[$var]):$default;
+				return isset($_POST[$var])?($clean?self::clean($_POST[$var],$clean):$_POST[$var]):$default;
 			case 'get':
-				return isset($_GET[$var])?($clean?self::clean($_GET[$var]):$_GET[$var]):$default;
+				return isset($_GET[$var])?($clean?self::clean($_GET[$var],$clean):$_GET[$var]):$default;
 			case 'cookie':
-				return isset($_COOKIE[$var])?($clean?self::clean($_COOKIE[$var]):$_COOKIE[$var]):$default;
+				return isset($_COOKIE[$var])?($clean?self::clean($_COOKIE[$var],$clean):$_COOKIE[$var]):$default;
 			case 'server':
 				return isset($_SERVER[$var])?$_SERVER[$var]:$default;
 			case 'session':
@@ -852,16 +854,9 @@ class Request
 				return false;
 		}
 	}
-	/**
-	 * 默认普通过滤,去除html标签,去除空格
-	 * $type null 默认 去除xss
-	 * $type 1 去除中文
-	 * $type 2 
-	 * $type 3
-	 */
 	public static function clean($val,$type=null)
 	{
-		if(is_null($type))
+		if(!$type)
 		{
 			return $val;
 		}
@@ -869,19 +864,18 @@ class Request
 		{
 			switch ($type)
 			{
-				case 1:
-					$out=preg_replace('/[\x80-\xff]/','',$val);
-					break;
-				case 2:
-					$out=preg_replace('','', $val);
-					break;
+				case 'int':
+					return intval($val);
+				case 'xss':
+					return filter_var(htmlspecialchars(strip_tags($val),ENT_QUOTES),FILTER_SANITIZE_STRING);
+				case 'html':
+					return strip_tags($val,'<b><i><p><br><div><a>');
+				case 'en':
+					return preg_replace('/[\x80-\xff]/','',$val);
 				default:
-					$out=strip_tags($val);
-					break;
+					return sprintf($type,$val);
 			}
-			return trim($out);
 		}
-
 	}
 	public static function __callStatic($method,$args)
 	{

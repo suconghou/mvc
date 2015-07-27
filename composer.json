@@ -1,6 +1,6 @@
 {
     "name": "suconghou/tinymvc",
-    "type": "library",
+    "type": "project",
     "description": "a lightweight php mvc framework",
     "keywords": ["mvc", "fast", "framework"],
     "homepage": "https://github.com/suconghou/mvc",
@@ -12,6 +12,6 @@
         "role": "Developer"
     }],
     "require": {
-        "php": ">=5.2.0"
+        "php": ">=5.4.0"
     }
 }
