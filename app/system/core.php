@@ -898,7 +898,7 @@ class Validate
 				{
 					foreach($item as $type=>$msg)
 					{
-						if($msg instanceof Closure) //是一个过滤器
+						if($msg instanceof Closure)
 						{
 							$data[$k]=$msg($data[$k],$k);
 						}
@@ -1441,7 +1441,6 @@ function sendMail($mailTo, $mailSubject, $mailMessage)
 		app::log($e->getMessage(),'ERROR');
 		return false;
 	}
-	
 }
 
 // end of file core.php
