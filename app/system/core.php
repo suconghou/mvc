@@ -430,6 +430,18 @@ class App
 			return call_user_func_array(self::$global['event'][$event],is_array($arguments)?$arguments:array($arguments));
 		}
 	}
+	public static function method($method,Closure $function)
+	{
+		return self::$global['method'][$method]=$function;
+	}
+	public static function __callStatic($method,$args=null)
+	{
+		if(isset(self::$global['method'][$method]))
+		{
+			return call_user_func_array(self::$global['method'][$method],$args);
+		}
+		return self::Error(500,'Call Error Static Method '.$method.' In Class '.get_called_class());
+	}
 	//异常处理 404 500等
 	public static function Error($errno,$errstr,$errfile=null,$errline=null)
 	{
