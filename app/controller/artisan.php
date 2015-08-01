@@ -8,7 +8,7 @@ final class artisan extends base
 	
 	public function __construct()
 	{
-		$this->onlyCli();
+		self::onlyCli();
 	}
 
 	public function index()
@@ -33,6 +33,18 @@ final class artisan extends base
 			},$subject);
 			return $data==$subject?false:file_put_contents($script,$data);
 		}
+	}
+
+	public function deploy()
+	{
+		$host='ftp://user:password@example.com/public_html';
+		$script=array_shift($_SERVER['argv']);
+		$pharName=rtrim($script,'php').'phar';
+		$cmd="php {$script}";
+		passthru($cmd);
+		echo 'uploading...'.PHP_EOL;
+		$ret=Curl::sendToFtp($host,$pharName,$script);
+		echo ($ret?'upload success':'upload error').' cost time '.app::cost('time').'s'.PHP_EOL;
 	}
 
 	public function update($time=60,$once=false)

@@ -124,6 +124,25 @@ class Curl
 		return self::post($url,$data,$timeout);
 	}
 	
+	public static function sendToFtp($host,$src,$dest,&$errorinfo=null)
+	{
+		if(is_file($src))
+		{
+			$url=rtrim($host).'/'.ltrim($dest);
+			$ch=self::initCurl($url,60);
+			if($ch)
+			{
+				curl_setopt_array($ch,array(CURLOPT_UPLOAD=>1,CURLOPT_INFILE=>fopen($src,'r'),CURLOPT_INFILESIZE=>filesize($src)));
+				curl_exec($ch);
+				$error_no=curl_errno($ch);
+				$errorinfo=curl_error($ch);
+				curl_close($ch);
+				return $error_no==0?true:false;
+			}
+			return false;
+		}
+		return false;
+	}
 	
 	public static function http_get_contents($url,$timeout=3)
 	{

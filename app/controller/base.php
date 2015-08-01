@@ -29,7 +29,7 @@ class base
 			try
 			{
 				$ip=array('127.0.0.2');
-				return $this->IpBlacklist($ip)->SpiderBlock()->BusyBlock([1,20]);
+				return $this->IpBlacklist($ip)->SpiderBlock()->BusyBlock(array(1,20));
 			}
 			catch(Exception $e)
 			{
