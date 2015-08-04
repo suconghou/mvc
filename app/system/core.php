@@ -497,7 +497,7 @@ class App
 				}
 			}
 			$li=implode(defined('STDIN')?PHP_EOL:'</p><p>',array_reverse($li));
-			echo defined('STDIN')?($errfile?$errormsg.PHP_EOL.$li:exit($errormsg.PHP_EOL.$li)):exit(DEBUG?"<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;'><p>{$errormsg}</p><p>{$li}</p></div>":"<title>Error..</title><center><span style='font-size:300px;color:gray;font-family:黑体'>{$code}...</span></center>");
+			echo defined('STDIN')?($errfile?$errormsg.PHP_EOL.$li.PHP_EOL:exit($errormsg.PHP_EOL.$li.PHP_EOL)):exit(DEBUG?"<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;'><p>{$errormsg}</p><p>{$li}</p></div>":"<title>Error..</title><center><span style='font-size:300px;color:gray;font-family:黑体'>{$code}...</span></center>");
 		}
 
 	}
