@@ -16,27 +16,32 @@ class Cache
 	const redisPort=6379;
 
 	private static $cache;
+
 	/**
-	 * true 自动判断
-	 * 或者传入redis/memcache/file/sqlite四者之一
+	 * true 自动判断,传入redis/memcache/file三者之一
 	 */
-	function __construct($type=true)
+	public function __construct($type=true)
+	{
+		self::init($type);
+	}
+
+	public static function init($type=true)
 	{
 		if(function_exists('memcache_init'))
 		{
 			self::$cache = memcache_init();
 		}
-		else if(extension_loaded('Redis') and ($type === true or $type === 'redis') )
+		else if(extension_loaded('Redis') && ($type === true || $type === 'redis') )
 		{
 			self::$cache = new Redis();
 			self::$cache->connect(self::redisServer,self::redisPort);
 		}
-		else if(extension_loaded('Memcached') and ($type === true or $type ==='memcache') )
+		else if(extension_loaded('Memcached') && ($type === true || $type ==='memcache') )
 		{
 			self::$cache = new Memcached();
 			self::$cache->addServer(self::memcacheServer, self::memcachePort);
 		}
-		else if(extension_loaded('Memcache') and ($type === true or $type ==='memcache') )
+		else if(extension_loaded('Memcache') && ($type === true || $type ==='memcache') )
 		{
 			self::$cache = new Memcache();
 			self::$cache->addServer(self::memcacheServer, self::memcachePort);
@@ -45,46 +50,47 @@ class Cache
 		{
 			self::$cache = new FileCache();
 		}
+		return self::$cache;
 	}
 
 	public static function get($key)
 	{
-		return unserialize(self::$cache->get($key));
+		return unserialize(self::getInstance()->get($key));
 	}
 
 	public static function set($key,$value,$expire=86400)
 	{
-		return self::$cache->set($key,serialize($value));
+		return self::getInstance()->set($key,serialize($value));
 	}
 
-	function __call($name,$args)
+	public function __call($name,$args)
 	{
-		return call_user_func_array(array(self::$cache,$name), $args);
+		return call_user_func_array(array(self::getInstance(),$name), $args);
 	}
 
 	public static function __callStatic($name,$args)
 	{
-		return call_user_func_array(array(self::$cache,$name), $args);
+		return call_user_func_array(array(self::getInstance(),$name), $args);
 	}
 	
 	function __set($key,$value)
 	{
-		return self::$cache->set($key,serialize($value));
+		return self::getInstance()->set($key,serialize($value));
 	}
 
 	function __get($key)
 	{
-		return unserialize(self::$cache->get($key));
+		return unserialize(self::getInstance()->get($key));
 	}
 
 	function __isset($key)
 	{
-		return self::$cache->get($key);
+		return self::getInstance()->get($key);
 	}
 
 	public static function getInstance()
 	{
-		return self::$cache;
+		return self::$cache?self::$cache:self::init();
 	}
 
 
@@ -97,7 +103,7 @@ final class FileCache
 {
 	private static $path;
 
-	function __construct()
+	public function __construct()
 	{
 		if(is_writeable('/dev/shm'))
 		{
@@ -113,10 +119,10 @@ final class FileCache
 		}
 	}
 	
-	function set($key,$value,$expire=86400)
+	public function set($key,$value,$expire=86400)
 	{
 		$path=null;
-		$filepath=self::__filepath($key,$path);
+		$filepath=$this->getKeyPath($key,$path);
 		if(!is_dir($path))
 		{
 			mkdir($path,0777,true);
@@ -126,27 +132,27 @@ final class FileCache
 		return touch($filepath,time()+$expire);
 	}
 	
-	function get($key)
+	public function get($key)
 	{
-		$filepath=self::__filepath($key);
-		if(self::__expired($filepath))
+		$filepath=$this->getKeyPath($key);
+		if($this->isExpired($filepath))
 		{
 			return null;
 		}
 		else
 		{
-			return self::__getData($filepath);
+			return $this->getCacheData($filepath);
 		}
 
 	}
 
-	function del($key)
+	public function del($key)
 	{
-		$filepath=self::__filepath($key);
+		$filepath=$this->getKeyPath($key);
 		return is_file($filepath)&&unlink($filepath);
 	}
 
-	function flush()
+	public function flush()
 	{
 		return self::delTree(self::$path);
 	}
@@ -156,12 +162,12 @@ final class FileCache
 		$files = array_diff(scandir($dir), array('.','..')); 
 		foreach ($files as $file)
 		{
-			(is_dir("$dir/$file")) ? self::delTree("$dir/$file") : unlink("$dir/$file"); 
+			(is_dir("$dir/$file"))?self::delTree("$dir/$file"):unlink("$dir/$file"); 
 		}
 		return rmdir($dir);
 	}
 
-	private static function __filepath($key,&$path=null)
+	private function getKeyPath($key,&$path=null)
 	{
 		$key=md5($key);
 		$dir=substr($key,0,2);
@@ -170,7 +176,7 @@ final class FileCache
 		return $path.DIRECTORY_SEPARATOR.$file;
 	}
 
-	private static function __expired($filepath)
+	private function isExpired($filepath)
 	{
 		if(is_file($filepath))
 		{
@@ -184,15 +190,23 @@ final class FileCache
 		return true;
 	}
 
-	private static function __getData($filepath)
+	private  function getCacheData($filepath)
 	{
 		return unserialize(file_get_contents($filepath));
 	}
 
-	//todo delete tidy data
 	function __destruct()
 	{
-
+		if(!rand(0,999))
+		{
+			foreach (array_diff(scandir(self::$path),array('.','..')) as $dir)
+			{
+				foreach (array_diff(scandir(self::$path.$dir),array('.','..')) as $filename)
+				{
+					$this->isExpired(self::$path.$dir.DIRECTORY_SEPARATOR.$filename);
+				}
+			}
+		}
 	}
 }
 

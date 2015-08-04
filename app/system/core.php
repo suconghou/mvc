@@ -621,9 +621,9 @@ function C($time,$file=false)
 	}
 }
 
-function template($_v_,Array $_data_=null,Closure $callback=null)
+function template($v,Array $_data_=null,Closure $callback=null)
 {
-	if((is_file($_v_=VIEW_PATH.$_v_.'.php'))||(is_file($_v_=VIEW_PATH.$_v_)))
+	if((is_file($_v_=VIEW_PATH.$v.'.php'))||(is_file($_v_=VIEW_PATH.$v)))
 	{
 		header('X-Xss-Protection:1; mode=block',true);
 		header('X-Frame-Options:DENY',true);

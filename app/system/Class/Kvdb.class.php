@@ -10,6 +10,11 @@ class Kvdb extends SQLite3
 
 	function __construct($file=null)
 	{
+		$this->init($file);
+	}
+
+	private function init($file=null)
+	{
 		if($file)
 		{
 			self::$path=defined(VAR_PATH)?VAR_PATH.$file:$file;
@@ -30,14 +35,14 @@ class Kvdb extends SQLite3
 		return $this->exec($sql);
 	}
 
-	function set($key,$value)
+	public function set($key,$value)
 	{
 		$value=serialize($value);
 		$sql="REPLACE INTO `kvdb` (k,v) VALUES('{$key}','{$value}') ";
 		return $this->exec($sql);
 	}
 
-	function get($key,$default=null)
+	public function get($key,$default=null)
 	{
 		$sql="SELECT v FROM `kvdb` WHERE k='{$key}' ";
 		$rs=$this->query($sql);
@@ -47,7 +52,7 @@ class Kvdb extends SQLite3
 		return $data?$data:null; 
 	}
 
-	function del($key)
+	public function del($key)
 	{
 		$key=is_array($key)?$key:array($key);
 		$keys=implode(',', $key);
@@ -55,20 +60,23 @@ class Kvdb extends SQLite3
 		return $this->exec($sql);
 	}
 
-	function flush()
+	public function flush()
 	{
 		$sql="DELETE FROM `kvdb`";
 		return $this->exec($sql);
 	}
 	
-	function copy($path)
+	public function copy($path)
 	{
 		return copy(self::$path,$path);
 	}
 
 	function __destruct()
 	{
-		
+		if(!rand(0,999))
+		{
+			$this->exec("VACUUM");
+		}
 	}
 
 }
