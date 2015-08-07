@@ -1,0 +1,9 @@
+/var
+/tmp
+/.idea
+*.phar
+*.swp
+*.log
+*.tmp
+*.css
+.DS_Store
