@@ -15,19 +15,25 @@ class Database extends DB
 
 	final public static function find($where,$column='*')
 	{
-		$table=isset(static::$table)?static::$table:get_called_class();
+		$table=isset(self::$table)?self::$table:get_called_class();
 		return is_numeric($where)?self::selectById($table,$where,$column):self::selectWhere($table,$where,null,$column);
+	}
+
+	final public static function insert($data,$replace=false)
+	{
+		$table=isset(self::$table)?self::$table:get_called_class();
+		return self::insertData($table,$data,$replace);
 	}
 
 	final public static function delete($where)
 	{
-		$table=isset(static::$table)?static::$table:get_called_class();
+		$table=isset(self::$table)?self::$table:get_called_class();
 		return is_numeric($where)?self::deleteById($table,$where):self::deleteWhere($table,$where);
 	}
 
 	final public static function update($where,$data)
 	{
-		$table=isset(static::$table)?static::$table:get_called_class();
+		$table=isset(self::$table)?self::$table:get_called_class();
 		return is_numeric($where)?self::updateById($table,$where,$data):self::updateWhere($table,$where,$data);
 	}
 
@@ -48,18 +54,17 @@ class Database extends DB
 	final public static function updateById($table,$id,$data)
 	{
 		$id=intval($id);
-		$v=array();
+		$updateStr=array();
 		foreach ($data as $key => $value)
 		{
-			$value=self::quote($value);
-			$v[]=$key.'='.$value;
+			$updateStr[]='`'.$key.'`='.self::quote($value);
 		}
-		$strv=implode(',',$v);  
-		$sql="UPDATE {$table} SET {$strv} WHERE id ={$id} ";
+		$updateStr=implode(',',$updateStr);
+		$sql="UPDATE {$table} SET {$updateStr} WHERE id ={$id} ";
 		return self::runSql($sql);
 	}
 
-	final public static function insertData($table,$data)
+	final public static function insertData($table,$data,$replace=false)
 	{
 		$k=$v=array();
 		foreach ($data as $key => $value)
@@ -69,7 +74,24 @@ class Database extends DB
 		}
 		$strv=implode(',',$v);    
 		$strk=implode(',',$k);
-		$sql="INSERT INTO {$table} ({$strk}) VALUES ({$strv})";
+		if($replace===false)
+		{
+			$sql="INSERT INTO {$table} ({$strk}) VALUES ({$strv})";
+		}
+		else if(is_array($replace))
+		{
+			$updateStr=array();
+			foreach($replace as $key => $value)
+			{
+				$updateStr[]='`'.$key.'`='.self::quote($value);
+			}
+			$updateStr=implode(',',$updateStr);
+			$sql="INSERT INTO {$table} ({$strk}) VALUES ({$strv}) ON DUPLICATE KEY UPDATE {$updateStr}";
+		}
+		else
+		{
+			$sql="REPLACE INTO {$table} ({$strk}) VALUES ({$strv})";
+		}
 		if(self::runSql($sql))
 		{
 			return self::lastId();
