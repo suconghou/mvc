@@ -1042,7 +1042,7 @@ class Validate
 	}
 	public static function phone($phone)
 	{
-		return preg_match("/^1[3458][0-9]{9}$/",$phone);
+		return preg_match("/^1[34578][0-9]{9}$/",$phone);
 	}
 	public static function url($url)
 	{
