@@ -92,11 +92,7 @@ class Database extends DB
 		{
 			$sql="REPLACE INTO {$table} ({$strk}) VALUES ({$strv})";
 		}
-		if(self::runSql($sql))
-		{
-			return self::lastId();
-		}
-		return false;
+		return self::runSql($sql)===false?false:self::lastId();
 	}
 
 	final public static function selectWhere($table,$where=null,$orderlimit=null,$column='*')
