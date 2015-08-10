@@ -868,25 +868,20 @@ class Request
 	}
 	public static function clean($val,$type=null)
 	{
-		if(!$type)
+		switch ($type)
 		{
-			return $val;
-		}
-		else
-		{
-			switch ($type)
-			{
-				case 'int':
-					return intval($val);
-				case 'xss':
-					return filter_var(htmlspecialchars(strip_tags($val),ENT_QUOTES),FILTER_SANITIZE_STRING);
-				case 'html':
-					return strip_tags($val,'<b><i><p><br><div><a>');
-				case 'en':
-					return preg_replace('/[\x80-\xff]/','',$val);
-				default:
-					return sprintf($type,$val);
-			}
+			case 'int':
+				return intval($val);
+			case 'float':
+				return floatval($val);
+			case 'xss':
+				return filter_var(htmlspecialchars(strip_tags($val),ENT_QUOTES),FILTER_SANITIZE_STRING);
+			case 'html':
+				return strip_tags($val);
+			case 'en':
+				return preg_replace('/[\x80-\xff]/','',$val);
+			default:
+				return $type?sprintf($type,$val):$val;
 		}
 	}
 	public static function __callStatic($method,$args)
