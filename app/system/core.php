@@ -39,9 +39,8 @@ class App
 			$_SERVER['REQUEST_URI']=null;
 			$phar||chdir(ROOT);
 			$router=$GLOBALS['argv'];
-			$router[1]=isset($router[1])?$router[1]:DEFAULT_ACTION;
-			$GLOBALS['APP']['router']=$router;
-			return self::run($router);
+			$ret=self::regexRouter('/'.implode('/',$router));
+			return is_object($ret)?$ret:(($GLOBALS['APP']['router']=$ret?$ret:$router)&&self::run($GLOBALS['APP']['router']));
 		}
 		else
 		{
@@ -197,7 +196,7 @@ class App
 		}
 		if(!isset($router[1]))
 		{
-			$router=array(DEFAULT_CONTROLLER,$router[0]);
+			$router=array($router[0],DEFAULT_ACTION);
 		}
 		if(is_file($path=CONTROLLER_PATH.$router[0].'.php'))
 		{
