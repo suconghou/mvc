@@ -72,7 +72,7 @@ class Database extends DB
 			$k[]='`'.$key.'`';
 			$v[]=self::quote($value);
 		}
-		$strv=implode(',',$v);    
+		$strv=implode(',',$v);
 		$strk=implode(',',$k);
 		if($replace===false)
 		{

@@ -186,17 +186,11 @@ class App
 	public static function run($router)
 	{
 		//含有回调的,0为对应URL,1为回调函数
+		$router=is_array($router)?$router:func_get_args();
+		$router=isset($router[1])?$router:array($router[0],DEFAULT_ACTION);
 		if(is_object($router[1]))
 		{
 			return call_user_func_array($router[1],array_slice($router,2));
-		}
-		if(!is_array($router))
-		{
-			$router=func_get_args();
-		}
-		if(!isset($router[1]))
-		{
-			$router=array($router[0],DEFAULT_ACTION);
 		}
 		if(is_file($path=CONTROLLER_PATH.$router[0].'.php'))
 		{
