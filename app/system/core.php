@@ -23,6 +23,7 @@ class App
 		set_include_path(LIB_PATH);
 		date_default_timezone_set('PRC');
 		set_error_handler(array('app','Error'));
+		set_exception_handler(array('app','Error'));
 		register_shutdown_function(array('app','Shutdown'));
 		defined('STDIN')||(GZIP?ob_start("ob_gzhandler"):ob_start());
 		return defined('STDIN')?self::runCli():self::process(self::init());
@@ -436,13 +437,25 @@ class App
 		return self::Error(500,'Call Error Static Method '.$method.' In Class '.get_called_class());
 	}
 	//异常处理 404 500等
-	public static function Error($errno,$errstr,$errfile=null,$errline=null)
+	public static function Error($errno,$errstr=null,$errfile=null,$errline=null)
 	{
 		if((DEBUG<2)&&in_array($errno,array(E_NOTICE,E_WARNING)))
 		{
 			return;
 		}
-		else if(in_array($errno,array(400,403,404,414,500,502,503,504)))
+		else if($errno instanceof Exception)
+		{
+			$errstr=$errno->getMessage();
+			$errfile=$errno->getFile();
+			$errline=$errno->getLine();
+			$backtrace=$errno->getTrace();
+			$errno=$errno->getCode();
+		}
+		else
+		{
+			$backtrace=debug_backtrace();
+		}
+		if(in_array($errno,array(400,403,404,414,500,502,503,504)))
 		{
 			$errormsg="ERROR({$errno}) {$errstr}";
 			$code=$errno;
@@ -482,7 +495,7 @@ class App
 		else
 		{
 			$li=array();
-			foreach(debug_backtrace() as $trace)
+			foreach($backtrace as $trace)
 			{
 				if(isset($trace['file'],$trace['type']))
 				{
