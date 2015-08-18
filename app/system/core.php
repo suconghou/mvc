@@ -1082,22 +1082,20 @@ class DB
 {
 	private static $pdo;
 
-	final private static function init()
+	final private static function init($dbDsn,$dbUser,$dbPass)
 	{
 		if(!self::$pdo)
 		{
-			$dbUser=defined('DB_USER')?DB_USER:null;
-			$dbPass=defined('DB_PASS')?DB_PASS:null;
 			$options=array(PDO::ATTR_PERSISTENT=>TRUE,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>1);
 			try
 			{
-				self::$pdo=new PDO(DB_DSN,$dbUser,$dbPass,$options);
+				self::$pdo=new PDO($dbDsn,$dbUser,$dbPass,$options);
 			}
 			catch (PDOException $e)
 			{
 				try
 				{
-					self::$pdo=new PDO(DB_DSN,$dbUser,$dbPass,$options);
+					self::$pdo=new PDO($dbDsn,$dbUser,$dbPass,$options);
 				}
 				catch(PDOException $e)
 				{
@@ -1173,13 +1171,13 @@ class DB
 	{
 		return self::ready()->lastInsertId();
 	}
-	final public static function getInstance($current=true)
+	final public static function getInstance()
 	{
 		return self::ready();
 	}
 	final private static  function ready()
 	{
-		return self::$pdo?self::$pdo:self::init();
+		return self::$pdo?self::$pdo:self::init(DB_DSN,defined('DB_USER')?DB_USER:null,defined('DB_PASS')?DB_PASS:null);
 	}
 	final public function __call($method,$args=null)
 	{
