@@ -53,7 +53,7 @@ class App
 			{
 				try
 				{
-					$pharName=rtrim($script,'php').'phar';
+					$pharName='app.php';
 					$path=ROOT.$pharName;
 					is_file($path) && unlink($path);
 					$phar=new Phar($path,FilesystemIterator::CURRENT_AS_FILEINFO | FilesystemIterator::KEY_AS_FILENAME,$pharName);
