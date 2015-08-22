@@ -4,7 +4,7 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.8.8
+ * @version 1.8.9
  */
 /**
 * APP 主要控制类
@@ -25,7 +25,9 @@ class App
 		set_error_handler(array('app','Error'));
 		set_exception_handler(array('app','Error'));
 		register_shutdown_function(array('app','Shutdown'));
-		defined('STDIN')||(GZIP?ob_start("ob_gzhandler"):ob_start());
+		defined('DEFAULT_ACTION')||define('DEFAULT_ACTION','index');
+		defined('DEFAULT_CONTROLLER')||define('DEFAULT_CONTROLLER','home');
+		defined('STDIN')||(defined('GZIP')?ob_start("ob_gzhandler"):ob_start());
 		return defined('STDIN')?self::runCli():self::process(self::init());
 	}
 	/**
@@ -34,7 +36,7 @@ class App
 	private static function runCli()
 	{
 		$script=array_shift($GLOBALS['argv']);
-		$phar=substr(__FILE__,0,4)=='phar';
+		$phar=substr(ROOT,0,7)=='phar://';
 		if($GLOBALS['argc']>1)
 		{
 			$_SERVER['REQUEST_URI']=null;
@@ -53,7 +55,7 @@ class App
 			{
 				try
 				{
-					$pharName='app.phar';
+					$pharName=rtrim($script,'php').'phar';
 					$path=ROOT.$pharName;
 					is_file($path) && unlink($path);
 					$phar=new Phar($path,FilesystemIterator::CURRENT_AS_FILEINFO | FilesystemIterator::KEY_AS_FILENAME,$pharName);
@@ -83,7 +85,7 @@ class App
 	 */
 	private static function init()
 	{
-		(isset($_SERVER['REQUEST_URI'][MAX_URL_LENGTH]))&&self::Error(414,'Request uri too long ! ');
+		(isset($_SERVER['REQUEST_URI'][defined('MAX_URL_LENGTH')?MAX_URL_LENGTH:80]))&&self::Error(414,'Request uri too long ! ');
 		list($uri)=explode('?',$_SERVER['REQUEST_URI']);
 		if(strpos($uri, $_SERVER['SCRIPT_NAME'])!==false)
 		{
@@ -142,7 +144,7 @@ class App
 		if(!is_object($router))
 		{
 			$GLOBALS['APP']['router']=$router;
-			$file=is_object($router[1])?self::fileCache($router[0]):self::fileCache($router); 
+			$file=is_object($router[1])?self::fileCache($router[0]):self::fileCache($router);
 			if(is_file($file))
 			{
 				$expire=filemtime($file);
@@ -218,7 +220,6 @@ class App
 			$GLOBALS['APP']['controller'][$controllerName]=new $controllerName($router);
 		}
 		return is_callable(array($GLOBALS['APP']['controller'][$controllerName],$action))?call_user_func_array(array($GLOBALS['APP']['controller'][$controllerName],$action),array_slice($router,$param)):self::Error(404,'Request Controller Class '.$controllerName.' Method '.$action.' Is Not Callable');
-
 	}
 	/**
 	 * 正则路由,参数一正则,参数二数组形式的路由表或者回调函数
@@ -336,66 +337,42 @@ class App
 	}
 	public static function setItem($key,$value)
 	{
-		try
+		$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT).'.config';
+		if(is_array($data=unserialize(file_get_contents($file))))
 		{
-			$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT);
-			if(is_file($file))
-			{
-				$data=unserialize(file_get_contents($file));
-			}
+			$data[$key]=$value;
+		}
+		else
+		{
 			$data=array($key=>$value);
-			return file_put_contents($file,serialize($data));
 		}
-		catch(Exception $e)
-		{
-			app::log($e->getMessage(),'ERROR');
-			return false;
-		}
+		return file_put_contents($file,serialize($data))?true:false;
 	}
 	public static function getItem($key,$default=null)
 	{
-		try
+		$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT).'.config';
+		if(is_array($data=unserialize(file_get_contents($file))))
 		{
-			$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT);
-			if(is_file($file))
-			{
-				$data=unserialize(file_get_contents($file));
-				return isset($data[$key])?$data[$key]:$default;
-			}
-			return $default;
+			return isset($data[$key])?$data[$key]:$default;
 		}
-		catch(Exception $e)
-		{
-			app::log($e->getMessage(),'ERROR');
-			return false;
-		}
+		return $default;
 	}
 	public static function clearItem($key=null)
 	{
-		try
+		$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT).'.config';
+		if(is_null($key))
 		{
-			$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT);
-			if(is_null($key))
-			{
-				return is_file($file)&&unlink($file);
-			}
-			else
-			{
-				if(is_file($file))
-				{
-					$data=unserialize(file_get_contents($file));
-					unset($data[$key]);
-					return file_put_contents($file, serialize($data))?true:false;
-				}
-				return true;
-			}
+			return unlink($file);
 		}
-		catch(Exception $e)
+		else
 		{
-			app::log($e->getMessage(),'ERROR');
-			return false;
+			if(is_array($data=unserialize(file_get_contents($file))))
+			{
+				unset($data[$key]);
+				return file_put_contents($file,serialize($data))?true:false;
+			}
+			return true;
 		}
-
 	}
 	public static function timer(Closure $function,$exit=false,Closure $callback=null)
 	{
@@ -408,6 +385,11 @@ class App
 				return $callback?$callback($data):$data;
 			}
 		}
+	}
+	public static function config($key,$default=null,$configFile='config.php')
+	{
+		$config=isset(self::$global[$configFile])?self::$global[$configFile]:(self::$global[$configFile]=include_once ROOT.$configFile);
+		var_dump($config);
 	}
 	public static function on($event,$function)
 	{
@@ -467,32 +449,7 @@ class App
 		}
 		$errno==404 || app::log($errormsg,'ERROR');
 		defined('STDIN')||(app::get('sys-error')&&exit('Error Found In Error Handler'))||(http_response_code($code)&&app::set('sys-error',true));
-		if(!DEBUG&&defined('ERROR_PAGE_404')&&defined('ERROR_PAGE_500')) //线上模式且自定义了404和500
-		{
-			if(isset($GLOBALS['APP']['router'][0])&&is_file(CONTROLLER_PATH.$GLOBALS['APP']['router'][0].'.php'))
-			{
-				$errorController=$GLOBALS['APP']['router'][0];
-			}
-			else
-			{
-				$errorController=DEFAULT_CONTROLLER;
-			}
-			$errorRouter=array($errorController,$errno==404?ERROR_PAGE_404:ERROR_PAGE_500,$errormsg);
-			if(method_exists($errorController,$errorRouter[1]))//当前已加载的控制器或默认控制器中含有ERROR处理
-			{
-				$GLOBALS['APP']['controller'][$errorController]=isset($GLOBALS['APP']['controller'][$errorController])?$GLOBALS['APP']['controller'][$errorController]:$errorController;
-				if(!$GLOBALS['APP']['controller'][$errorController] instanceof $errorController)
-				{
-					$GLOBALS['APP']['controller'][$errorController]=new $errorController($errorRouter);
-				}
-				exit(is_callable(array($GLOBALS['APP']['controller'][$errorController],$errorRouter[1]))?call_user_func_array(array($GLOBALS['APP']['controller'][$errorController],$errorRouter[1]),array($errormsg)):'Error Handler Is Not Callable');
-			}
-			else
-			{
-				exit('No Error Handler Found In '.$errorController.'::'.$errorRouter[1]);
-			}
-		}
-		else
+		if(DEBUG||defined('STDIN'))
 		{
 			$li=array();
 			foreach($backtrace as $trace)
@@ -503,9 +460,24 @@ class App
 				}
 			}
 			$li=implode(defined('STDIN')?PHP_EOL:'</p><p>',array_reverse($li));
-			echo defined('STDIN')?($errfile?$errormsg.PHP_EOL.$li.PHP_EOL:exit($errormsg.PHP_EOL.$li.PHP_EOL)):exit(DEBUG?"<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;'><p>{$errormsg}</p><p>{$li}</p></div>":"<title>Error..</title><center><span style='font-size:300px;color:gray;font-family:黑体'>{$code}...</span></center>");
+			echo defined('STDIN')?($errfile?$errormsg.PHP_EOL.$li.PHP_EOL:exit($errormsg.PHP_EOL.$li.PHP_EOL)):exit("<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;'><p>{$errormsg}</p><p>{$li}</p></div>");
 		}
-
+		else
+		{
+			$errorController=(isset($GLOBALS['APP']['router'][0])&&is_file(CONTROLLER_PATH.$GLOBALS['APP']['router'][0].'.php'))?$GLOBALS['APP']['router'][0]:DEFAULT_CONTROLLER;
+			$errorRouter=array($errorController,$errno==404?(defined('ERROR_PAGE_404')?ERROR_PAGE_404:'Error404'):(defined('ERROR_PAGE_500')?ERROR_PAGE_500:'Error500'),$errormsg);
+			$errorPage="<title>Error..</title><center><span style='font-size:300px;color:gray;font-family:黑体'>{$code}...</span></center>";
+			if(method_exists($errorController,$errorRouter[1]))//当前已加载的控制器或默认控制器中含有ERROR处理
+			{
+				$GLOBALS['APP']['controller'][$errorController]=isset($GLOBALS['APP']['controller'][$errorController])?$GLOBALS['APP']['controller'][$errorController]:$errorController;
+				if(!$GLOBALS['APP']['controller'][$errorController] instanceof $errorController)
+				{
+					$GLOBALS['APP']['controller'][$errorController]=new $errorController($errorRouter);
+				}
+				$errorPage=is_callable(array($GLOBALS['APP']['controller'][$errorController],$errorRouter[1]))?call_user_func_array(array($GLOBALS['APP']['controller'][$errorController],$errorRouter[1]),array($errormsg)):$errorPage;
+			}
+			exit($errorPage);
+		}
 	}
 	public static function Shutdown()
 	{
