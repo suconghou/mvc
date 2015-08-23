@@ -1,8 +1,6 @@
 <?php
 /*************************************系统配置区*************************************/
-define('GZIP',0);
 define('DEBUG',get_cfg_var('debug'));
-define('MAX_URL_LENGTH',100);
 define('ROOT',__DIR__.DIRECTORY_SEPARATOR);
 define('APP_PATH',ROOT.'app'.DIRECTORY_SEPARATOR);
 define('VAR_PATH',ROOT.'var'.DIRECTORY_SEPARATOR);
@@ -10,12 +8,6 @@ define('LIB_PATH',APP_PATH.'system'.DIRECTORY_SEPARATOR);
 define('VIEW_PATH',APP_PATH.'view'.DIRECTORY_SEPARATOR);
 define('MODEL_PATH',APP_PATH.'model'.DIRECTORY_SEPARATOR);
 define('CONTROLLER_PATH',APP_PATH.'controller'.DIRECTORY_SEPARATOR);
-// 自定义404,500路由,线上模式会有用
-define('ERROR_PAGE_404','Error404');
-define('ERROR_PAGE_500','Error500');
-// 默认的控制器和动作
-define('DEFAULT_CONTROLLER','home');
-define('DEFAULT_ACTION','index');
 require LIB_PATH.'core.php';
 if(DEBUG)
 {

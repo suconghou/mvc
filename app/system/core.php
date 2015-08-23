@@ -386,10 +386,17 @@ class App
 			}
 		}
 	}
-	public static function config($key,$default=null,$configFile='config.php')
+	public static function config($key=null,$default=null,$configFile='config.php')
 	{
 		$config=isset(self::$global[$configFile])?self::$global[$configFile]:(self::$global[$configFile]=include_once ROOT.$configFile);
-		var_dump($config);
+		if($key=array_filter(explode('.',$key),function($item){return $item;}))
+		{
+			foreach ($key as $item)
+			{
+				$config=isset($config[$item])?$config[$item]:null;
+			}
+		}
+		return $config;
 	}
 	public static function on($event,$function)
 	{
