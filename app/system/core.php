@@ -736,23 +736,13 @@ class Request
 	}
 	public static function info($key=null,$default=null)
 	{
-		$data['ip']=self::ip();
-		$data['ajax']=self::isAjax();
-		$data['ua']=self::ua();
-		$data['refer']=self::refer();
-		$data['protocol'] = (isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) != 'off')) ? "https" : "http";
+		$data=array('ip'=>self::ip(),'ajax'=>self::isAjax(),'ua'=>self::ua(),'refer'=>self::refer(),'protocol'=>(isset($_SERVER['HTTPS'])&&(strtolower($_SERVER['HTTPS']) != 'off'))?"https":"http");
 		if($key) {return isset($data[$key])?$data[$key]:$default;}
 		return $data;
 	}
 	public static function serverInfo($key=null,$default=null)
 	{
-		$info['php_os']=PHP_OS;
-		$info['php_sapi']=PHP_SAPI;
-		$info['php_vision']=PHP_VERSION;
-		$info['post_max_size']=ini_get('post_max_size');
-		$info['max_execution_time']=ini_get('max_execution_time');
-		$info['server_ip']=gethostbyname($_SERVER['SERVER_NAME']);
-		$info['upload_max_filesize']=ini_get('file_uploads')?ini_get('upload_max_filesize'):0;
+		$info=array('php_os'=>PHP_OS,'php_sapi'=>PHP_SAPI,'php_vision'=>PHP_VERSION,'post_max_size'=>ini_get('post_max_size'),'max_execution_time'=>ini_get('max_execution_time'),'server_ip'=>gethostbyname($_SERVER['SERVER_NAME']),'upload_max_filesize'=>ini_get('file_uploads')?ini_get('upload_max_filesize'):0);
 		if($key) {return isset($info[$key])?$info[$key]:$default;}
 		return $info;
 	}
