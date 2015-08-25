@@ -277,6 +277,7 @@ class App
 					}
 				}
 			}
+			unset($GLOBALS['APP']['regexRouter']);
 		}
 		return array();
 	}
