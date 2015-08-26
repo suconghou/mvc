@@ -6,11 +6,9 @@
 * S('class/uploader')->upload()
 * S('class/uploader')->uploadSae()
 * S('class/uploader')->uploadQiniu()
-* S('class/uploader')->uploadKupan()
 * S('class/uploader')->uploadTietu()
 * 
 * S('class/uploader')->sendToSae()
-* S('class/uploader')->sendToKupan()
 * S('class/uploader')->sendToQiniu()
 * S('class/uploader')->sendToTietu()
 *
@@ -21,9 +19,8 @@
 */
 class Uploader
 {
-	private static $saeServer='http://suconghou.sinaapp.com/'; //SAE文件存储接口基地址,上传接口upload ,详情见sae_storage.class.php
-	private static $kupanKeyServer='http://api.suconghou.cn/kupan/key/susu'; //存储到酷盘时用到的密钥,见kupan.classs.php 私人存储,勿扰
-	private static $uploadDir='static/upload/';  //本地存储目录,目录必须存在,前面不加/
+	private static $saeServer='http://suconghou.sinaapp.com/'; //SAE文件存储接口基地址,上传接口upload ,详情见Sae.class.php
+    private static $uploadDir='static/upload/';  //本地存储目录,目录必须存在,前面不加/
 	private static $allowType=array('jpg','gif','png','jpeg','mp4','swf','flv','rar','zip','pdf'); //本地存储允许上传的文件类型
 	private static $allowSize=25; //最大允许上传的大小,单位 M
 
@@ -96,16 +93,6 @@ class Uploader
 		return $ret;
 			
 	}
-	function uploadKupan($name,$storName=null)
-	{
-		$ret=$this->commonCheck($name,$storName);
-		if($ret['code']==0)
-		{
-			$filename=$ret['msg'];//存储时的文件名
-			return self::sendToKupan($_FILES[$name]['tmp_name'],$filename);
-		}
-		return $ret;
-	}
 	function uploadQiniu($name,$storName=null)
 	{
 		$ret=$this->commonCheck($name,$storName);
@@ -152,21 +139,6 @@ class Uploader
 			return array('code'=>0 ,'msg'=>self::$saeServer.$res->msg);
 		}
 		return array('code'=>-1,'msg'=>$res->msg); //sae 也会返回错误消息
-	}
-
-	function sendToKupan($filepath,$name)
-	{
-		$file=file_get_contents($filepath);
-	    $path='/files/uploader/'.$name;
-	    $token=file_get_contents(self::$kupanKeyServer);  //酷盘密匙每小时更新
-	    $url="https://api-upload.kanbox.com/0/upload{$path}?bearer_token=".$token;
-	    $res=self::postData($url,$file);
-	    $downUrl='http://api.suconghou.cn'.$path;
-	    if($res==1)
-	    {
-	    	return array('code'=>0,'msg'=>$downUrl);
-	    }
-	    return array('code'=>-2,'msg'=>'send to kupan error');
 	}
 	/**
 	 * $filename 七牛可以手动填写路径

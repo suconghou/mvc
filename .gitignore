@@ -7,4 +7,5 @@
 *.tmp
 *.bak
 *.css
+*.map
 .DS_Store

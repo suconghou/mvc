@@ -394,7 +394,14 @@ class App
 		{
 			foreach ($key as $item)
 			{
-				$config=isset($config[$item])?$config[$item]:null;
+				if(is_array($config)&&isset($config[$item]))
+				{
+					$config=$config[$item];
+				}
+				else
+				{
+					return $default;
+				}
 			}
 		}
 		return $config;

@@ -43,8 +43,7 @@ class base
 
 	final private static function forbidden($msg=null)
 	{
-		echo $msg;
-		exit(header('HTTP/1.1 403 Forbidden',true,403));
+		header('HTTP/1.1 403 Forbidden',true,403)||exit($msg);
 	}
 
 	final private static function cors($allow=array())
