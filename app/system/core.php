@@ -1257,7 +1257,7 @@ function json(Array $data,$callback=null)
 function byteFormat($size,$dec=2)
 {
 	$size=max($size,0);
-	$unit=array("B","KB","MB","GB","TB","PB","EB","ZB","YB");
+	$unit=array('B','KB','MB','GB','TB','PB','EB','ZB','YB');
 	return $size>=1024?round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i]:$size.' B';
 }
 //外部重定向,会立即结束脚本以发送header,内部重定向app::run(array);
