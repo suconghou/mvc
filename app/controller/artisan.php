@@ -19,9 +19,9 @@ final class artisan extends base
 	public function release($update=true)
 	{
 		function_exists('opcache_reset')&&opcache_reset();
-		if(substr(__FILE__,0,4)!='phar')
+		if(substr(ROOT,0,7)!='phar://')
 		{
-			$update?$this->update(0,true):null;
+			$update&&$this->update(0,true);
 			$script=$_SERVER['argv'][0];
 			$subject=file_get_contents($script);
 			$pattern='/base::version\((\d+)\)/';

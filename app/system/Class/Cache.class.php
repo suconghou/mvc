@@ -38,7 +38,7 @@ class Cache
 		}
 		else if(extension_loaded('Memcached') && ($type === true || $type ==='memcache') )
 		{
-			self::$cache = new Memcached();
+			self::$cache = new Memcached('persistent');
 			self::$cache->addServer(self::memcacheServer, self::memcachePort);
 		}
 		else if(extension_loaded('Memcache') && ($type === true || $type ==='memcache') )
