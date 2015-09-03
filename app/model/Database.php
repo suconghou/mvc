@@ -295,9 +295,9 @@ class Database extends DB
 		return self::runSql($sql);
 	}
 
-	final public static function getList($table,$page=1,$where=null,$orderby='id desc',$per=20,$selectcolumn='*')
+	final public static function getList($table,$page=1,$where=null,$orderby='id desc',$pageSize=20,$selectcolumn='*')
 	{
-		$offset=max(0,($page-1)*$per);
+		$offset=max(0,($page-1)*$pageSize);
 		if($where)
 		{
 			if(is_array($where))
@@ -314,16 +314,16 @@ class Database extends DB
 			{
 				$strk=$where;
 			}
-			$list="SELECT {$selectcolumn} FROM {$table} WHERE  ({$strk})  ORDER BY {$orderby} LIMIT {$offset},{$per} ";
+			$list="SELECT {$selectcolumn} FROM {$table} WHERE  ({$strk})  ORDER BY {$orderby} LIMIT {$offset},{$pageSize} ";
 			$pages="SELECT COUNT(1) FROM {$table} WHERE ({$strk}) ";
 		}
 		else
 		{
-			$list="SELECT {$selectcolumn} FROM {$table} ORDER BY {$orderby} LIMIT {$offset},{$per} ";
+			$list="SELECT {$selectcolumn} FROM {$table} ORDER BY {$orderby} LIMIT {$offset},{$pageSize} ";
 			$pages="SELECT COUNT(1) FROM {$table} ";
 		}
 		$list=self::getData($list);
-		$pages=ceil(self::getVar($pages)/$per);
+		$pages=ceil(self::getVar($pages)/$pageSize);
 		return array('list'=>$list,'page'=>$pages,'current'=>$page,'prev'=>max(1,$page-1),'next'=>min($pages,$page+1));
 	}
 

@@ -10,8 +10,10 @@ class base
 
 	private static $baseUrl;
 
-	private static $pathMap=array('css'=>'/static/css/','style'=>'/static/style/','js'=>'/static/js/','img'=>'/static/img/');
+	private static $project;
 	
+	private static $pathMap=array('css'=>'/static/css/','style'=>'/static/style/','js'=>'/static/js/','img'=>'/static/img/');
+
 	public function __construct()
 	{
 		$this->globalIndex(); //全局加载的
@@ -201,6 +203,14 @@ class base
 		self::$baseUrl=$url;
 		return self::$baseUrl;
 	}
+	final private static function project($project=null)
+	{
+		if($project)
+		{
+			self::$project=$project;
+		}
+		return self::$project;
+	}
 
 	final private static function setPath($type,$value)
 	{
@@ -210,17 +220,17 @@ class base
 
 	final private static function css($css,$project=null)
 	{
-		return self::assets($css,'css',$project);
+		return self::assets($css,'css',$project?$project:self::$project);
 	}
 
 	final private static function js($js,$project=null)
 	{
-		return self::assets($js,'js',$project);
+		return self::assets($js,'js',$project?$project:self::$project);
 	}
 
 	final private static function img($src,$project=null)
 	{
-		return self::assets($src,'img',$project);
+		return self::assets($src,'img',$project?$project:self::$project);
 	}
 
 	final private static function assets($asset,$type,$project=null)
@@ -269,7 +279,7 @@ class base
 		return $script;
 	}
 
-	final private static function meta($title=null,$description=null,$keywords=null,$ext=array(),$ie=true)
+	final private static function meta($title=null,$description=null,$keywords=null,$ext=array(),$ie=false)
 	{
 		$meta=array("<meta charset='UTF-8'>","<title>{$title}</title>","<meta http-equiv=X-UA-Compatible content='IE=edge,chrome=1'>");
 		$base=array('renderer'=>'webkit','viewport'=>'width=device-width, initial-scale=1.0,maximum-scale=1.0, user-scalable=no','description'=>$description,'keywords'=>$keywords);
