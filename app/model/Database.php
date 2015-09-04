@@ -323,8 +323,9 @@ class Database extends DB
 			$pages="SELECT COUNT(1) FROM {$table} ";
 		}
 		$list=self::getData($list);
-		$pages=ceil(self::getVar($pages)/$pageSize);
-		return array('list'=>$list,'page'=>$pages,'current'=>$page,'prev'=>max(1,$page-1),'next'=>min($pages,$page+1));
+		$total=self::getVar($pages);
+		$pages=ceil($total/$pageSize);
+		return array('list'=>$list,'page'=>$pages,'total'=>$total,'current'=>$page,'prev'=>max(1,$page-1),'next'=>min($pages,$page+1));
 	}
 
 	final public static function like($table,$column,$like,$selectcolumn='*',$num=50)
