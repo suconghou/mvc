@@ -149,15 +149,6 @@ class base
 		throw new Exception("BusyBlock Block {$ip}",3);
 	}
 
-	private function gitpull($key=null)
-	{
-		if($key=='password')
-		{
-			$cmd='git pull origin master';
-			return passthru($cmd);
-		}
-	}
-
 
 	/**********************************魔术方法********************************/
 

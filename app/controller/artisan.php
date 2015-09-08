@@ -15,7 +15,7 @@ final class artisan extends base
 	{
 
 	}
-
+	//发布新版本,更新版本号和缓存,服务端执行
 	public function release($update=true)
 	{
 		function_exists('opcache_reset')&&opcache_reset();
@@ -28,13 +28,13 @@ final class artisan extends base
 			$data=preg_replace_callback($pattern,function($matches)
 			{
 				$version=$matches[1]+1;
-				echo PHP_EOL."new version {$version}".PHP_EOL;
+				echo PHP_EOL."new version {$version} released at ".date('Y-m-d H:i:s').PHP_EOL;
 				return "base::version({$version})";
 			},$subject);
 			return $data==$subject?false:file_put_contents($script,$data);
 		}
 	}
-
+	//手动推动至远程服务器,开发端执行
 	public function deploy()
 	{
 		$host='ftp://user:password@example.com/public_html';
@@ -47,19 +47,21 @@ final class artisan extends base
 		echo ($ret?'upload success':'upload error').' cost time '.app::cost('time').'s'.PHP_EOL;
 	}
 
+	//持久化或一次性自动更新任务,服务端执行
 	public function update($time=60,$once=false)
 	{
-		app::timer(function() use($time)
+		app::timer(function() use($time,$once)
 		{
 			try
 			{
-				$this->gitpull('password');
+				$cmd='git pull origin master';
+				return passthru($cmd);
 			}
 			catch(Exception $e)
 			{
 				echo $e->getMessage();
 			}
-			sleep($time);
+			$once||sleep($time);
 		},$once);
 
 	}
