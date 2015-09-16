@@ -53,12 +53,13 @@ class base
 		$allow=is_array($allow)?$allow:array($allow);
 		if(!empty($allow))
 		{
-			header('Access-Control-Allow-Origin: '.join(', ',$allow),true);
+			header('Access-Control-Allow-Origin: '.implode(',',$allow),true);
 		}
 		else
 		{
 			header('Access-Control-Allow-Origin: *',true);
 		}
+		header('Access-Control-Allow-Credentials:true',true);
 		return header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept',true);
 	}
 	
