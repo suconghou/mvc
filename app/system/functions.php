@@ -54,75 +54,29 @@ if(!function_exists('array_column'))
 	}
 }
 
-
-function array_delete($array,$item)
+if(!function_exists('array_replace'))
 {
-	if(is_array($item))
+	function array_replace()
 	{
-		return array_diff($array, $item);
-	}
-	else
-	{
-		if(($key = array_search($item, $array)) !== false)
+		$args=func_get_args();
+		$num_args=func_num_args();
+		$res=array();
+		for($i=0;$i<$num_args;$i++)
 		{
-			unset($array[$key]);
+			if(is_array($args[$i]))
+			{
+				foreach($args[$i] as $key => $val)
+				{
+					$res[$key] = $val;
+				}
+			}
+			else
+			{
+				trigger_error(__FUNCTION__ .'(): Argument #'.($i+1).' is not an array',E_USER_WARNING);
+				return null;
+			}
 		}
-		return $array;
+		return $res;
 	}
 }
 
-function object2array(&$object)
-{
-	$object=json_decode(json_encode($object),true);
-	return $object;
-}
-
-
-function timeBefore($time)
-{
-	$t=max(time()-$time,1);
-	$f=array('31536000'=>'年','2592000'=>'个月','604800'=>'星期','86400'=>'天','3600'=>'小时','60'=>'分钟','1'=>'秒');
-	foreach ($f as $k=>$v)
-	{
-		if (0!=$c=floor($t/(int)$k))
-		{
-			return $c.$v.'前';
-		}
-	}
-}
-
-function createUuid($prefix='',$split='')
-{
-	$str=md5(uniqid(mt_rand(),true));
-	$uuid=substr($str,0,8).$split;
-	$uuid.=substr($str,8,4).$split;
-	$uuid.=substr($str,12,4).$split;
-	$uuid.=substr($str,16,4).$split;
-	$uuid.=substr($str,20,12);
-	return$prefix.$uuid;
-}
-
-function isEmail($email)
-{
-	return preg_match("/^[0-9a-zA-Z]+@(([0-9a-zA-Z]+)[.])+[a-z]{2,4}$/i",$email);
-}
-
-function isPhone($tel)
-{
-	return preg_match("/^1[3458][0-9]{9}$/",$tel);
-}
-
-function getOrderSN()
-{
-	return (date('y')+date('m')+date('d')).str_pad((time()-strtotime(date('Y-m-d'))),5,0,STR_PAD_LEFT).substr(microtime(),2,6).sprintf('%03d',rand(0,999));
-}
-
-function convertStringEncoding(&$str,$set='UTF-8')
-{
-	$charset=mb_detect_encoding($str);
-	if($charset!=$set)
-	{
-		$str=iconv($charset,"{$set}//IGNORE",$str);
-	}
-	return $str;
-}
