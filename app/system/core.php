@@ -1302,13 +1302,13 @@ function decrypt($input,$key=null)
 	}
 	return trim(mcrypt_decrypt(MCRYPT_RIJNDAEL_128,md5($key),base64_decode($input),MCRYPT_MODE_ECB,mcrypt_create_iv(16)));
 }
-function csrf_token($check=false)
+function csrf_token($check=false,$name='_token')
 {
 	isset($_SESSION)||session_start();
 	$token=isset($_SESSION['csrf_token'])?$_SESSION['csrf_token']:null;
 	if($check)
 	{
-		if(!(isset($_REQUEST['_token']) && $_REQUEST['_token'] === $token))
+		if(!(isset($_REQUEST[$name]) && $_REQUEST[$name] === $token))
 		{
 			return app::Error(404,'Csrf Token Not Match ! ');
 		}

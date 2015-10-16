@@ -274,11 +274,14 @@ class base
 	final private static function meta($title=null,$description=null,$keywords=null,$ext=array(),$ie=false)
 	{
 		$meta=array("<meta charset='UTF-8'>","<title>{$title}</title>","<meta http-equiv=X-UA-Compatible content='IE=edge,chrome=1'>");
-		$base=array('renderer'=>'webkit','viewport'=>'width=device-width, initial-scale=1.0,maximum-scale=1.0, user-scalable=no','description'=>$description,'keywords'=>$keywords);
+		$base=array('csrf-token'=>csrf_token(),'renderer'=>'webkit','viewport'=>'width=device-width, initial-scale=1.0,maximum-scale=1.0, user-scalable=no','description'=>$description,'keywords'=>$keywords);
 		$ext=array_merge($base,$ext);
 		foreach ($ext as $name => $content)
 		{
-			$meta[]="<meta name='{$name}' content='{$content}'>";
+			if($name&&$content)
+			{
+				$meta[]="<meta name='{$name}' content='{$content}'>";
+			}
 		}
 		$ie=$ie?"<!--[if lt IE 9]><script src='//cdn.bootcss.com/html5shiv/r29/html5.min.js'></script><script src='//cdn.bootcss.com/respond.js/1.4.2/respond.min.js'></script><![endif]-->":null;
 		return implode('',$meta).$ie;
