@@ -339,7 +339,7 @@ class App
 	public static function setItem($key,$value)
 	{
 		$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT).'.config';
-		if(is_array($data=unserialize(file_get_contents($file))))
+		if(is_file($file)&&is_array($data=unserialize(file_get_contents($file))))
 		{
 			$data[$key]=$value;
 		}
@@ -352,7 +352,7 @@ class App
 	public static function getItem($key,$default=null)
 	{
 		$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT).'.config';
-		if(is_array($data=unserialize(file_get_contents($file))))
+		if(is_file($file)&&is_array($data=unserialize(file_get_contents($file))))
 		{
 			return isset($data[$key])?$data[$key]:$default;
 		}
@@ -367,7 +367,7 @@ class App
 		}
 		else
 		{
-			if(is_array($data=unserialize(file_get_contents($file))))
+			if(is_file($file)&&is_array($data=unserialize(file_get_contents($file))))
 			{
 				unset($data[$key]);
 				return file_put_contents($file,serialize($data))?true:false;
