@@ -891,7 +891,15 @@ class Validate
 					{
 						if($msg instanceof Closure)
 						{
-							$data[$k]=$msg($data[$k],$k);
+							$ret=$msg($data[$k],$k);
+							if(!$ret)
+							{
+								throw new Exception($k,-120);
+							}
+							else if($ret!==true)
+							{
+								$data[$k]=$ret;
+							}
 						}
 						else if(is_int($type))
 						{
@@ -899,7 +907,7 @@ class Validate
 						}
 						else if(stripos($type,'='))
 						{
-							self::mixedChecker($data[$k],explode('=', $type),$msg);
+							self::mixedChecker($data[$k],explode('=',$type),$msg);
 						}
 						else
 						{
@@ -909,7 +917,7 @@ class Validate
 				}
 				else if(isset($item['require'])) //标记为require,却不存在
 				{
-					throw new Exception($item['require'], -100);
+					throw new Exception($item['require'],-100);
 				}
 			}
 
@@ -1303,7 +1311,7 @@ function decrypt($input,$key=null)
 	}
 	return trim(mcrypt_decrypt(MCRYPT_RIJNDAEL_128,md5($key),base64_decode($input),MCRYPT_MODE_ECB,mcrypt_create_iv(16)));
 }
-function csrf_token($check=false,$name='_token')
+function csrf_token($check=false,$name='_token',Closure $callback=null)
 {
 	isset($_SESSION)||session_start();
 	$token=isset($_SESSION['csrf_token'])?$_SESSION['csrf_token']:null;
@@ -1311,8 +1319,9 @@ function csrf_token($check=false,$name='_token')
 	{
 		if(!(isset($_REQUEST[$name]) && $_REQUEST[$name] === $token))
 		{
-			return app::Error(404,'Csrf Token Not Match ! ');
+			return $callback?$callback():app::Error(403,'Csrf Token Not Match ! ');
 		}
+		return true;
 	}
 	else
 	{
