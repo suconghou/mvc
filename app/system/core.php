@@ -9,6 +9,7 @@
 /**
 * APP 主要控制类
 */
+
 class App
 {
 	private static $global;
@@ -87,9 +88,9 @@ class App
 	{
 		(isset($_SERVER['REQUEST_URI'][defined('MAX_URL_LENGTH')?MAX_URL_LENGTH:80]))&&self::Error(414,'Request uri too long ! ');
 		list($uri)=explode('?',$_SERVER['REQUEST_URI']);
-		if(strpos($uri, $_SERVER['SCRIPT_NAME'])!==false)
+		if(strpos($uri,$_SERVER['SCRIPT_NAME'])!==false)
 		{
-			$uri=str_replace($_SERVER['SCRIPT_NAME'], null, $uri);
+			$uri=str_replace($_SERVER['SCRIPT_NAME'],null,$uri);
 		}
 		$router=self::regexRouter($uri);
 		if($router)
@@ -98,8 +99,8 @@ class App
 		}
 		else
 		{
-			$uri=explode('/', $uri);
-			foreach ($uri as  $segment)
+			$uri=explode('/',$uri);
+			foreach ($uri as $segment)
 			{
 				if(!empty($segment))
 				{
