@@ -865,7 +865,7 @@ class Request
 			case 'en':
 				return preg_replace('/[\x80-\xff]/','',$val);
 			default:
-				return $type?sprintf($type,$val):$val;
+				return $type?sprintf($type,$val):trim($val);
 		}
 	}
 	public static function __callStatic($method,$args)
