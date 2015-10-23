@@ -237,13 +237,13 @@ class base
 			case 'css':
 				foreach ($asset as $item)
 				{
-					$links[]="<link rel='stylesheet' href='{$basePath}{$item}{$version}'>";
+					$links[]="<link rel='stylesheet' href='{$basePath}{$item}.css{$version}'>";
 				}
 				break;
 			case 'js':
 				foreach ($asset as $item)
 				{
-					$links[]="<script src='{$basePath}{$item}{$version}' defer></script>";
+					$links[]="<script src='{$basePath}{$item}.js{$version}' defer></script>";
 				}
 				break;
 			case 'img':
