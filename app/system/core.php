@@ -667,7 +667,6 @@ class Request
 			}
 			return $data;
 		}
-
 	}
 	public static function cookie($key=null,$default=null,$clean=false)
 	{
@@ -684,7 +683,6 @@ class Request
 			}
 			return $data;
 		}
-
 	}
 	public static function session($key=null,$default=null)
 	{
@@ -702,7 +700,6 @@ class Request
 			}
 			return $data;
 		}
-
 	}
 	public static function server($key=null,$default=null)
 	{
