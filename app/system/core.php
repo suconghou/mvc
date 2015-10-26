@@ -650,7 +650,6 @@ class Request
 			}
 			return $data;
 		}
-
 	}
 	public static function get($key=null,$default=null,$clean=false)
 	{
