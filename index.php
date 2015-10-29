@@ -1,6 +1,6 @@
 <?php
 /*************************************系统配置区*************************************/
-define('DEBUG',get_cfg_var('debug'));
+define('DEBUG',getenv('debug'));
 define('ROOT',__DIR__.DIRECTORY_SEPARATOR);
 define('APP_PATH',ROOT.'app'.DIRECTORY_SEPARATOR);
 define('VAR_PATH',ROOT.'var'.DIRECTORY_SEPARATOR);

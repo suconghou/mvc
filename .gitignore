@@ -9,4 +9,5 @@
 *.bak
 *.css
 *.map
+*.out
 .DS_Store
