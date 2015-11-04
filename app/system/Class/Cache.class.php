@@ -50,7 +50,10 @@ final class Cache
 				list($type,$host,$port)=self::$config[$instance];
 				$instances[$instance]=self::getInstance($type,$host,$port);
 			}
-			return false;
+			if(empty($instances[$instance]))
+			{
+				throw new Exception("Error Cache Instance {$instance}",1);
+			}
 		}
 		return $instances[$instance];
 	}
@@ -119,7 +122,15 @@ final class Cache
 		{
 			return call_user_func_array(self::$method[$method],$args);
 		}
-		return call_user_func_array(array(self::instance(),$method),$args);
+		$instance=self::instance();
+		if(method_exists($instance,$method))
+		{
+			return call_user_func_array(array($instance,$method),$args);
+		}
+		else
+		{
+			throw new Exception("Call Error Method {$method} In Class ".get_called_class(),1);
+		}
 	}
 	
 	function __set($key,$value)
