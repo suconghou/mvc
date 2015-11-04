@@ -12,6 +12,7 @@ final class Cache
 {
 	private static $config=array('memcache'=>array('memcache','127.0.0.1',11211),'memcached'=>array('memcached','127.0.0.1',11211),'redis'=>array('redis','127.0.0.1',6379));
 	private static $instance=array();
+	private static $method=array();
 	private static $currentInstanceName;
 
 	public static function ready($name,$type=null,$host=null,$port=null)
@@ -65,14 +66,14 @@ final class Cache
 					throw new Exception("Class Memcache Not Found",1);
 				}
 				$instance=new Memcache();
-				$instance->addServer($host,$port);
+				$instance->addServer($host,$port,true);
 				break;
 			case 'memcached':
 				if(!class_exists('Memcached'))
 				{
 					throw new Exception("Class Memcached Not Found",1);
 				}
-				$instance=new Memcached('persistent');
+				$instance=new Memcached('pool');
 				$instance->addServer($host,$port);
 				break;
 			case 'redis':
@@ -81,7 +82,7 @@ final class Cache
 					throw new Exception("Class Redis Not Found",1);
 				}
 				$instance=new Redis();
-				$instance->connect($host,$port);
+				$instance->pconnect($host,$port,1);
 				break;
 			default:
 				if(function_exists('memcache_init'))
@@ -90,21 +91,35 @@ final class Cache
 				}
 				else
 				{
-					throw new Exception("Error Cache Type",1);
+					throw new Exception("Error Cache Driver",1);
 				}
 				break;
 		}
 		return $instance;
 	}
 	
-	public function __call($name,$args)
+	public static function method($method,Closure $function)
 	{
-		return call_user_func_array(array(self::instance(),$name), $args);
+		return self::$method[$method]=$function;
 	}
 
-	public static function __callStatic($name,$args)
+	public static function getConfig()
 	{
-		return call_user_func_array(array(self::instance(),$name), $args);
+		return array('config'=>self::$config,'instance'=>self::$instance,'method'=>self::$method,'currentInstanceName'=>self::$currentInstanceName);
+	}
+
+	public function __call($method,$args)
+	{
+		return self::__callStatic($method,$args);
+	}
+
+	public static function __callStatic($method,$args)
+	{
+		if(isset(self::$method[$method]))
+		{
+			return call_user_func_array(self::$method[$method],$args);
+		}
+		return call_user_func_array(array(self::instance(),$method),$args);
 	}
 	
 	function __set($key,$value)
@@ -114,7 +129,7 @@ final class Cache
 
 	function __get($key)
 	{
-		return unserialize(self::instance()->get($key));
+		return self::instance()->get($key);
 	}
 
 	function __isset($key)
