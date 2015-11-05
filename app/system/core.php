@@ -1247,7 +1247,7 @@ function cookie($key,$val=null,$expire=0)
 	}
 	else
 	{
-		setcookie($key,is_array($val)?json_encode($val):$val,$expire);
+		return call_user_func_array('setcookie',func_get_args());
 	}
 
 }
