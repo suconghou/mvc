@@ -186,7 +186,7 @@ class base
 
 	final private static function version($version)
 	{
-		self::$version=DEBUG?'?debug':'?ver='.md5($version);
+		self::$version=DEBUG?'?debug':'?ver='.substr(md5($version),0,9);
 		return self::$version;
 	}
 
