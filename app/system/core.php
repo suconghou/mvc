@@ -921,7 +921,7 @@ class Validate
 		catch(Exception $e)
 		{
 			$data=array('code'=>$e->getCode(),'msg'=>$e->getMessage());
-			return $callback?$callback(json_encode($data),$data):false;
+			return $callback?$callback(json_encode($data,JSON_UNESCAPED_UNICODE),$data):false;
 		}
 		if(!empty($sw))
 		{
@@ -1223,7 +1223,7 @@ function session($key,$val=null,$delete=false)
 	}
 	else
 	{
-		$_SESSION[$key]=is_array($val)?json_encode($val):$val;
+		return $_SESSION[$key]=is_array($val)?json_encode($val,JSON_UNESCAPED_UNICODE):$val;
 	}
 
 }
