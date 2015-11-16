@@ -22,10 +22,10 @@ class App
 		self::set('sys-start-memory',memory_get_usage());
 		error_reporting(DEBUG?E_ALL:0);
 		set_include_path(LIB_PATH);
-		date_default_timezone_set('PRC');
 		set_error_handler(array('app','Error'));
 		set_exception_handler(array('app','Error'));
 		register_shutdown_function(array('app','Shutdown'));
+		date_default_timezone_set(defined('TIMEZONE')?TIMEZONE:'PRC');
 		defined('DEFAULT_ACTION')||define('DEFAULT_ACTION','index');
 		defined('DEFAULT_CONTROLLER')||define('DEFAULT_CONTROLLER','home');
 		defined('STDIN')||(defined('GZIP')?ob_start("ob_gzhandler"):ob_start());
