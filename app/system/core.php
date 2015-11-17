@@ -637,84 +637,28 @@ class Request
 {
 	public static function post($key=null,$default=null,$clean=false)
 	{
-		if($key)
-		{
-			return self::getVar('post',$key,$default,$clean);
-		}
-		else
-		{
-			$data=array();
-			foreach ($_POST as $key => $value)
-			{
-				$data[$key]=self::getVar('post',$key,$default,$clean);
-			}
-			return $data;
-		}
+		return self::getVar($_POST,$key,$default,$clean);
 	}
 	public static function get($key=null,$default=null,$clean=false)
 	{
-		if($key)
-		{
-			return self::getVar('get',$key,$default,$clean);
-		}
-		else
-		{
-			$data=array();
-			foreach ($_GET as $key => $value)
-			{
-				$data[$key]=self::getVar('get',$key,$default,$clean);
-			}
-			return $data;
-		}
+		return self::getVar($_GET,$key,$default,$clean);
+	}
+	public static function param($key=null,$default=null,$clean=false)
+	{
+		return self::getVar($_REQUEST,$key,$default,$clean);
 	}
 	public static function cookie($key=null,$default=null,$clean=false)
 	{
-		if($key)
-		{
-			return self::getVar('cookie',$key,$default,$clean);
-		}
-		else
-		{
-			$data=array();
-			foreach ($_COOKIE as $key => $value)
-			{
-				$data[$key]=self::getVar('cookie',$key,$default,$clean);
-			}
-			return $data;
-		}
+		return self::getVar($_COOKIE,$key,$default,$clean);
 	}
-	public static function session($key=null,$default=null)
+	public static function session($key=null,$default=null,$clean=false)
 	{
 		isset($_SESSION)||session_start();
-		if($key)
-		{
-			return self::getVar('session',$key,$default);
-		}
-		else
-		{
-			$data=array();
-			foreach ($_SESSION as $key => $value)
-			{
-				$data[$key]=self::getVar('session',$key);
-			}
-			return $data;
-		}
+		return self::getVar($_SESSION,$key,$default,$clean);
 	}
-	public static function server($key=null,$default=null)
+	public static function server($key=null,$default=null,$clean=flase)
 	{
-		if($key)
-		{
-			return self::getVar('server',$key,$default);
-		}
-		else
-		{
-			$data=array();
-			foreach ($_SERVER as $key => $value)
-			{
-				$data[$key]=self::getVar('server',$key);
-			}
-			return $data;
-		}
+		return self::getVar($_SERVER,$key,$default,$clean);
 	}
 	//获取http请求正文,默认当做json处理
 	public static function input($key=null,$default=null,$json=true)
@@ -828,23 +772,18 @@ class Request
 		}
 		return $input;
 	}
-	private static function getVar($type,$var,$default=null,$clean=false)
+	private static function getVar($origin,$var,$default=null,$clean=false)
 	{
-		switch ($type)
+		if(is_array($var)&&$var)
 		{
-			case 'post':
-				return isset($_POST[$var])?($clean?self::clean($_POST[$var],$clean):$_POST[$var]):$default;
-			case 'get':
-				return isset($_GET[$var])?($clean?self::clean($_GET[$var],$clean):$_GET[$var]):$default;
-			case 'cookie':
-				return isset($_COOKIE[$var])?($clean?self::clean($_COOKIE[$var],$clean):$_COOKIE[$var]):$default;
-			case 'server':
-				return isset($_SERVER[$var])?$_SERVER[$var]:$default;
-			case 'session':
-				return isset($_SESSION[$var])?$_SESSION[$var]:$default;
-			default:
-				return false;
+			$data=array();
+			foreach ($var as $k)
+			{
+				$data[$k]=isset($origin[$k])?($clean?self::clean($origin[$k],$clean):$origin[$k]):$default;
+			}
+			return $data;
 		}
+		return isset($origin[$var])?($clean?self::clean($origin[$var],$clean):$origin[$var]):$default;
 	}
 	public static function clean($val,$type=null)
 	{
@@ -857,7 +796,7 @@ class Request
 			case 'xss':
 				return filter_var(htmlspecialchars(strip_tags($val),ENT_QUOTES),FILTER_SANITIZE_STRING);
 			case 'html':
-				return strip_tags($val);
+				return trim(strip_tags($val));
 			case 'en':
 				return preg_replace('/[\x80-\xff]/','',$val);
 			default:
