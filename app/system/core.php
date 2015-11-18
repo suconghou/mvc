@@ -4,7 +4,7 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.8.9
+ * @version 1.9.0
  */
 /**
 * APP 主要控制类
@@ -1142,53 +1142,26 @@ function session($key,$val=null,$delete=false)
 	isset($_SESSION)||session_start();
 	if(is_null($val))
 	{
-		if(is_array($key))
+		if($delete)
 		{
-			$res=array();
-			foreach ($key as  $k)
+			$key=is_array($key)?$key:array($key);
+			foreach ($key as $k)
 			{
-				$res[$k]=isset($_SESSION[$k])?$_SESSION[$k]:null;
+				unset($_SESSION[$k]);
 			}
-			return $res;
+			return $_SESSION;
 		}
-		else if($delete)
-		{
-			unset($_SESSION[$key]);
-		}
-		else
-		{
-			return isset($_SESSION[$key])?$_SESSION[$key]:null;
-		}
+		return Request::session($key,null,false);
 	}
-	else
-	{
-		return $_SESSION[$key]=is_array($val)?json_encode($val,JSON_UNESCAPED_UNICODE):$val;
-	}
-
+	return $_SESSION[$key]=is_array($val)?json_encode($val,JSON_UNESCAPED_UNICODE):$val;
 }
 function cookie($key,$val=null,$expire=0)
 {
 	if(is_null($val))
 	{
-		if(is_array($key))
-		{
-			$res=array();
-			foreach ($key as $k)
-			{
-				$res[$k]=isset($_COOKIE[$key])?$_COOKIE[$key]:null;
-			}
-			return $res;
-		}
-		else
-		{
-			return isset($_COOKIE[$key])?$_COOKIE[$key]:null;
-		}
+		return Request::cookie($key,null,false);
 	}
-	else
-	{
-		return call_user_func_array('setcookie',func_get_args());
-	}
-
+	return call_user_func_array('setcookie',func_get_args());
 }
 function json(Array $data,$callback=null)
 {
