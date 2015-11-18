@@ -86,7 +86,6 @@ class App
 	 */
 	private static function init()
 	{
-		(isset($_SERVER['REQUEST_URI'][defined('MAX_URL_LENGTH')?MAX_URL_LENGTH:80]))&&self::Error(414,'Request uri too long ! ');
 		list($uri)=explode('?',$_SERVER['REQUEST_URI']);
 		if(strpos($uri,$_SERVER['SCRIPT_NAME'])!==false)
 		{
