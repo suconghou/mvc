@@ -389,7 +389,7 @@ class App
 	}
 	public static function config($key=null,$default=null,$configFile='config.php')
 	{
-		$config=isset(self::$global[$configFile])?self::$global[$configFile]:(self::$global[$configFile]=include_once ROOT.$configFile);
+		$config=is_array($configFile)?$configFile:(isset(self::$global[$configFile])?self::$global[$configFile]:(self::$global[$configFile]=include ROOT.$configFile));
 		if($key=array_filter(explode('.',$key),function($item){return $item;}))
 		{
 			foreach ($key as $item)
