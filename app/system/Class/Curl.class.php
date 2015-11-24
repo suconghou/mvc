@@ -44,7 +44,7 @@ class Curl
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
 		{
-			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($data)?http_build_query($data):$data));
+			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data));
 			$result=curl_exec($ch);
 			curl_close($ch);
 			return $result;
@@ -57,7 +57,7 @@ class Curl
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
 		{
-			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($data)?http_build_query($data):$data,CURLOPT_CUSTOMREQUEST=>'put'));
+			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data,CURLOPT_CUSTOMREQUEST=>'put'));
 			$result=curl_exec($ch);
 			curl_close($ch);
 			return $result;
@@ -71,7 +71,7 @@ class Curl
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
 		{
-			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($data)?http_build_query($data):$data,CURLOPT_CUSTOMREQUEST=>'delete'));
+			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data,CURLOPT_CUSTOMREQUEST=>'delete'));
 			$result=curl_exec($ch);
 			curl_close($ch);
 			return $result;
