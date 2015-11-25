@@ -47,6 +47,7 @@ class Wechat
 	public static function onMessage($token,$echostr)
 	{
 		$data=self::getMsgData();
+		self::log('get msg data'.PHP_EOL.print_r($data,true));
 		if($data)
 		{
 			self::$msgdata=$data;
@@ -61,7 +62,7 @@ class Wechat
 				$msgType=$data['MsgType'];
 				if(isset($data['Event']))
 				{
-					$eve=$data['Event'];
+					$eve=strtolower($data['Event']);
 					if(isset($event["event.{$eve}"]))
 					{
 						$evefun=$event["event.{$eve}"];
@@ -266,6 +267,28 @@ class Wechat
 		$data=array('title'=>$title,'thumb_media_id'=>$thumb_media_id,'author'=>$author,'digest'=>$digest,'show_cover_pic'=>$show_cover_pic,'content'=>$content,'content_source_url'=>$content_source_url);
 		return json_decode(self::url("/material/add_news?access_token={$token}",$data,true),true);
 	}
+
+	public static function menuCreate($data)
+	{
+		return json_decode(self::url('/menu/create?access_token='.self::token(),$data,true),true);
+	}
+
+	public static function menuGet()
+	{
+		return json_decode(self::url('/menu/get?access_token='.self::token()),true);
+	}
+
+	public static function menuDelete()
+	{
+		return json_decode(self::url('/menu/delete?access_token='.self::token()),true);
+	}
+
+	public static function getMenuInfo()
+	{
+		return json_decode(self::url('/get_current_selfmenu_info?access_token='.self::token()),true);
+	}
+
+
 
 	/**
 	 * 解析微信消息XML
