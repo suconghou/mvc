@@ -319,7 +319,7 @@ class Wechat
 		curl_setopt_array($ch,array(CURLOPT_HTTPHEADER=>$headers,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
 		if($post)
 		{
-			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data));
+			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>is_array($data)?http_build_query($data):$data));
 		}
 		$result=curl_exec($ch);
 		curl_close($ch);
@@ -335,7 +335,7 @@ class Wechat
 		$tokenInfo=self::session('tokenInfo');
 		if(!empty($tokenInfo['expires_in'])&&($tokenInfo['expires_in']>time()))
 		{
-			return $tokenInfo['token'];
+			return $tokenInfo['access_token'];
 		}
 		$json=json_decode(self::url('/token',array('grant_type'=>'client_credential','appid'=>self::$appid,'secret'=>self::$secret)),true);
 		if(isset($json['access_token']))
@@ -344,7 +344,7 @@ class Wechat
 			self::session('tokenInfo',$json);
 			return $json['access_token'];
 		}
-		return self::log('get access_token failed,'.print_r($json));
+		return self::log('get access_token failed,'.PHP_EOL.print_r($json,true));
 
 	}
 
@@ -404,7 +404,7 @@ class Wechat
 			echo $text;
 			return self::$response=$text;
 		}
-		self::log('already send response');
+		self::log('warning:already send response');
 		return false;
 	}
 
@@ -420,4 +420,11 @@ class Wechat
 	{
 		return app::log($msg);
 	}
+
+	public function __destruct()
+	{
+		
+	}
+
+
 }

@@ -859,7 +859,7 @@ class Validate
 		catch(Exception $e)
 		{
 			$data=array('code'=>$e->getCode(),'msg'=>$e->getMessage());
-			return $callback?$callback(json_encode($data,JSON_UNESCAPED_UNICODE),$data):false;
+			return $callback?$callback(json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$data):false;
 		}
 		if(!empty($sw))
 		{
@@ -1152,7 +1152,7 @@ function session($key,$val=null,$delete=false)
 		}
 		return Request::session($key,null,false);
 	}
-	return $_SESSION[$key]=is_array($val)?json_encode($val,JSON_UNESCAPED_UNICODE):$val;
+	return $_SESSION[$key]=is_array($val)?json_encode($val,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES):$val;
 }
 function cookie($key,$val=null,$expire=0)
 {
@@ -1164,7 +1164,7 @@ function cookie($key,$val=null,$expire=0)
 }
 function json(Array $data,$callback=null)
 {
-	$data=json_encode($data,JSON_UNESCAPED_UNICODE);
+	$data=json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
 	$callback=$callback===true?(empty($_GET['callback'])?null:$_GET['callback']):$callback;
 	$data=$callback?$callback."(".$data.")":$data;
 	header('Content-Type: text/'.($callback?'javascript':'json'),true,200);
