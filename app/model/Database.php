@@ -297,6 +297,7 @@ class Database extends DB
 
 	final public static function getList($table,$page=1,$where=null,$orderby='id desc',$pageSize=20,$selectcolumn='*')
 	{
+		$page=max(1,intval($page));
 		$offset=max(0,($page-1)*$pageSize);
 		if($where)
 		{
