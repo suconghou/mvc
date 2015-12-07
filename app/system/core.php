@@ -61,15 +61,15 @@ class App
 					is_file($path) && unlink($path);
 					$phar=new Phar($path,FilesystemIterator::CURRENT_AS_FILEINFO|FilesystemIterator::KEY_AS_FILENAME|FilesystemIterator::SKIP_DOTS,$pharName);
 					$phar->startBuffering();
-					$dirObj=new RegexIterator(new RecursiveIteratorIterator(new RecursiveDirectoryIterator(ROOT)),'/^[\w\/\-\.]+\.php$/i');
-					foreach ($dirObj as $file)
+					$dirObj=new RegexIterator(new RecursiveIteratorIterator(new RecursiveDirectoryIterator(ROOT)),'/^[\w\/\-\\\.:]+\.php$/i');
+					foreach($dirObj as $file)
 					{
 						$phar->addFromString(substr($file,strlen(ROOT)),php_strip_whitespace($file));
 					}
 					$stub="<?php Phar::mapPhar('$pharName');require 'phar://{$pharName}/{$script}';__HALT_COMPILER();";
 					$phar->setStub($stub);
 					$phar->stopBuffering();
-					echo "{$phar->count()} Files Stored In ".$path.PHP_EOL;
+					echo "{$phar->count()} Files Stored In {$path}".PHP_EOL;
 				}
 				catch(Exception $e)
 				{
