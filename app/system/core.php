@@ -59,15 +59,12 @@ class App
 					$pharName=rtrim($script,'php').'phar';
 					$path=ROOT.$pharName;
 					is_file($path) && unlink($path);
-					$phar=new Phar($path,FilesystemIterator::CURRENT_AS_FILEINFO | FilesystemIterator::KEY_AS_FILENAME,$pharName);
+					$phar=new Phar($path,FilesystemIterator::CURRENT_AS_FILEINFO|FilesystemIterator::KEY_AS_FILENAME|FilesystemIterator::SKIP_DOTS,$pharName);
 					$phar->startBuffering();
-					$dirObj=new RecursiveIteratorIterator(new RecursiveDirectoryIterator(ROOT),RecursiveIteratorIterator::SELF_FIRST);
+					$dirObj=new RegexIterator(new RecursiveIteratorIterator(new RecursiveDirectoryIterator(ROOT)),'/^[\w\/\-\.]+\.php$/i');
 					foreach ($dirObj as $file)
 					{
-						if(preg_match('/\\.php$/i',$file))
-						{
-							$phar->addFromString(substr($file,strlen(ROOT)),php_strip_whitespace($file));
-						}
+						$phar->addFromString(substr($file,strlen(ROOT)),php_strip_whitespace($file));
 					}
 					$stub="<?php Phar::mapPhar('$pharName');require 'phar://{$pharName}/{$script}';__HALT_COMPILER();";
 					$phar->setStub($stub);
@@ -1182,13 +1179,13 @@ function redirect($url,$timeout=0)
 	$timeout=intval($timeout);
 	if(in_array($timeout,array(0,301,302,307)))
 	{
-		header("Location: {$url}",true,$timeout);
+		header("Location:{$url}",true,$timeout);
 	}
 	else
 	{
-		header("Refresh: {$timeout}; url={$url}");
+		header("Refresh:{$timeout}; url={$url}");
 	}
-	exit(header("Cache-Control: max-age=0, no-cache, must-revalidate, proxy-revalidate",true));
+	exit(header("Cache-Control:no-cache, no-store, max-age=0, must-revalidate",true));
 }
 function baseUrl($path=null)
 {
