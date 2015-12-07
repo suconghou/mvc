@@ -1156,7 +1156,7 @@ function json(Array $data,$callback=null)
 	$data=json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
 	$callback=$callback===true?(empty($_GET['callback'])?null:$_GET['callback']):$callback;
 	$data=$callback?$callback."(".$data.")":$data;
-	header('Content-Type: text/'.($callback?'javascript':'json'),true,200);
+	header('Content-Type: text/'.($callback?'javascript':'json').';charset=utf-8',true,200);
 	exit($data);
 }
 function byteFormat($size,$dec=2)
