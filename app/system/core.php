@@ -767,11 +767,11 @@ class Request
 			$data=array();
 			foreach ($var as $k)
 			{
-				$data[$k]=isset($origin[$k])?($clean?self::clean($origin[$k],$clean):$origin[$k]):$default;
+				$data[$k]=isset($origin[$k])?($clean?self::clean($origin[$k],$clean):trim($origin[$k])):$default;
 			}
 			return $data;
 		}
-		return isset($origin[$var])?($clean?self::clean($origin[$var],$clean):$origin[$var]):$default;
+		return isset($origin[$var])?($clean?self::clean($origin[$var],$clean):trim($origin[$var])):$default;
 	}
 	public static function clean($val,$type=null)
 	{
