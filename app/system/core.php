@@ -223,14 +223,7 @@ class App
 	 */
 	public static function route($regex,$arr)
 	{
-		if($arr instanceof Closure)
-		{
-			$GLOBALS['APP']['regexRouter'][$regex]=$arr;
-		}
-		else
-		{
-			$GLOBALS['APP']['regexRouter'][]=array($regex,$arr);
-		}
+		$GLOBALS['APP']['regexRouter'][$regex]=$arr;
 	}
 	public static function log($msg,$type='DEBUG')
 	{
@@ -254,23 +247,22 @@ class App
 		{
 			foreach ($GLOBALS['APP']['regexRouter'] as $regex=>$item)
 			{
-				$regex=is_array($item)?$item[0]:$regex;
-				if(preg_match('/^'.$regex.'$/', $uri,$matches))
+				if(preg_match('/^'.$regex.'$/',$uri,$matches))
 				{
 					$url=$matches[0];
 					unset($matches[0],$GLOBALS['APP']['regexRouter']);
-					if(is_object($item)) 
+					if(is_array($item))
+					{
+						return array_merge($item,$matches);
+					}
+					else if(is_object($item))
 					{
 						//传入URL,作为闭包时的文件缓存依据
 						return array_merge(array($url,$item),$matches);
 					}
 					else
 					{
-						if(is_string($item[1])) //plugin loader
-						{
-							return call_user_func_array('S',array_merge(array($item[1]),$matches));
-						}
-						return array_merge($item[1],$matches);
+						return call_user_func_array('S',array_merge(array($item),$matches));
 					}
 				}
 			}
