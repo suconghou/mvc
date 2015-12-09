@@ -116,18 +116,18 @@ class App
 			}
 			else
 			{
-				return self::Error(404,'Request Controller '.$router[0].' Error ! ');
+				return self::Error(404,"Request Controller {$router[0]} Error");
 			}
 		}
 		else //控制器和动作全部需要过滤
 		{
 			if(!preg_match('/^[a-z]\w{0,20}$/i',$router[0]))
 			{
-				return self::Error(404,'Request Controller '.$router[0].' Error ! ');
+				return self::Error(404,"Request Controller {$router[0]} Error");
 			}
 			if(!preg_match('/^[a-z]\w{0,20}$/i',$router[1]))
 			{
-				return self::Error(404,'Request Action '.$router[0].'=>'.$router[1].' Error ! ');
+				return self::Error(404,"Request Action {$router[0]}:{$router[1]} Error");
 			}
 			$router[0]=strtolower($router[0]);
 		}
@@ -206,17 +206,17 @@ class App
 		}
 		else
 		{
-			return self::Error(404,'Request Controller '.$router[0].' Not Found ! ');
+			return self::Error(404,"Request Controller {$router[0]} Not Found");
 		}
 		require_once $path;
-		class_exists($controllerName)||self::Error(404,'Request Controller Class '.$controllerName.' Not Found ! ');
-		method_exists($controllerName,$action)||self::Error(404,'Request Controller Class '.$controllerName.' Does Not Contain Method '.$action);
+		class_exists($controllerName)||self::Error(404,"Request Controller Class {$controllerName} Not Found");
+		method_exists($controllerName,$action)||self::Error(404,"Request Controller Class {$controllerName} Does Not Contain Method {$action}");
 		$GLOBALS['APP']['controller'][$controllerName]=isset($GLOBALS['APP']['controller'][$controllerName])?$GLOBALS['APP']['controller'][$controllerName]:$controllerName;
 		if(!$GLOBALS['APP']['controller'][$controllerName] instanceof $controllerName)
 		{
 			$GLOBALS['APP']['controller'][$controllerName]=new $controllerName($router);
 		}
-		return is_callable(array($GLOBALS['APP']['controller'][$controllerName],$action))?call_user_func_array(array($GLOBALS['APP']['controller'][$controllerName],$action),array_slice($router,$param)):self::Error(404,'Request Controller Class '.$controllerName.' Method '.$action.' Is Not Callable');
+		return is_callable(array($GLOBALS['APP']['controller'][$controllerName],$action))?call_user_func_array(array($GLOBALS['APP']['controller'][$controllerName],$action),array_slice($router,$param)):self::Error(404,"Request Controller Class {$controllerName} Method {$action} Is Not Callable");
 	}
 	/**
 	 * 正则路由,参数一正则,参数二数组形式的路由表或者回调函数
@@ -232,7 +232,7 @@ class App
 			$path=VAR_PATH.'log'.DIRECTORY_SEPARATOR.date('Y-m-d').'.log';
 			$msg=strtoupper($type).'-'.date('Y-m-d H:i:s').' ==> '.(is_scalar($msg)?$msg:PHP_EOL.print_r($msg,true)).PHP_EOL;
 			//error消息和开发模式,测试模式全部记录
-			if(DEBUG || strtoupper($type)=='ERROR')
+			if(DEBUG||strtoupper($type)=='ERROR')
 			{
 				error_log($msg,3,$path);
 			}
@@ -413,7 +413,7 @@ class App
 		{
 			return call_user_func_array(self::$global['method'][$method],$args);
 		}
-		return self::Error(500,'Call Error Static Method '.$method.' In Class '.get_called_class());
+		return self::Error(500,"Call Error Static Method {$method} In Class ".get_called_class());
 	}
 	//异常处理 404 500等
 	public static function Error($errno,$errstr=null,$errfile=null,$errline=null)
@@ -441,7 +441,7 @@ class App
 		}
 		else
 		{
-			$errormsg="ERROR({$errno}) {$errstr} in {$errfile} on line {$errline} ";
+			$errormsg="ERROR({$errno}) {$errstr} in {$errfile} on line {$errline}";
 			$code=500;
 		}
 		$errno==404||app::log($errormsg,'ERROR');
@@ -453,7 +453,7 @@ class App
 			{
 				if(isset($trace['file']))
 				{
-					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".(empty($trace['args'])?null:implode(array_map(function($item){return strlen(print_r($item,true))>80?'...':str_replace(array(PHP_EOL,'  '),null,print_r($item,true));},$trace['args']),',')).")";
+					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".(empty($trace['args'])?null:implode(array_map(function($item){return strlen(print_r($item,true))>80?'...':(is_null($item)?'null':str_replace(array(PHP_EOL,'  '),null,print_r($item,true)));},$trace['args']),',')).")";
 				}
 			}
 			$li=implode(defined('STDIN')?PHP_EOL:'</p><p>',array_reverse($li));
@@ -481,7 +481,7 @@ class App
 		$lastError=error_get_last();
 		if(!empty($lastError))
 		{
-			$errormsg="ERROR({$lastError['type']}) {$lastError['message']} in {$lastError['file']} on line {$lastError['line']} ";
+			$errormsg="ERROR({$lastError['type']}) {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}";
 			header('Error-At:'.(DEBUG?"{$lastError['file']}:{$lastError['line']}=>{$lastError['message']}":basename($lastError['file']).":{$lastError['line']}"),true,500);
 			return app::log($errormsg,'ERROR');
 		}
@@ -504,8 +504,8 @@ function M($model)
 	else
 	{
 		$modelFile=MODEL_PATH.$model.'.php';
-		(is_file($modelFile) && require_once $modelFile)||app::Error(500,'Load Model '.$m.' Failed , Mdoel File '.$modelFile.' Not Found ! ');
-		class_exists($m)||app::Error(500,'Model File '.$modelFile .' Does Not Contain Class '.$m);
+		(is_file($modelFile) && require_once $modelFile)||app::Error(500,"Load Model {$m} Failed , Mdoel File {$modelFile} Not Found");
+		class_exists($m)||app::Error(500,"Model File {$modelFile} Does Not Contain Class {$m}");
 		$class = new ReflectionClass($m);
 		$GLOBALS['APP']['model'][$m]=$class->newInstanceArgs($arguments);
 		return $GLOBALS['APP']['model'][$m];
@@ -527,7 +527,7 @@ function S($lib)
 		if(is_file($classFile=LIB_PATH.$lib.'.class.php'))
 		{
 			require_once $classFile;
-			class_exists($l)||app::Error(500,'Library File '.$classFile .' Does Not Contain Class '.$l);
+			class_exists($l)||app::Error(500,"Library File {$classFile} Does Not Contain Class {$l}");
 			$class = new ReflectionClass($l);
 			$GLOBALS['APP']['lib'][$l]=$class->newInstanceArgs($arguments);
 			return $GLOBALS['APP']['lib'][$l];
@@ -539,7 +539,7 @@ function S($lib)
 		}
 		else
 		{
-			return app::Error(500,'Library File '.$l.'  Not Found ! ');
+			return app::Error(500,"Library File {$l}  Not Found");
 		}
 	}
 }
@@ -607,7 +607,7 @@ function template($v,Array $_data_=null,Closure $callback=null)
 	}
 	else
 	{
-		return app::Error(404,'Template File '.$_v_.' Not Found !');
+		return app::Error(404,"Template File {$_v_} Not Found");
 	}
 }
 
@@ -788,7 +788,7 @@ class Request
 	}
 	public static function __callStatic($method,$args)
 	{
-		return app::Error(500,'Call Error Static Method '.$method.' In Class '.get_called_class());
+		return app::Error(500,"Call Error Static Method {$method} In Class ".get_called_class());
 	}
 }
 
@@ -938,7 +938,7 @@ class Validate
 				}
 				break;
 			default:
-				throw new Exception("Error Mixed Rule {$mixed[0]}", -500);
+				throw new Exception("Error Mixed Rule {$mixed[0]}",-500);
 		}
 	}
 	public static function email($email)
@@ -1103,17 +1103,17 @@ function __autoload($class)
 	if(is_file($modelFile=MODEL_PATH.$class.'.php'))
 	{
 		require_once $modelFile;
-		return class_exists($class)||app::Error(500,'Load File '.$modelFile.' Succeed,But Not Found Class '.$class);
+		return class_exists($class)||app::Error(500,"Load File {$modelFile} Succeed,But Not Found Class {$class}");
 	}
 	else if(is_file($controllerFile=CONTROLLER_PATH.$class.'.php'))
 	{
 		require_once $controllerFile;
-		return class_exists($class)||app::Error(500,'Load File '.$controllerFile.' Succeed,But Not Found Class '.$class);
+		return class_exists($class)||app::Error(500,"Load File {$controllerFile} Succeed,But Not Found Class {$class}");
 	}
 	else if(is_file($libFile=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.class.php"))
 	{
 		require_once $libFile;
-		return class_exists($class)||app::Error(500,'Load File '.$libFile.' Succeed,But Not Found Class '.$class);
+		return class_exists($class)||app::Error(500,"Load File {$libFile} Succeed,But Not Found Class {$class}");
 	}
 	else
 	{
@@ -1172,7 +1172,7 @@ function redirect($url,$timeout=0)
 	{
 		header("Refresh:{$timeout}; url={$url}");
 	}
-	exit(header("Cache-Control:no-cache, no-store, max-age=0, must-revalidate",true));
+	exit(header('Cache-Control:no-cache, no-store, max-age=0, must-revalidate',true));
 }
 function baseUrl($path=null)
 {
@@ -1210,7 +1210,7 @@ function csrf_token($check=false,$name='_token',Closure $callback=null)
 	{
 		if(!(isset($_REQUEST[$name]) && $_REQUEST[$name] === $token))
 		{
-			return $callback?$callback():app::Error(403,'Csrf Token Not Match ! ');
+			return $callback?$callback():app::Error(403,'Csrf Token Not Match');
 		}
 		return true;
 	}
