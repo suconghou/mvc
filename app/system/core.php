@@ -304,14 +304,7 @@ class App
 			$router=implode('/',$router);
 		}
 		$cacheFile=VAR_PATH.'html'.DIRECTORY_SEPARATOR.md5(baseUrl($router)).'.html';
-		if($delete)
-		{
-			return is_file($cacheFile)&&unlink($cacheFile);
-		}
-		else
-		{
-			return $cacheFile;
-		}
+		return $delete?(is_file($cacheFile)&&unlink($cacheFile)):$cacheFile;
 	}
 	/**
 	 * 全局变量获取设置
@@ -451,8 +444,8 @@ class App
 			$errormsg="ERROR({$errno}) {$errstr} in {$errfile} on line {$errline} ";
 			$code=500;
 		}
-		$errno==404 || app::log($errormsg,'ERROR');
-		defined('STDIN')||(app::get('sys-error')&&exit('Error Found In Error Handler'))||(http_response_code($code)&&app::set('sys-error',true));
+		$errno==404||app::log($errormsg,'ERROR');
+		defined('STDIN')||(app::get('sys-error')&&exit("Error Found In Error Handler:{$errormsg}"))||(header("Error-At:{$errstr}",true,$code)||app::set('sys-error',true));
 		if(DEBUG||defined('STDIN'))
 		{
 			$li=array();
@@ -460,7 +453,7 @@ class App
 			{
 				if(isset($trace['file']))
 				{
-					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".implode(array_map(function($item){return strlen(print_r($item,true))>80?'...':str_replace(array(PHP_EOL,'  '),null,print_r($item,true));},$trace['args']),',').")";
+					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".(empty($trace['args'])?null:implode(array_map(function($item){return strlen(print_r($item,true))>80?'...':str_replace(array(PHP_EOL,'  '),null,print_r($item,true));},$trace['args']),',')).")";
 				}
 			}
 			$li=implode(defined('STDIN')?PHP_EOL:'</p><p>',array_reverse($li));
@@ -593,8 +586,7 @@ function C($time,$file=false)
 		$lastExpire=strtotime($lastExpire);
 		header("Expires: ".gmdate("D, d M Y H:i:s",$lastExpire+$seconds)." GMT");
 		header("Cache-Control: max-age=".(($lastExpire+$seconds)-$now));
-		header('Last-Modified: ' . gmdate('D, d M y H:i:s',$lastExpire). ' GMT');
-		exit(http_response_code(304));
+		exit(header('Last-Modified: ' . gmdate('D, d M y H:i:s',$lastExpire). ' GMT',true,304));
 	}
 	else
 	{
