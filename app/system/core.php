@@ -489,6 +489,7 @@ class App
 		if(!empty($lastError))
 		{
 			$errormsg="ERROR({$lastError['type']}) {$lastError['message']} in {$lastError['file']} on line {$lastError['line']} ";
+			header('Error-At:'.(DEBUG?"{$lastError['file']}:{$lastError['line']}=>{$lastError['message']}":basename($lastError['file']).":{$lastError['line']}"),true,500);
 			return app::log($errormsg,'ERROR');
 		}
 	}
