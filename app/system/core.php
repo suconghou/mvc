@@ -458,13 +458,13 @@ class App
 			$li=array();
 			foreach($backtrace as $trace)
 			{
-				if(isset($trace['file'],$trace['type']))
+				if(isset($trace['file']))
 				{
-					$li[]=$trace['file'].'=>'.$trace['class'].$trace['type'].$trace['function'].'() on line '.$trace['line'];
+					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".implode(array_map(function($item){return strlen(print_r($item,true))>80?'...':str_replace(array(PHP_EOL,'  '),null,print_r($item,true));},$trace['args']),',').")";
 				}
 			}
 			$li=implode(defined('STDIN')?PHP_EOL:'</p><p>',array_reverse($li));
-			echo defined('STDIN')?($errfile?$errormsg.PHP_EOL.$li.PHP_EOL:exit($errormsg.PHP_EOL.$li.PHP_EOL)):exit("<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;'><p>{$errormsg}</p><p>{$li}</p></div>");
+			echo defined('STDIN')?($errfile?$errormsg.PHP_EOL.$li.PHP_EOL:exit($errormsg.PHP_EOL.$li.PHP_EOL)):exit("<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;font:italic 14px/20px Georgia,Times New Roman;'><p>{$errormsg}</p><p>{$li}</p></div>");
 		}
 		else
 		{
