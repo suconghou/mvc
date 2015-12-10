@@ -225,11 +225,11 @@ class App
 	{
 		$GLOBALS['APP']['regexRouter'][$regex]=$arr;
 	}
-	public static function log($msg,$type='DEBUG')
+	public static function log($msg,$type='DEBUG',$file=null)
 	{
 		if(is_writable(VAR_PATH.'log'))
 		{
-			$path=VAR_PATH.'log'.DIRECTORY_SEPARATOR.date('Y-m-d').'.log';
+			$path=VAR_PATH.'log'.DIRECTORY_SEPARATOR.($file?$file:date('Y-m-d')).'.log';
 			$msg=strtoupper($type).'-'.date('Y-m-d H:i:s').' ==> '.(is_scalar($msg)?$msg:PHP_EOL.print_r($msg,true)).PHP_EOL;
 			//error消息和开发模式,测试模式全部记录
 			if(DEBUG||strtoupper($type)=='ERROR')
@@ -1127,8 +1127,7 @@ function session($key,$val=null,$delete=false)
 	{
 		if($delete)
 		{
-			$key=is_array($key)?$key:array($key);
-			foreach ($key as $k)
+			foreach(is_array($key)?$key:array($key) as $k)
 			{
 				unset($_SESSION[$k]);
 			}
