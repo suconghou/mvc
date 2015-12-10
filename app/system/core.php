@@ -584,15 +584,15 @@ function C($time,$file=false)
 	if($lastExpire&&((strtotime($lastExpire)+$seconds-$now)>0))
 	{
 		$lastExpire=strtotime($lastExpire);
-		header("Expires: ".gmdate("D, d M Y H:i:s",$lastExpire+$seconds)." GMT");
-		header("Cache-Control: max-age=".(($lastExpire+$seconds)-$now));
-		exit(header('Last-Modified: ' . gmdate('D, d M y H:i:s',$lastExpire). ' GMT',true,304));
+		header('Expires: '.gmdate('D, d M Y H:i:s',$lastExpire+$seconds).' GMT');
+		header('Cache-Control: max-age='.(($lastExpire+$seconds)-$now));
+		exit(header('Last-Modified: '.gmdate('D, d M y H:i:s',$lastExpire). ' GMT',true,304));
 	}
 	else
 	{
-		header("Expires: ".gmdate("D, d M Y H:i:s", $expiresTime)." GMT");
-		header("Cache-Control: max-age=".$seconds);
-		header('Last-Modified: ' . gmdate('D, d M y H:i:s',$now). ' GMT'); 
+		header('Expires: '.gmdate('D, d M Y H:i:s',$expiresTime).' GMT');
+		header("Cache-Control: max-age={$seconds}");
+		header('Last-Modified: '.gmdate('D, d M y H:i:s',$now).' GMT'); 
 	}
 }
 
