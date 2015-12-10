@@ -1164,13 +1164,13 @@ function byteFormat($size,$dec=2)
 function redirect($url,$timeout=0)
 {
 	$timeout=intval($timeout);
-	if(in_array($timeout,array(0,301,302,307)))
+	if(in_array($timeout,array(0,301,302,303,307)))
 	{
 		header("Location:{$url}",true,$timeout);
 	}
 	else
 	{
-		header("Refresh:{$timeout}; url={$url}");
+		header("Refresh:{$timeout};url={$url}",true,302);
 	}
 	exit(header('Cache-Control:no-cache, no-store, max-age=0, must-revalidate',true));
 }
