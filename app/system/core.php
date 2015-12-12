@@ -29,15 +29,17 @@ class App
 		defined('DEFAULT_ACTION')||define('DEFAULT_ACTION','index');
 		defined('DEFAULT_CONTROLLER')||define('DEFAULT_CONTROLLER','home');
 		defined('STDIN')||(defined('GZIP')?ob_start("ob_gzhandler"):ob_start());
-		return defined('STDIN')?self::runCli():self::process(self::init());
+		list($pharRun,$pharVar,$scriptName)=array(substr(ROOT,0,7)=='phar://',substr(VAR_PATH,0,7)=='phar://','/'.ltrim($_SERVER['SCRIPT_NAME'],'/'));
+		define('VAR_PATH_LOG',($pharVar?str_ireplace(array('phar://',$scriptName),null,VAR_PATH):VAR_PATH).'log');
+		define('VAR_PATH_HTML',($pharVar?str_ireplace(array('phar://',$scriptName),null,VAR_PATH):VAR_PATH).'html');
+		return defined('STDIN')?self::runCli($pharRun):self::process(self::init($scriptName));
 	}
 	/**
 	 * CLI运行入口
 	 */
-	private static function runCli()
+	private static function runCli($phar=false)
 	{
 		$script=array_shift($GLOBALS['argv']);
-		$phar=substr(ROOT,0,7)=='phar://';
 		if($GLOBALS['argc']>1)
 		{
 			$_SERVER['REQUEST_URI']=null;
@@ -81,12 +83,12 @@ class App
 	/**
 	 * 初始化相关
 	 */
-	private static function init()
+	private static function init($script)
 	{
 		list($uri)=explode('?',$_SERVER['REQUEST_URI']);
-		if(strpos($uri,$_SERVER['SCRIPT_NAME'])!==false)
+		if(strpos($uri,$script)!==false)
 		{
-			$uri=str_replace($_SERVER['SCRIPT_NAME'],null,$uri);
+			$uri=str_ireplace($script,null,$uri);
 		}
 		$router=self::regexRouter($uri);
 		if($router)
@@ -227,9 +229,9 @@ class App
 	}
 	public static function log($msg,$type='DEBUG',$file=null)
 	{
-		if(is_writable(VAR_PATH.'log')&&(DEBUG||strtoupper($type)=='ERROR'))
+		if(is_writable(VAR_PATH_LOG)&&(DEBUG||strtoupper($type)=='ERROR'))
 		{
-			$path=VAR_PATH.'log'.DIRECTORY_SEPARATOR.($file?$file:date('Y-m-d')).'.log';
+			$path=VAR_PATH_LOG.DIRECTORY_SEPARATOR.($file?$file:date('Y-m-d')).'.log';
 			$msg=strtoupper($type).'-'.date('Y-m-d H:i:s').' ==> '.(is_scalar($msg)?$msg:PHP_EOL.print_r($msg,true)).PHP_EOL;
 			return error_log($msg,3,$path);
 		}
@@ -299,7 +301,7 @@ class App
 		{
 			$router=implode('/',$router);
 		}
-		$cacheFile=VAR_PATH.'html'.DIRECTORY_SEPARATOR.md5(baseUrl($router)).'.html';
+		$cacheFile=VAR_PATH_HTML.DIRECTORY_SEPARATOR.md5(baseUrl($router)).'.html';
 		return $delete?(is_file($cacheFile)&&unlink($cacheFile)):$cacheFile;
 	}
 	/**
@@ -556,7 +558,7 @@ function V($v,$data=null,$fileCacheMinute=0)
 			$router=$GLOBALS['APP']['router'];
 			//与缓存检测时一致,闭包路由也可以使用文件缓存
 			$file=is_object($router[1])?app::fileCache($router[0]):app::fileCache($router);
-			is_writable(VAR_PATH.'html')&&file_put_contents($file,$buffer)&&touch($file,$expire);
+			is_writable(VAR_PATH_HTML)&&file_put_contents($file,$buffer)&&touch($file,$expire);
 		};
 	}
 	else
