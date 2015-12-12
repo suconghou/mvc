@@ -96,7 +96,7 @@ class App
 		else
 		{
 			$uri=explode('/',$uri);
-			foreach ($uri as $segment)
+			foreach($uri as $segment)
 			{
 				if(!empty($segment))
 				{
@@ -227,15 +227,11 @@ class App
 	}
 	public static function log($msg,$type='DEBUG',$file=null)
 	{
-		if(is_writable(VAR_PATH.'log'))
+		if(is_writable(VAR_PATH.'log')&&(DEBUG||strtoupper($type)=='ERROR'))
 		{
 			$path=VAR_PATH.'log'.DIRECTORY_SEPARATOR.($file?$file:date('Y-m-d')).'.log';
 			$msg=strtoupper($type).'-'.date('Y-m-d H:i:s').' ==> '.(is_scalar($msg)?$msg:PHP_EOL.print_r($msg,true)).PHP_EOL;
-			//error消息和开发模式,测试模式全部记录
-			if(DEBUG||strtoupper($type)=='ERROR')
-			{
-				error_log($msg,3,$path);
-			}
+			return error_log($msg,3,$path);
 		}
 	}
 	/**
