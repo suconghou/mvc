@@ -556,9 +556,7 @@ function V($v,$data=null,$fileCacheMinute=0)
 			$router=$GLOBALS['APP']['router'];
 			//与缓存检测时一致,闭包路由也可以使用文件缓存
 			$file=is_object($router[1])?app::fileCache($router[0]):app::fileCache($router);
-			file_put_contents($file,$buffer);
-			touch($file,$expire);
-			defined('STDIN')||(ob_end_flush()&&flush());
+			is_writable(VAR_PATH.'html')&&file_put_contents($file,$buffer)&&touch($file,$expire);
 		};
 	}
 	else
