@@ -453,7 +453,7 @@ class App
 			{
 				if(isset($trace['file']))
 				{
-					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".(empty($trace['args'])?null:implode(array_map(function($item){return strlen(print_r($item,true))>80?'...':(is_null($item)?'null':str_replace(array(PHP_EOL,'  '),null,print_r($item,true)));},$trace['args']),',')).")";
+					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".(DEBUG==1||empty($trace['args'])?null:implode(array_map(function($item){return strlen(print_r($item,true))>80?'...':(is_null($item)?'null':str_replace(array(PHP_EOL,'  '),null,print_r($item,true)));},$trace['args']),',')).")";
 				}
 			}
 			$li=implode(defined('STDIN')?PHP_EOL:'</p><p>',array_reverse($li));
@@ -482,7 +482,7 @@ class App
 		if(!empty($lastError))
 		{
 			$errormsg="ERROR({$lastError['type']}) {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}";
-			header('Error-At:'.(DEBUG?"{$lastError['file']}:{$lastError['line']}=>{$lastError['message']}":basename($lastError['file']).":{$lastError['line']}"),true,500);
+			headers_sent()||header('Error-At:'.(DEBUG?"{$lastError['file']}:{$lastError['line']}=>{$lastError['message']}":basename($lastError['file']).":{$lastError['line']}"),true,500);
 			return app::log($errormsg,'ERROR');
 		}
 	}
