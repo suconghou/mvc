@@ -4,7 +4,7 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.9.0
+ * @version 1.9.1
  */
 /**
 * APP 主要控制类
@@ -30,8 +30,8 @@ class App
 		defined('DEFAULT_CONTROLLER')||define('DEFAULT_CONTROLLER','home');
 		defined('STDIN')||(defined('GZIP')?ob_start("ob_gzhandler"):ob_start());
 		list($pharRun,$pharVar,$scriptName)=array(substr(ROOT,0,7)=='phar://',substr(VAR_PATH,0,7)=='phar://','/'.ltrim($_SERVER['SCRIPT_NAME'],'/'));
-		define('VAR_PATH_LOG',($pharVar?str_ireplace(array('phar://',$scriptName),null,VAR_PATH):VAR_PATH).'log');
-		define('VAR_PATH_HTML',($pharVar?str_ireplace(array('phar://',$scriptName),null,VAR_PATH):VAR_PATH).'html');
+		$varPath=$pharVar?str_ireplace(array('phar://',$scriptName),null,VAR_PATH):VAR_PATH;
+		define('VAR_PATH_LOG',$varPath.'log')&&define('VAR_PATH_HTML',$varPath.'html');
 		return defined('STDIN')?self::runCli($pharRun):self::process(self::init($scriptName));
 	}
 	/**
