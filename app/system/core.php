@@ -707,7 +707,7 @@ class Request
 	{
 		return isset($_SERVER['HTTP_REFERER'])?$_SERVER['HTTP_REFERER']:$default;
 	}
-	public static function filterPost(Array $rule,Closure $callback=null,$clean=false)
+	public static function filterPost(Array $rule,$callback=null,$clean=false)
 	{
 		$allowed=array();
 		foreach ($rule as $key => $value)
@@ -717,7 +717,7 @@ class Request
 		$post=self::cleanData($_POST,$allowed,$clean);
 		return Validate::rule($rule,$post,$callback);
 	}
-	public static function filterGet(Array $rule,Closure $callback=null,$clean=false)
+	public static function filterGet(Array $rule,$callback=null,$clean=false)
 	{
 		$allowed=array();
 		foreach ($rule as $key => $value)
@@ -793,7 +793,7 @@ class Request
 */
 class Validate
 {
-	public static function rule($rule,$data,Closure $callback=null)
+	public static function rule($rule,$data,$callback=null)
 	{
 		try
 		{
@@ -839,7 +839,7 @@ class Validate
 		catch(Exception $e)
 		{
 			$data=array('code'=>$e->getCode(),'msg'=>$e->getMessage());
-			return $callback?$callback(json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$data):false;
+			return $callback?(($callback instanceof Closure)?$callback(json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$data):json($data)):false;
 		}
 		if(!empty($sw))
 		{
