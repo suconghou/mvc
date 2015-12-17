@@ -663,13 +663,13 @@ class Request
 	public static function info($key=null,$default=null)
 	{
 		$data=array('ip'=>self::ip(),'ajax'=>self::isAjax(),'ua'=>self::ua(),'refer'=>self::refer(),'protocol'=>(isset($_SERVER['HTTPS'])&&(strtolower($_SERVER['HTTPS']) != 'off'))?"https":"http");
-		if($key) {return isset($data[$key])?$data[$key]:$default;}
+		if($key){return isset($data[$key])?$data[$key]:$default;}
 		return $data;
 	}
 	public static function serverInfo($key=null,$default=null)
 	{
 		$info=array('php_os'=>PHP_OS,'php_sapi'=>PHP_SAPI,'php_vision'=>PHP_VERSION,'post_max_size'=>ini_get('post_max_size'),'max_execution_time'=>ini_get('max_execution_time'),'server_ip'=>gethostbyname($_SERVER['SERVER_NAME']),'upload_max_filesize'=>ini_get('file_uploads')?ini_get('upload_max_filesize'):0);
-		if($key) {return isset($info[$key])?$info[$key]:$default;}
+		if($key){return isset($info[$key])?$info[$key]:$default;}
 		return $info;
 	}
 	public static function isCli()
@@ -853,85 +853,52 @@ class Validate
 	}
 	private static function typeChecker($item,$type,$msg)
 	{
-		switch ($type)
+		switch($type)
 		{
 			case 'require':
-				if(empty($item))
-				{
-					throw new Exception($msg, -101);
-				}
+				if(empty($item)){throw new Exception($msg,-101);}
 				break;
 			case 'email':
-				if(!self::email($item))
-				{
-					throw new Exception($msg, -102);
-				}
+				if(!self::email($item)){throw new Exception($msg,-102);}
 				break;
 			case 'username':
-				if(!self::username($item))
-				{
-					throw new Exception($msg, -103);
-				}
+				if(!self::username($item)){throw new Exception($msg,-103);}
 				break;
 			case 'password':
-				if(!self::password($item))
-				{
-					throw new Exception($msg, -104);
-				}
+				if(!self::password($item)){throw new Exception($msg,-104);}
 				break;
 			case 'phone':
-				if(!self::phone($item))
-				{
-					throw new Exception($msg, -105);
-				}
+				if(!self::phone($item)){throw new Exception($msg,-105);}
 				break;
 			case 'url':
-				if(!self::url($item))
-				{
-					throw new Exception($msg, -106);
-				}
+				if(!self::url($item)){throw new Exception($msg,-106);}
 				break;
 			case 'ip':
-				if(!self::ip($item))
-				{
-					throw new Exception($msg, -107);
-				}
+				if(!self::ip($item)){throw new Exception($msg,-107);}
 				break;
 			case 'idcard':
-				if(!self::idcard($item))
-				{
-					throw new Exception($msg, -108);
-				}
+				if(!self::idcard($item)){throw new Exception($msg,-108);}
 				break;
 			default:
-				if(!self::this($type,$item))
-				{
-					throw new Exception($msg, -109);
-				}
+				if(!self::this($type,$item)){throw new Exception($msg,-109);}
 				break;
 		}
 	}
 	private static function mixedChecker($item,$mixed,$msg)
 	{
-		switch ($mixed[0])
+		switch($mixed[0])
 		{
 			case 'minlength':
-				if(strlen($item)<$mixed[1])
-				{
-					throw new Exception($msg, -201);
-				}
+				if(strlen($item)<$mixed[1]){throw new Exception($msg,-201);}
 				break;
 			case 'maxlength':
-				if(strlen($item)>$mixed[1])
-				{
-					throw new Exception($msg, -202);
-				}
+				if(strlen($item)>$mixed[1]){throw new Exception($msg,-202);}
 				break;
 			case 'eq':
-				if($item!=$mixed[1])
-				{
-					throw new Exception($msg, -203);
-				}
+				if($item!=$mixed[1]){throw new Exception($msg,-203);}
+				break;
+			case 'length':
+				if(strlen($item)!==$mixed[1]){throw new Exception($msg,-204);}
 				break;
 			default:
 				throw new Exception("Error Mixed Rule {$mixed[0]}",-500);
@@ -939,7 +906,7 @@ class Validate
 	}
 	public static function email($email)
 	{
-		return filter_var($email, FILTER_VALIDATE_EMAIL);
+		return filter_var($email,FILTER_VALIDATE_EMAIL);
 	}
 	public static function phone($phone)
 	{
@@ -947,7 +914,7 @@ class Validate
 	}
 	public static function url($url)
 	{
-		return filter_var($url, FILTER_VALIDATE_URL);
+		return filter_var($url,FILTER_VALIDATE_URL);
 	}
 	public static function ip($ip)
 	{
@@ -961,8 +928,7 @@ class Validate
 	//字母数字汉字,不能全是数字
 	public static function username($username)
 	{
-		if(is_numeric($username)) {return false;}
-		return preg_match('/^[\w\x{4e00}-\x{9fa5}]{3,20}$/u', $username);
+		return is_numeric($username)?false:preg_match('/^[\w\x{4e00}-\x{9fa5}]{3,20}$/u',$username);
 	}
 	//数字/大写字母/小写字母/标点符号组成，四种都必有，8位以上
 	public static function password($pass)
@@ -972,7 +938,7 @@ class Validate
 	//自定义正则验证
 	public static function this($pattern,$subject)
 	{
-		return preg_match($pattern, $subject);
+		return preg_match($pattern,$subject);
 	}
 }
 /**
