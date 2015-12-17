@@ -15,6 +15,7 @@ class Wechat
 	private static $msgdata;
 	private static $response;
 	
+
 	function __construct()
 	{
 		
@@ -418,7 +419,8 @@ class Wechat
 
 	public static function log($msg)
 	{
-		return app::log($msg);
+		$logFunction=isset(self::$event['log'])?self::$event['log']:null;
+		return $logFunction?$logFunction($msg):$msg;
 	}
 
 	public function __destruct()
