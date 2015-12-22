@@ -417,10 +417,10 @@ class Wechat
 		return self::$response;
 	}
 
-	public static function log($msg)
+	public static function log($msg,$debug='DEBUG')
 	{
 		$logFunction=isset(self::$event['log'])?self::$event['log']:null;
-		return $logFunction?$logFunction($msg):$msg;
+		return $logFunction?$logFunction($msg,$debug):$msg;
 	}
 
 	public function __destruct()

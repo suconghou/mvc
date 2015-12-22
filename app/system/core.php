@@ -4,7 +4,7 @@
  * @author suconghou 
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.9.1
+ * @version 1.9.2
  */
 /**
 * APP 主要控制类
@@ -39,12 +39,12 @@ class App
 	 */
 	private static function runCli($phar=false)
 	{
-		$script=array_shift($GLOBALS['argv']);
+		$router=$GLOBALS['argv'];
+		$script=array_shift($router);
 		if($GLOBALS['argc']>1)
 		{
 			$_SERVER['REQUEST_URI']=null;
 			$phar||chdir(ROOT);
-			$router=$GLOBALS['argv'];
 			$ret=self::regexRouter('/'.implode('/',$router));
 			return is_object($ret)?$ret:(($GLOBALS['APP']['router']=$ret?$ret:$router)&&self::run($GLOBALS['APP']['router']));
 		}
@@ -304,9 +304,18 @@ class App
 		$cacheFile=VAR_PATH_HTML.DIRECTORY_SEPARATOR.md5(baseUrl($router)).'.html';
 		return $delete?(is_file($cacheFile)&&unlink($cacheFile)):$cacheFile;
 	}
-	/**
-	 * 全局变量获取设置
-	 */
+	public static function opt($key,$default=null)
+	{
+		$key="--{$key}=";
+		foreach ($GLOBALS['argv'] as $item)
+		{
+			if(sizeof($arr=explode($key,$item))==2)
+			{
+				return end($arr);
+			}
+		}
+		return $default;
+	}
 	public static function get($key,$default=null)
 	{
 		return isset(self::$global[$key])?self::$global[$key]:$default;
