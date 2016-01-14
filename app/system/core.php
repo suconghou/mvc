@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @author suconghou 
+ * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
  * @version 1.9.2
@@ -40,7 +40,7 @@ class App
 	private static function runCli($phar=false)
 	{
 		$router=$GLOBALS['argv'];
-		$script=array_shift($router);
+		$script=basename(array_shift($router));
 		if($GLOBALS['argc']>1)
 		{
 			$_SERVER['REQUEST_URI']=null;
@@ -155,11 +155,11 @@ class App
 					header('X-Cache: Hit',true);
 					if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']))
 					{
-						return header('Last-Modified: '.$_SERVER['HTTP_IF_MODIFIED_SINCE'],true,304);	 
+						return header('Last-Modified: '.$_SERVER['HTTP_IF_MODIFIED_SINCE'],true,304);
 					}
 					else
 					{
-						header('Last-Modified: '.gmdate('D, d M y H:i:s',$now).' GMT',true,200);	 
+						header('Last-Modified: '.gmdate('D, d M y H:i:s',$now).' GMT',true,200);
 						return readfile($file);
 					}
 				}
@@ -429,7 +429,7 @@ class App
 		{
 			return;
 		}
-		else if($errno instanceof Exception)
+		else if(is_object($errno))
 		{
 			$errstr=$errno->getMessage();
 			$errfile=$errno->getFile();
@@ -597,7 +597,7 @@ function C($time,$file=false)
 	{
 		header('Expires: '.gmdate('D, d M Y H:i:s',$expiresTime).' GMT');
 		header("Cache-Control: max-age={$seconds}");
-		header('Last-Modified: '.gmdate('D, d M y H:i:s',$now).' GMT'); 
+		header('Last-Modified: '.gmdate('D, d M y H:i:s',$now).' GMT');
 	}
 }
 
@@ -1278,7 +1278,7 @@ function sendMail($mailTo, $mailSubject, $mailMessage)
 		}
 		fputs($fp, "DATA\r\n");
 		$lastmessage = fgets($fp, 512);
-		if(substr($lastmessage, 0, 3) != 354) 
+		if(substr($lastmessage, 0, 3) != 354)
 		{
 			throw new Exception("DATA - ".$lastmessage,9);
 		}

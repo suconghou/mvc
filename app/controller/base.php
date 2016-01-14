@@ -11,7 +11,7 @@ class base
 	private static $baseUrl;
 
 	private static $project;
-	
+
 	private static $pathMap=array('css'=>'/static/css/','style'=>'/static/style/','js'=>'/static/js/','img'=>'/static/img/');
 
 	public function __construct()
@@ -40,7 +40,7 @@ class base
 				return self::forbidden($msg);
 			}
 		}
-		return $this; 
+		return $this;
 	}
 
 	final private static function forbidden($msg=null)
@@ -57,12 +57,18 @@ class base
 		}
 		else
 		{
-			header('Access-Control-Allow-Origin: *',true);
+			$host='*';
+			if(isset($_SERVER['HTTP_REFERER']))
+			{
+				$parts=parse_url($_SERVER['HTTP_REFERER']);
+				$host=$parts['scheme'].'://'.$parts['host'].':'.$parts['port'];
+			}
+			header("Access-Control-Allow-Origin: {$host}",true);
 		}
 		header('Access-Control-Allow-Credentials:true',true);
 		return header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept',true);
 	}
-	
+
 	final private static function onlyCli()
 	{
 		return Request::isCli()||self::forbidden();
@@ -105,7 +111,7 @@ class base
 		}
 		return $this;
 	}
-	
+
 	final protected function BusyBlock(array $hz=array(1,30),Closure $callback=null)
 	{
 		$ip=Request::ip();
@@ -288,7 +294,7 @@ class base
 	}
 
 	/*******************应用程序配置区,定义为protected保证继承而又不会通过url触发******************/
-	
+
 	protected function Error404($msg=null)
 	{
 		echo $msg;
@@ -304,7 +310,7 @@ class base
 	 */
 	final protected function isUserLogin($addr='/')
 	{
-		
+
 	}
 
 	/**
@@ -312,8 +318,8 @@ class base
 	 */
 	final protected function isAdminLogin($addr='/')
 	{
-		
+
 	}
 
-	
+
 }

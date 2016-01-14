@@ -8,25 +8,25 @@
 * $a=$curl::post($url,$data);
 * $a=$curl->add($url)->exec();
 * $b=$curl->add($url)->fetch('img');img/src/url/href/或者自定义正则
-* 
-* 
+*
+*
 * http请求,GET,POST,PUT,DELETE,HEAD
 * 发送文件,多线程并发抓取
-* 
-* 
+*
+*
 */
-class Curl 
+class Curl
 {
 	private $mh;
 	private $ch=array();
-	
+
 	private static $headers=array(
 								'Referer'=>'http://www.baidu.com',
 								'User-Agent'=>'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36',
 								'Accept'=>'*/*'
 							);
 
-	
+
 	public static function get($url,$timeout=3)
 	{
 		$ch=self::initCurl($url,$timeout);
@@ -38,7 +38,7 @@ class Curl
 		}
 		return self::http_get_contents($url,$timeout);
 	}
-	
+
 	public static function post($url,$data=array(),$timeout=10)
 	{
 		$ch=self::initCurl($url,$timeout);
@@ -51,7 +51,7 @@ class Curl
 		}
 		return self::http_post_contents($url,$data,$timeout);
 	}
-	
+
 	public static function put($url,$data=array(),$timeout=10)
 	{
 		$ch=self::initCurl($url,$timeout);
@@ -63,9 +63,9 @@ class Curl
 			return $result;
 		}
 		return false;
-		
+
 	}
-	
+
 	public static function delete($url,$data=array(),$timeout=10)
 	{
 		$ch=self::initCurl($url,$timeout);
@@ -78,7 +78,7 @@ class Curl
 		}
 		return false;
 	}
-	
+
 	public static function head($url,$timeout=3)
 	{
 		$ch=self::initCurl($url,$timeout);
@@ -91,7 +91,7 @@ class Curl
 		}
 		return false;
 	}
-	
+
 	public static function header($url,$timeout=3)
 	{
 		$ch=self::initCurl($url,$timeout);
@@ -114,7 +114,7 @@ class Curl
 		}
 		return false;
 	}
-	
+
 	/**
 	 * CURL 发送文件
 	 * $data = array("username" => $username,"password"  => $password,"file"  => "@".realpath("1.jpg") );
@@ -123,7 +123,7 @@ class Curl
 	{
 		return self::post($url,$data,$timeout);
 	}
-	
+
 	public static function sendToFtp($host,$src,$dest,&$errorinfo=null)
 	{
 		if(is_file($src))
@@ -143,7 +143,7 @@ class Curl
 		}
 		return false;
 	}
-	
+
 	public static function http_get_contents($url,$timeout=3)
 	{
 		$header='';
@@ -156,7 +156,7 @@ class Curl
 		$result  = file_get_contents($url, false, $context);
 		return $result;
 	}
-	
+
 	public static function http_post_contents($url,$data=array(),$timeout=10)
 	{
 		$header='';
@@ -170,13 +170,13 @@ class Curl
 		$result  = file_get_contents($url, false, $context);
 		return $result;
 	}
-	
+
 	public static function setHeader($header)
 	{
 		self::$headers=array_merge(self::$headers,$header);
 		return self::$headers;
 	}
-	
+
 	private static function initCurl($url,$timeout=3)
 	{
 		if(extension_loaded('curl'))
@@ -187,10 +187,56 @@ class Curl
 		}
 		return false;
 	}
-	
-	
+
+
 	///////////////////////////// 多线程请求 /////////////////////////
-	
+
+
+	/**
+     * 支持单线程,多线程 http get/post 请求
+     */
+    private static function http($urls,$timeout=8,$data=null)
+    {
+        if(!is_array($urls))
+        {
+            $ch=curl_init($urls);
+            curl_setopt_array($ch,array(CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_FOLLOWLOCATION=>1,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
+            $data&&curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data));
+            $content=curl_exec($ch);
+            curl_close($ch);
+            return $content;
+        }
+        else
+        {
+            $mh=curl_multi_init();
+            foreach ($urls as &$url)
+            {
+                $ch=curl_init($url);
+                curl_setopt_array($ch,array(CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_FOLLOWLOCATION=>1,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
+                $data&&curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data));
+                curl_multi_add_handle($mh,$ch);
+                $url=$ch;
+            }
+            $runing=0;
+            do
+            {
+                curl_multi_exec($mh,$runing);
+                curl_multi_select($mh);
+            }
+            while($runing>0);
+            foreach($urls as &$ch)
+            {
+                $content=curl_multi_getcontent($ch);
+                curl_multi_remove_handle($mh,$ch);
+                curl_close($ch);
+                $ch=$content;
+            }
+            curl_multi_close($mh);
+            $content=count($urls)>1?$urls:reset($urls);
+            return $content;
+        }
+    }
+
 	function add($url,$header=0,$nobody=0,$timeout=10)
 	{
 		$this->mh=$this->mh?$this->mh:curl_multi_init();
@@ -234,7 +280,7 @@ class Curl
 	}
 
 	/**
-	 * 内部规则 
+	 * 内部规则
 	 * img  提取 http://xxxx.jpg  图片全地址
 	 * src  提取 <img src=''  所有能够自己显示的图片
 	 * href 提取 <a href=''  所有连接
@@ -244,9 +290,9 @@ class Curl
 	{
 		$res=$this->exec($url);
 		$regex['img']='/https?:\/\/[a-z0-9_-]+(\.[a-z0-9_-]+){1,5}(\/[a-z0-9_-]+){1,9}\.(jpg|jpeg|png|gif|bmp)/i';
-		$regex['src']='/<img.+?src=(\"|\')(.{5,}?)(\"|\').+?\/?>/i';
+		$regex['src']='/<img.+?src=(\"|\')(.{5,}?)\1.+?\/?>/i';
 		$regex['url']='/https?:\/\/[a-z0-9_-]+(\.[a-z0-9_-]+){1,5}(\/[a-z0-9_-]+){0,9}(\.\w+)?/i';
-		$regex['href']='/<a.+?href=(\"|\')(.+?)(\"|\').+?>.+?<\/a>/i';
+		$regex['href']='/<a.+?href=(\"|\')(.+?)\1.+?>.+?<\/a>/i';
 		switch ($type)
 		{
 			case 'img':
