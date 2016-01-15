@@ -1195,104 +1195,94 @@ function csrf_token($check=false,$name='_token',Closure $callback=null)
 	}
 }
 //发送邮件,用来替代原生mail,多个接受者用分号隔开
-function sendMail($mailTo, $mailSubject, $mailMessage)
+function sendMail($mailTo,$mailSubject,$mailMessage=null)
 {
 	try
 	{
-		$mailSubject = '=?utf-8?B?'.base64_encode($mailSubject).'?=';
-		$mailMessage = chunk_split(base64_encode(preg_replace("/(^|(\r\n))(\.)/", "\1.\3", $mailMessage)));
-		$headers  = "";
-		$headers .= "MIME-Version:1.0\r\n";
-		$headers .= "Content-type:text/html\r\n";
-		$headers .= "Content-Transfer-Encoding: base64\r\n";
-		$headers .= "From: ".MAIL_NAME."<".MAIL_USERNAME.">\r\n";
-		$headers .= "Date: ".date("r")."\r\n";
-		list($msec, $sec) = explode(" ", microtime());
-		$headers .= "Message-ID: <".date("YmdHis", $sec).".".($msec * 1000000).".".MAIL_USERNAME.">\r\n";
-		if(!$fp = fsockopen(MAIL_SERVER,defined('MAIL_PORT')?MAIL_PORT:25, $errno, $errstr, 3))
+		if(!$fp=fsockopen(MAIL_SERVER,defined('MAIL_PORT')?MAIL_PORT:25,$errno,$errstr,3))
 		{
-			throw new Exception("Unable to connect to the SMTP server", 1);
+			throw new Exception($errstr,$errno);
 		}
-		stream_set_blocking($fp, true);
-		$lastmessage = fgets($fp, 512);
-		if(substr($lastmessage, 0, 3) != '220')
+		$lastmessage=fgets($fp,128);
+		if(substr($lastmessage,0,3)!='220')
 		{
-			throw new Exception("CONNECT - ".$lastmessage, 2);
+			throw new Exception("CONNECT ERROR - {$lastmessage}",2);
 		}
-		fputs($fp,"EHLO befen\r\n");
-		$lastmessage = fgets($fp, 512);
-		if(substr($lastmessage, 0, 3) != 220 && substr($lastmessage, 0, 3) != 250)
+		fputs($fp,"EHLO mail\r\n");
+		$lastmessage=fgets($fp,128);
+		if(!in_array(substr($lastmessage,0,3),array(220,250)))
 		{
-			throw new Exception("HELO/EHLO - ".$lastmessage, 3);
+			throw new Exception("HELO/EHLO - {$lastmessage}",3);
 		}
 		while(true)
 		{
-			if(substr($lastmessage, 3, 1) != '-' || empty($lastmessage))
+			if(substr($lastmessage,3,1)!='-' || empty($lastmessage))
 			{
 				break;
 			}
-			$lastmessage = fgets($fp, 512);
+			$lastmessage=fgets($fp,128);
 		}
-		fputs($fp, "AUTH LOGIN\r\n");$lastmessage = fgets($fp, 512);
-		if(substr($lastmessage, 0, 3) != 334)
+		fputs($fp,"AUTH LOGIN\r\n");
+		$lastmessage=fgets($fp,128);
+		if(substr($lastmessage,0,3)!=334)
 		{
-			throw new Exception($lastmessage, 4);
+			throw new Exception("AUTH LOGIN - {$lastmessage}",4);
 		}
-		fputs($fp, base64_encode(MAIL_USERNAME)."\r\n");
-		$lastmessage = fgets($fp, 512);
-		if(substr($lastmessage, 0, 3) != 334)
+		fputs($fp,base64_encode(MAIL_USERNAME)."\r\n");
+		$lastmessage=fgets($fp,128);
+		if(substr($lastmessage,0,3)!=334)
 		{
-			throw new Exception("AUTH LOGIN - ".$lastmessage, 5);
+			throw new Exception("AUTH LOGIN - {$lastmessage}",5);
 		}
-		fputs($fp, base64_encode(MAIL_PASSWORD)."\r\n");
-		$lastmessage = fgets($fp, 512);
-		if(substr($lastmessage, 0, 3) != 235)
+		fputs($fp,base64_encode(MAIL_PASSWORD)."\r\n");
+		$lastmessage=fgets($fp,128);
+		if(substr($lastmessage,0,3)!=235)
 		{
-			throw new Exception("AUTH LOGIN - ".$lastmessage, 6);
+			throw new Exception("AUTH LOGIN - {$lastmessage}",6);
 		}
-		fputs($fp, "MAIL FROM: <".preg_replace("/.*\<(.+?)\>.*/", "\\1", MAIL_USERNAME).">\r\n");
-		$lastmessage = fgets($fp, 512);
-		if(substr($lastmessage, 0, 3) != 250)
+		fputs($fp,"MAIL FROM: <".MAIL_USERNAME.">\r\n");
+		$lastmessage=fgets($fp,128);
+		if(substr($lastmessage,0,3)!=250)
 		{
-			fputs($fp, "MAIL FROM: <".preg_replace("/.*\<(.+?)\>.*/", "\\1", MAIL_USERNAME).">\r\n");
-			$lastmessage = fgets($fp, 512);
-			if(substr($lastmessage, 0, 3) != 250)
+			fputs($fp,"MAIL FROM: <".MAIL_USERNAME.">\r\n");
+			$lastmessage=fgets($fp,128);
+			if(substr($lastmessage,0,3)!=250)
 			{
-				throw new Exception("MAIL FROM - ".$lastmessage,7);
+				throw new Exception("MAIL FROM - {$lastmessage}",7);
 			}
 		}
-		foreach(explode(';', $mailTo) as $touser)
+		foreach(explode(';',$mailTo) as $touser)
 		{
-			$touser = trim($touser);
-			if($touser)
+			if($touser=trim($touser))
 			{
-				fputs($fp, "RCPT TO: <".preg_replace("/.*\<(.+?)\>.*/", "\\1", $touser).">\r\n");
-				$lastmessage = fgets($fp, 512);
-				if(substr($lastmessage, 0, 3) != 250)
+				fputs($fp,"RCPT TO: <{$touser}>\r\n");
+				$lastmessage=fgets($fp,128);
+				if(substr($lastmessage,0,3)!=250)
 				{
-					fputs($fp, "RCPT TO: <".preg_replace("/.*\<(.+?)\>.*/", "\\1", $touser).">\r\n");
-					$lastmessage = fgets($fp, 512);
-					throw new Exception("RCPT TO - ".$lastmessage,8);
+					throw new Exception("RCPT TO - {$lastmessage}",8);
 				}
 			}
 		}
-		fputs($fp, "DATA\r\n");
-		$lastmessage = fgets($fp, 512);
-		if(substr($lastmessage, 0, 3) != 354)
+		fputs($fp,"DATA\r\n");
+		$lastmessage=fgets($fp,128);
+		if(substr($lastmessage,0,3)!=354)
 		{
-			throw new Exception("DATA - ".$lastmessage,9);
+			throw new Exception("DATA - {$lastmessage}",9);
 		}
-		fputs($fp, $headers);
-		fputs($fp, "To: ".$mailTo."\r\n");
-		fputs($fp, "Subject: $mailSubject\r\n");
-		fputs($fp, "\r\n\r\n");
-		fputs($fp, "$mailMessage\r\n.\r\n");
-		$lastmessage = fgets($fp, 512);
-		if(substr($lastmessage, 0, 3) != 250)
+		$headers="MIME-Version:1.0\r\nContent-type:text/html\r\nContent-Transfer-Encoding: base64\r\nFrom: ".MAIL_NAME."<".MAIL_USERNAME.">\r\nDate: ".date("r")."\r\nMessage-ID: <".uniqid(rand(1,999)).">\r\n";
+		$mailSubject='=?utf-8?B?'.base64_encode($mailSubject).'?=';
+		$mailMessage=chunk_split(base64_encode(preg_replace("/(^|(\r\n))(\.)/","\1.\3",$mailMessage)));
+		fputs($fp,$headers);
+		fputs($fp,"To: {$mailTo}\r\n");
+		fputs($fp,"Subject: {$mailSubject}\r\n");
+		fputs($fp,"\r\n\r\n");
+		fputs($fp,"{$mailMessage}\r\n.\r\n");
+		$lastmessage=fgets($fp,128);
+		if(substr($lastmessage,0,3)!=250)
 		{
-			throw new Exception("END - ".$lastmessage,10);
+			throw new Exception("END - {$lastmessage}",10);
 		}
-		fputs($fp, "QUIT\r\n");
+		fputs($fp,"QUIT\r\n");
 		return true;
 	}
 	catch(Exception $e)
