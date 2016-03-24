@@ -1,7 +1,7 @@
 <?php
 /**
 * 基础数据库访问
-* 
+*
 */
 class Database extends DB
 {
@@ -10,7 +10,7 @@ class Database extends DB
 
 	public function __construct()
 	{
-		
+
 	}
 
 	final public static function find($where,$column='*')
@@ -64,7 +64,7 @@ class Database extends DB
 		return self::runSql($sql);
 	}
 
-	final public static function insertData($table,$data,$replace=false)
+	final public static function insertData($table,Array $data,$replace=false)
 	{
 		$k=$v=array();
 		foreach ($data as $key => $value)
@@ -102,7 +102,7 @@ class Database extends DB
 			if(is_array($where))
 			{
 				$k=array();
-				foreach ($where as $key => $value) 
+				foreach ($where as $key => $value)
 				{
 					$value=self::quote($value);
 					$k[]='(`'.$key.'`='.$value.')';
@@ -133,7 +133,7 @@ class Database extends DB
 			if(is_array($where))
 			{
 				$k=array();
-				foreach ($where as $key => $value) 
+				foreach ($where as $key => $value)
 				{
 					$value=self::quote($value);
 					$k[]='(`'.$key.'`='.$value.')';
@@ -158,7 +158,7 @@ class Database extends DB
 		$k=$v=array();
 		if(is_array($where))
 		{
-			foreach ($where as $key => $value) 
+			foreach ($where as $key => $value)
 			{
 				$value=self::quote($value);
 				$k[]='(`'.$key.'`='.$value.')';
@@ -169,7 +169,7 @@ class Database extends DB
 		{
 			$strk=$where;
 		}
-		foreach ($data as $key => $value) 
+		foreach ($data as $key => $value)
 		{
 			$v[]=$key.'='."'".$value."'";
 		}
@@ -217,7 +217,7 @@ class Database extends DB
 
 	}
 	/***
-	 *	批量更新   
+	 *	批量更新
 	 *	$data=array(
 	 *			'18'=>array('name'=>'name18','pass'=>'11'),
 	 *			'19'=>array('name'=>'name19','pass'=>'22')
@@ -230,7 +230,7 @@ class Database extends DB
 			self::beginTransaction();
 			$keys=array_keys(current($data));
 			$v=array();
-			foreach ($keys as $k) 
+			foreach ($keys as $k)
 			{
 				$v[]=$k.'='.":".$k."";
 			}
@@ -304,7 +304,7 @@ class Database extends DB
 			if(is_array($where))
 			{
 				$k=array();
-				foreach ($where as $key => $value) 
+				foreach ($where as $key => $value)
 				{
 					$value=self::quote($value);
 					$k[]='(`'.$key.'`='.$value.')';
@@ -342,7 +342,7 @@ class Database extends DB
 			if(is_array($where))
 			{
 				$k=array();
-				foreach ($where as $key => $value) 
+				foreach ($where as $key => $value)
 				{
 					$k[]='(`'.$key.'`="'.$value.'")';
 				}
@@ -356,10 +356,10 @@ class Database extends DB
 		}
 		$sql="SELECT COUNT(1) FROM {$table} {$where} ";
 		return self::getVar($sql);
-		
+
 	}
 
-	
+
 }
 // end class database
 

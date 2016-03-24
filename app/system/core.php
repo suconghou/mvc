@@ -6,16 +6,11 @@
  * @link http://github.com/suconghou/mvc
  * @version 1.9.2
  */
-/**
-* APP 主要控制类
-*/
 
 class App
 {
 	private static $global;
-	/**
-	 * 启动入口
-	 */
+
 	public static function start()
 	{
 		self::set('sys-start-time',microtime(true));
@@ -34,9 +29,7 @@ class App
 		define('VAR_PATH_LOG',$varPath.'log')&&define('VAR_PATH_HTML',$varPath.'html');
 		return defined('STDIN')?self::runCli($pharRun):self::process(self::init($scriptName));
 	}
-	/**
-	 * CLI运行入口
-	 */
+
 	private static function runCli($phar=false)
 	{
 		$router=$GLOBALS['argv'];
@@ -68,8 +61,7 @@ class App
 					{
 						$phar->addFromString(substr($file,strlen(ROOT)),php_strip_whitespace($file));
 					}
-					$stub="<?php Phar::mapPhar('$pharName');require 'phar://{$pharName}/{$script}';__HALT_COMPILER();";
-					$phar->setStub($stub);
+					$phar->setStub("<?php Phar::interceptFileFuncs();Phar::mungServer(array('REQUEST_URI','PHP_SELF','SCRIPT_NAME','SCRIPT_FILENAME'));Phar::webPhar('$pharName');require 'phar://{$pharName}/{$script}';__HALT_COMPILER();");
 					$phar->stopBuffering();
 					echo "{$phar->count()} Files Stored In {$path}".PHP_EOL;
 				}
@@ -80,9 +72,7 @@ class App
 			}
 		}
 	}
-	/**
-	 * 初始化相关
-	 */
+
 	private static function init($script)
 	{
 		list($uri)=explode('?',$_SERVER['REQUEST_URI']);
@@ -135,9 +125,7 @@ class App
 		}
 		return $router;
 	}
-	/**
-	 *  缓存检测
-	 */
+
 	private static function process($router)
 	{
 		if(!is_object($router))
@@ -151,7 +139,7 @@ class App
 				if($now<$expire)
 				{
 					header('Expires: '.gmdate('D, d M Y H:i:s',$expire).' GMT');
-					header('Cache-Control: max-age='.($expire-$now));
+					header('Cache-Control: public, max-age='.($expire-$now));
 					header('X-Cache: Hit',true);
 					if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']))
 					{
@@ -236,9 +224,7 @@ class App
 			return error_log($msg,3,$path);
 		}
 	}
-	/**
-	 * 正则路由分析器
-	 */
+
 	private static function regexRouter($uri)
 	{
 		if(!empty($GLOBALS['APP']['regexRouter']))
@@ -497,7 +483,6 @@ class App
 }
 // End of class app
 
-//加载model
 function M($model)
 {
 	$arguments=func_get_args();
@@ -518,7 +503,6 @@ function M($model)
 		return $GLOBALS['APP']['model'][$m];
 	}
 }
-//加载类库
 function S($lib)
 {
 	$arguments=func_get_args();
@@ -550,7 +534,6 @@ function S($lib)
 		}
 	}
 }
-//加载视图,传递参数,设置缓存
 function V($v,$data=null,$fileCacheMinute=0)
 {
 	if($fileCacheMinute||(is_int($data)&&($data>0)))
@@ -576,7 +559,6 @@ function V($v,$data=null,$fileCacheMinute=0)
 	}
 	return template($v,is_array($data)?$data:null,$callback);
 }
-//缓存,第一个参数为缓存时间,第二个为是否文件缓存
 function C($time,$file=false)
 {
 	$seconds=intval($time*60);
@@ -590,13 +572,13 @@ function C($time,$file=false)
 	{
 		$lastExpire=strtotime($lastExpire);
 		header('Expires: '.gmdate('D, d M Y H:i:s',$lastExpire+$seconds).' GMT');
-		header('Cache-Control: max-age='.(($lastExpire+$seconds)-$now));
+		header('Cache-Control: public, max-age='.(($lastExpire+$seconds)-$now));
 		exit(header('Last-Modified: '.gmdate('D, d M Y H:i:s',$lastExpire). ' GMT',true,304));
 	}
 	else
 	{
 		header('Expires: '.gmdate('D, d M Y H:i:s',$expiresTime).' GMT');
-		header("Cache-Control: max-age={$seconds}");
+		header("Cache-Control: public, max-age={$seconds}");
 		header('Last-Modified: '.gmdate('D, d M Y H:i:s',$now).' GMT');
 	}
 }
@@ -616,9 +598,6 @@ function template($v,Array $_data_=null,Closure $callback=null)
 	}
 }
 
-/**
-* Request 用户来访信息,使用静态访问
-*/
 class Request
 {
 	public static function post($key=null,$default=null,$clean=false)
@@ -797,9 +776,6 @@ class Request
 	}
 }
 
-/**
-* 验证类,使用静态方法
-*/
 class Validate
 {
 	public static function rule($rule,$data,$callback=null)
@@ -950,9 +926,7 @@ class Validate
 		return preg_match($pattern,$subject);
 	}
 }
-/**
-* model 层,可以静态方式使用
-*/
+
 class DB
 {
 	private static $pdo;
