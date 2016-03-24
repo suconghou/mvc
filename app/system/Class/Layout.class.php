@@ -3,7 +3,7 @@
 * 布局模板,数据排版
 * 提供静态方法
 * 几大组件
-* css ,js, title, ul ,ol 
+* css ,js, title, ul ,ol
 * 配置数据库映射
 * layout::easyList(1,3) 加载第一页,每页3个
 * layout::easyPost(1) 显示第一篇文章
@@ -12,9 +12,9 @@
 class Layout
 {
 	// 数据库 字段映射,一个表一个数组,数组第一个表名,以后为各个字段与数组的映射,修改键值以匹配数据库
-	private static $post=array('wp_posts','id'=>'id','title'=>'post_title','content'=>'post_content','views'=>'comment_count','time'=>'time'); 
+	private static $post=array('wp_posts','id'=>'id','title'=>'post_title','content'=>'post_content','views'=>'comment_count','time'=>'time');
 	private static $cat=array();
-		
+
 	/**
 	 * 参数合并
 	 * @param array $cfg [传入合并的参数]
@@ -48,115 +48,36 @@ class Layout
 	{
 		return call_user_func(array('db',$method), $param_arr);
 	}
-	/**
-	 * 生成加载css地址
-	 */
-	static function css($css=null)
-	{
-		if($css)
-		{
-			$css_link=null;
-			$css=is_array($css)?$css:array($css);
-			foreach ($css as $v)
-			{
-				if(substr($v,0,4)=='http')
-				{
-					$css_link.='<link rel="stylesheet" href="'.$v.'">';
-				}
-				else
-				{
-					$css_link.='<link rel="stylesheet" href="/static/css/'.$v.'.css">';
-				}
-			}
-			return $css_link;
-		}
-		return null;
-	} 
-	static function js($js=null)
-	{
-		if($js)
-		{
-			$js_link=null;
-			$js=is_array($js)?$js:array($js);
-			foreach ($js as $v)
-			{
-				if(substr($v,0,4)=='http')
-				{
-					$js_link.='<script src="'.$v.'"></script>';
-				}
-				else
-				{
-					$js_link.='<script src="/static/js/'.$v.'.js"></script>';
-				}
-			}
-			return $js_link;
-		}
-		return null;
-	}
-	static function title($title=null,$default=null)
-	{
-		if($title||$default)
-		{
-			return '<title>'.$title?$title:$default.'</title>';
-		}
-		return null;
-	}
-	static function h($data,$class=null,$id=null)
-	{
-		$data=is_array($data)?$data:array($data);
-		$h=null;
-		$class=$class?" class=\"{$class}\" ":null;
-		$id=$id?" id=\"{$id}\" ":null;
-		foreach ($data as $key => $value)
-		{
-			$key++;
-			$h.="<h{$key}{$class}{$id}>{$value}</h{$key}>";
-		}
-		return $h;
 
-	}
 	static function pager($link='?p=',$total=5,$current=1,$step=1,$class='pager',$id=null)
 	{
 		$class=$class?" class=\"{$class}\" ":null;
 		$id=$id?" id=\"{$id}\" ":null;
 		$html="<div{$class}{$id}><ul>";
-		$start=1; 
+		$start=1;
 		while($start <=$total)
-		{ 
+		{
 			$aclass=$start==$current?"active":null;
 			$pageText=$start;
 			if($pageText==1) $pageText='首页';
 			if($pageText==$total) $pageText='尾页 ';
-			$html.="<li>".anchor($link.$start,$pageText,$aclass)."</li>";	
+			$html.="<li>".anchor($link.$start,$pageText,$aclass)."</li>";
 			$start=$start+$step;
 		}
 		$html.="</ul></div>";
 		return $html;
 
-		
-	}
-
-	static function header($css=null,$js=null,$title=null)
-	{
-		
 
 	}
-	static function footer($css=null,$js=null)
-	{
-		$js=self::js($js);
 
-		$footer='</body></html>';
-		return $footer;
-
-	}
 	static function menu($data,$current=null,$class=null,$liclass='iblock',$aclass='block',$id=null)
 	{
 		return '<nav>'.ul($data,$current,$class,$liclass,$aclass,$id).'</nav>';
 	}
-	
+
 	static function sidebar()
 	{
-		
+
 
 	}
 	/**
@@ -188,7 +109,6 @@ class Layout
 
 	static function easyList($page,$num=15,$container='.post-list',$orderby=' id desc ')
 	{
-
 		$offset=max(intval(($page-1)*$num),0);
 		$data=self::data('getData',"select * from ".self::$post[0]." order by {$orderby} limit {$offset},$num");
 		$data=$data?$data:array();
@@ -207,7 +127,7 @@ class Layout
 		}
 		echo $html,'</ul></div>';
 
-		
+
 	}
 	static function easyPost($id,$container='.post-container')
 	{
@@ -271,7 +191,7 @@ function ul($data,$current=null,$class=null,$liclass=null,$aclass=null,$id=null)
 			$html.="<li{$liclass}{$active}>{$value}</li>";
 		}
 		else
-		{	
+		{
 			$current=$current==$value?' active':null;
 			$aaclass=$aclass?" class=\"{$aclass}{$current}\" ":$active;
 			$html.="<li{$liclass}><a href=\"{$key}\"{$aaclass}>{$value}</a></li>";
@@ -301,45 +221,3 @@ function select($data,$current=null,$name=null,$class=null,$id=null)
 }
 
 
-
-class Assets
-{
-	
-	private static $pathMap=array(
-								'css'=>'/static/css/',
-								'js'=>'/static/js/',
-								'img'=>'/static/img/',
-								'font'=>'/static/font/',
-								'icon'=>'/static/icon/'
-							);
-	
-	public function __construct()
-	{
-		
-	}
-	
-	public static function js()
-	{
-		
-	}
-	
-	public static function css()
-	{
-		
-	}
-	
-	public static function img()
-	{
-		
-	}
-	
-	public static function set()
-	{
-		
-	}
-	
-	public static function get()
-	{
-		
-	}
-}

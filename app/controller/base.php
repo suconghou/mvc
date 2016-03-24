@@ -66,7 +66,9 @@ class base
 			header("Access-Control-Allow-Origin: {$host}",true);
 		}
 		header('Access-Control-Allow-Credentials:true',true);
-		return header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept',true);
+		header('Access-Control-Allow-Methods:GET, POST, PUT, DELETE, OPTIONS',true);
+		header('Access-Control-Allow-Headers:Origin, X-Requested-With, Content-Type, Accept',true);
+		return header('Access-Control-Max-Age:3600');
 	}
 
 	final private static function onlyCli()

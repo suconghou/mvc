@@ -32,13 +32,13 @@ class Spider
 	public static function query($urls,$timeout=20,$data=null,$encoding=null)
 	{
 		$html=self::http($urls,$timeout,$data);
-		self::resetJqueryInstance();
 		$html=is_array($html)?$html:array($html);
 		return self::html($html,$encoding);
 	}
 
 	public static function html($html=null,$encoding=null)
 	{
+		self::resetJqueryInstance();
 		if(is_array($html))
 		{
 			foreach ($html as $item)
@@ -293,12 +293,13 @@ class Jquery
 			{
 				$results[]=self::resultOne($item,$attr,$findstr,$callback);
 			}
-			return $results;
 		}
 		else
 		{
-			return self::resultOne($resultList,$attr,$findstr,$callback);
+			$results=self::resultOne($resultList,$attr,$findstr,$callback);
 		}
+		$this->reset();
+		return $results;
 	}
 
 	private static function resultOne($NodeList,$attr=null,$findstr=null,$callback=null)
@@ -406,6 +407,10 @@ class Jquery
 		return $result;
 	}
 
+	private function reset()
+	{
+		return $this->resultList=array();
+	}
 
 	private static function elementsToArray($result,$idx=null)
 	{

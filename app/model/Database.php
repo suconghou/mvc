@@ -74,9 +74,13 @@ class Database extends DB
 		}
 		$strv=implode(',',$v);
 		$strk=implode(',',$k);
-		if($replace===false)
+		if($replace===true)
 		{
-			$sql="INSERT INTO {$table} ({$strk}) VALUES ({$strv})";
+			$sql="REPLACE INTO {$table} ({$strk}) VALUES ({$strv})";
+		}
+		else if($replace===false)
+		{
+			$sql="INSERT IGNORE INTO {$table} ({$strk}) VALUES ({$strv})";
 		}
 		else if(is_array($replace))
 		{
@@ -90,7 +94,7 @@ class Database extends DB
 		}
 		else
 		{
-			$sql="REPLACE INTO {$table} ({$strk}) VALUES ({$strv})";
+			$sql="INSERT INTO {$table} ({$strk}) VALUES ({$strv})";
 		}
 		return self::runSql($sql)===false?false:self::lastId();
 	}
@@ -104,8 +108,15 @@ class Database extends DB
 				$k=array();
 				foreach ($where as $key => $value)
 				{
-					$value=self::quote($value);
-					$k[]='(`'.$key.'`='.$value.')';
+					if(is_int($key))
+					{
+						$k[]=$value;
+					}
+					else
+					{
+						$value=self::quote($value);
+						$k[]='(`'.$key.'`='.$value.')';
+					}
 				}
 				$strk=implode(" AND ",$k);
 			}
