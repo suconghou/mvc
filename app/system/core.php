@@ -4,10 +4,10 @@
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.9.2
+ * @version 1.9.3
  */
 
-class App
+final class App
 {
 	private static $global;
 
@@ -17,15 +17,15 @@ class App
 		self::set('sys-start-memory',memory_get_usage());
 		error_reporting(DEBUG?E_ALL:0);
 		set_include_path(LIB_PATH);
-		set_error_handler(array('app','Error'));
-		set_exception_handler(array('app','Error'));
-		register_shutdown_function(array('app','Shutdown'));
+		set_error_handler(['app','Error']);
+		set_exception_handler(['app','Error']);
+		register_shutdown_function(['app','Shutdown']);
 		date_default_timezone_set(defined('TIMEZONE')?TIMEZONE:'PRC');
 		defined('DEFAULT_ACTION')||define('DEFAULT_ACTION','index');
 		defined('DEFAULT_CONTROLLER')||define('DEFAULT_CONTROLLER','home');
 		defined('STDIN')||(defined('GZIP')?ob_start("ob_gzhandler"):ob_start());
-		list($pharRun,$pharVar,$scriptName)=array(substr(ROOT,0,7)=='phar://',substr(VAR_PATH,0,7)=='phar://','/'.ltrim($_SERVER['SCRIPT_NAME'],'/'));
-		$varPath=$pharVar?str_ireplace(array('phar://',$scriptName),null,VAR_PATH):VAR_PATH;
+		list($pharRun,$pharVar,$scriptName)=[substr(ROOT,0,7)=='phar://',substr(VAR_PATH,0,7)=='phar://','/'.trim($_SERVER['SCRIPT_NAME'],'./')];
+		$varPath=$pharVar?str_ireplace(['phar://',$scriptName],null,VAR_PATH):VAR_PATH;
 		define('VAR_PATH_LOG',$varPath.'log')&&define('VAR_PATH_HTML',$varPath.'html');
 		return defined('STDIN')?self::runCli($pharRun):self::process(self::init($scriptName));
 	}
@@ -41,45 +41,37 @@ class App
 			$ret=self::regexRouter('/'.implode('/',$router));
 			return is_object($ret)?$ret:(($GLOBALS['APP']['router']=$ret?$ret:$router)&&self::run($GLOBALS['APP']['router']));
 		}
-		else
+		if($phar)
 		{
-			if($phar)
+			return self::run([DEFAULT_CONTROLLER,DEFAULT_ACTION]);
+		}
+		try
+		{
+			$pharName=rtrim($script,'php').'phar';
+			$path=ROOT.$pharName;
+			is_file($path)&&unlink($path);
+			$phar=new Phar($path,FilesystemIterator::CURRENT_AS_FILEINFO|FilesystemIterator::KEY_AS_FILENAME|FilesystemIterator::SKIP_DOTS,$pharName);
+			$phar->startBuffering();
+			$dirObj=new RegexIterator(new RecursiveIteratorIterator(new RecursiveDirectoryIterator(ROOT)),'/^[\w\/\-\\\.:]+\.php$/i');
+			foreach($dirObj as $file)
 			{
-				return self::run(array(DEFAULT_CONTROLLER,DEFAULT_ACTION));
+				$phar->addFromString(substr($file,strlen(ROOT)),php_strip_whitespace($file));
 			}
-			else
-			{
-				try
-				{
-					$pharName=rtrim($script,'php').'phar';
-					$path=ROOT.$pharName;
-					is_file($path) && unlink($path);
-					$phar=new Phar($path,FilesystemIterator::CURRENT_AS_FILEINFO|FilesystemIterator::KEY_AS_FILENAME|FilesystemIterator::SKIP_DOTS,$pharName);
-					$phar->startBuffering();
-					$dirObj=new RegexIterator(new RecursiveIteratorIterator(new RecursiveDirectoryIterator(ROOT)),'/^[\w\/\-\\\.:]+\.php$/i');
-					foreach($dirObj as $file)
-					{
-						$phar->addFromString(substr($file,strlen(ROOT)),php_strip_whitespace($file));
-					}
-					$phar->setStub("<?php Phar::interceptFileFuncs();Phar::mungServer(array('REQUEST_URI','PHP_SELF','SCRIPT_NAME','SCRIPT_FILENAME'));Phar::webPhar('$pharName');require 'phar://{$pharName}/{$script}';__HALT_COMPILER();");
-					$phar->stopBuffering();
-					echo "{$phar->count()} Files Stored In {$path}".PHP_EOL;
-				}
-				catch(Exception $e)
-				{
-					echo $e->getMessage().PHP_EOL;
-				}
-			}
+			$phar->setStub((defined('EXE')?"#!/usr/bin/env php".PHP_EOL:null)."<?php Phar::mapPhar('$pharName');require 'phar://{$pharName}/{$script}';__HALT_COMPILER();");
+			$phar->stopBuffering();
+			defined('EXE')&&chmod($path,0700);
+			echo "{$phar->count()} files stored in {$path}".PHP_EOL;
+		}
+		catch(Exception $e)
+		{
+			echo $e->getMessage().PHP_EOL;
 		}
 	}
 
 	private static function init($script)
 	{
 		list($uri)=explode('?',$_SERVER['REQUEST_URI']);
-		if(strpos($uri,$script)!==false)
-		{
-			$uri=str_ireplace($script,null,$uri);
-		}
+		$uri=strpos($uri,$script)===false?$uri:str_ireplace($script,null,$uri);
 		$router=self::regexRouter($uri);
 		if($router)
 		{
@@ -87,8 +79,7 @@ class App
 		}
 		else
 		{
-			$uri=explode('/',$uri);
-			foreach($uri as $segment)
+			foreach(explode('/',$uri) as $segment)
 			{
 				if(!empty($segment))
 				{
@@ -98,20 +89,20 @@ class App
 		}
 		if(empty($router[0]))
 		{
-			$router=array(DEFAULT_CONTROLLER,DEFAULT_ACTION);
+			$router=[DEFAULT_CONTROLLER,DEFAULT_ACTION];
 		}
 		else if(empty($router[1]))
 		{
 			if(preg_match('/^[a-z]\w{0,20}$/i',$router[0]))
 			{
-				$router=array(strtolower($router[0]),DEFAULT_ACTION);
+				$router=[strtolower($router[0]),DEFAULT_ACTION];
 			}
 			else
 			{
 				return self::Error(404,"Request Controller {$router[0]} Error");
 			}
 		}
-		else //控制器和动作全部需要过滤
+		else
 		{
 			if(!preg_match('/^[a-z]\w{0,20}$/i',$router[0]))
 			{
@@ -126,6 +117,7 @@ class App
 		return $router;
 	}
 
+	//Object为插件模式,router[1]为Object是闭包模式,0为对应URL,此处未执行闭包
 	private static function process($router)
 	{
 		if(!is_object($router))
@@ -141,51 +133,26 @@ class App
 					header('Expires: '.gmdate('D, d M Y H:i:s',$expire).' GMT');
 					header('Cache-Control: public, max-age='.($expire-$now));
 					header('X-Cache: Hit',true);
-					if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']))
-					{
-						return header('Last-Modified: '.$_SERVER['HTTP_IF_MODIFIED_SINCE'],true,304);
-					}
-					else
-					{
-						header('Last-Modified: '.gmdate('D, d M Y H:i:s',$now).' GMT',true,200);
-						return readfile($file);
-					}
+					return isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])?header('Last-Modified: '.$_SERVER['HTTP_IF_MODIFIED_SINCE'],true,304):(header('Last-Modified: '.gmdate('D, d M Y H:i:s',$now).' GMT',true,200)||readfile($file));
 				}
-				else
-				{
-					try
-					{
-						unlink($file);
-					}
-					catch(Exception $e)
-					{
-						app::log($e->getMessage(),'ERROR');
-					}
-					return self::run($router);
-				}
+				unlink($file);
 			}
-			else
-			{
-				return self::run($router);
-			}
+			return self::run($router);
 		}
 	}
-	/**
-	 * 内部转向,转到其他控制器的方法执行,可传递参数,捕获返回
-	 */
+
+	//参数可以多个,也可以数组,router[1]为Object是闭包
 	public static function run($router)
 	{
-		//含有回调的,0为对应URL,1为回调函数
 		$router=is_array($router)?$router:func_get_args();
-		$router=isset($router[1])?$router:array($router[0],DEFAULT_ACTION);
+		$router=isset($router[1])?$router:[$router[0],DEFAULT_ACTION];
 		if(is_object($router[1]))
 		{
 			return call_user_func_array($router[1],array_slice($router,2));
 		}
 		if(is_file($path=CONTROLLER_PATH.$router[0].'.php'))
 		{
-			$controllerName=$router[0];
-			$action=$router[1];
+			list($controllerName,$action)=$router;
 			$param=2;
 		}
 		else if(is_file($path=CONTROLLER_PATH.$router[0].DIRECTORY_SEPARATOR.$router[1].'.php'))
@@ -206,15 +173,14 @@ class App
 		{
 			$GLOBALS['APP']['controller'][$controllerName]=new $controllerName($router);
 		}
-		return is_callable(array($GLOBALS['APP']['controller'][$controllerName],$action))?call_user_func_array(array($GLOBALS['APP']['controller'][$controllerName],$action),array_slice($router,$param)):self::Error(404,"Request Controller Class {$controllerName} Method {$action} Is Not Callable");
+		return is_callable([$GLOBALS['APP']['controller'][$controllerName],$action])?call_user_func_array([$GLOBALS['APP']['controller'][$controllerName],$action],array_slice($router,$param)):self::Error(404,"Request Controller Class {$controllerName} Method {$action} Is Not Callable");
 	}
-	/**
-	 * 正则路由,参数一正则,参数二数组形式的路由表或者回调函数
-	 */
+
 	public static function route($regex,$arr)
 	{
 		$GLOBALS['APP']['regexRouter'][$regex]=$arr;
 	}
+
 	public static function log($msg,$type='DEBUG',$file=null)
 	{
 		if(is_writable(VAR_PATH_LOG)&&(DEBUG||strtoupper($type)=='ERROR'))
@@ -231,7 +197,7 @@ class App
 		{
 			foreach ($GLOBALS['APP']['regexRouter'] as $regex=>$item)
 			{
-				if(preg_match('/^'.$regex.'$/',$uri,$matches))
+				if(preg_match("/^{$regex}$/",$uri,$matches))
 				{
 					$url=$matches[0];
 					unset($matches[0],$GLOBALS['APP']['regexRouter']);
@@ -242,24 +208,27 @@ class App
 					else if(is_object($item))
 					{
 						//传入URL,作为闭包时的文件缓存依据
-						return array_merge(array($url,$item),$matches);
+						return array_merge([$url,$item],$matches);
 					}
 					else
 					{
-						return call_user_func_array('S',array_merge(array($item),$matches));
+						//插件模式,根据路由触发一个类
+						return call_user_func_array('S',array_merge([$item],$matches));
 					}
 				}
 			}
 			unset($GLOBALS['APP']['regexRouter']);
 		}
-		return array();
+		return [];
 	}
+
 	public static function async($router=null,Closure $callback=null)
 	{
 		function_exists('fastcgi_finish_request')&&fastcgi_finish_request();
 		$data=($router instanceof Closure)?$router():self::run($router);
 		return $callback?$callback($data):$data;
 	}
+
 	public static function cost($type=null)
 	{
 		switch ($type)
@@ -271,22 +240,15 @@ class App
 			case 'query':
 				return self::get('sys-sql-count',0);
 			default:
-				return array('time'=>round((microtime(true)-self::get('sys-start-time',0)),4),'memory'=>byteFormat(memory_get_usage()-self::get('sys-start-memory',0)),'query'=>self::get('sys-sql-count',0));
+				return ['time'=>round((microtime(true)-self::get('sys-start-time',0)),4),'memory'=>byteFormat(memory_get_usage()-self::get('sys-start-memory',0)),'query'=>self::get('sys-sql-count',0)];
 		}
 	}
 	/**
 	 * 计算缓存位置,或删除缓存,传入路由数组或路由字符串
 	 */
-	public static function fileCache($router=array(),$delete=false)
+	public static function fileCache($router=[],$delete=false)
 	{
-		if(empty($router))
-		{
-			$router=DEFAULT_CONTROLLER.'/'.DEFAULT_ACTION;
-		}
-		else if(is_array($router))
-		{
-			$router=implode('/',$router);
-		}
+		$router=$router?(is_array($router)?implode('/',$router):$router):DEFAULT_CONTROLLER.'/'.DEFAULT_ACTION;
 		$cacheFile=VAR_PATH_HTML.DIRECTORY_SEPARATOR.md5(baseUrl($router)).'.html';
 		return $delete?(is_file($cacheFile)&&unlink($cacheFile)):$cacheFile;
 	}
@@ -320,7 +282,7 @@ class App
 		}
 		else
 		{
-			$data=array($key=>$value);
+			$data=[$key=>$value];
 		}
 		return file_put_contents($file,serialize($data))?true:false;
 	}
@@ -389,11 +351,11 @@ class App
 	{
 		unset(self::$global['event'][$event]);
 	}
-	public static function emit($event,$arguments=array())
+	public static function emit($event,$arguments=[])
 	{
 		if(!empty(self::$global['event'][$event]))
 		{
-			return call_user_func_array(self::$global['event'][$event],is_array($arguments)?$arguments:array($arguments));
+			return call_user_func_array(self::$global['event'][$event],is_array($arguments)?$arguments:[$arguments]);
 		}
 	}
 	public static function method($method,Closure $function)
@@ -411,7 +373,7 @@ class App
 	//异常处理 404 500等
 	public static function Error($errno,$errstr=null,$errfile=null,$errline=null)
 	{
-		if((DEBUG<2)&&in_array($errno,array(E_NOTICE,E_WARNING)))
+		if((DEBUG<2)&&in_array($errno,[E_NOTICE,E_WARNING]))
 		{
 			return;
 		}
@@ -427,7 +389,7 @@ class App
 		{
 			$backtrace=debug_backtrace();
 		}
-		if(in_array($errno,array(400,403,404,414,500,502,503,504)))
+		if(in_array($errno,[400,403,404,414,500,502,503,504]))
 		{
 			$errormsg="ERROR({$errno}) {$errstr}";
 			$code=$errno;
@@ -441,12 +403,12 @@ class App
 		defined('STDIN')||(app::get('sys-error')&&exit("Error Found In Error Handler:{$errormsg}"))||(header("Error-At:{$errstr}",true,$code)||app::set('sys-error',true));
 		if(DEBUG||defined('STDIN'))
 		{
-			$li=array();
+			$li=[];
 			foreach($backtrace as $trace)
 			{
 				if(isset($trace['file']))
 				{
-					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".(DEBUG==1||empty($trace['args'])?null:implode(array_map(function($item){return strlen(print_r($item,true))>80?'...':(is_null($item)?'null':str_replace(array(PHP_EOL,'  '),null,print_r($item,true)));},$trace['args']),',')).")";
+					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".(DEBUG==1||empty($trace['args'])?null:implode(array_map(function($item){return strlen(print_r($item,true))>80?'...':(is_null($item)?'null':str_replace([PHP_EOL,'  '],null,print_r($item,true)));},$trace['args']),',')).")";
 				}
 			}
 			$li=implode(defined('STDIN')?PHP_EOL:'</p><p>',array_reverse($li));
@@ -455,7 +417,7 @@ class App
 		else
 		{
 			$errorController=(isset($GLOBALS['APP']['router'][0])&&is_file(CONTROLLER_PATH.$GLOBALS['APP']['router'][0].'.php'))?$GLOBALS['APP']['router'][0]:DEFAULT_CONTROLLER;
-			$errorRouter=array($errorController,$errno==404?(defined('ERROR_PAGE_404')?ERROR_PAGE_404:'Error404'):(defined('ERROR_PAGE_500')?ERROR_PAGE_500:'Error500'),$errormsg);
+			$errorRouter=[$errorController,$errno==404?(defined('ERROR_PAGE_404')?ERROR_PAGE_404:'Error404'):(defined('ERROR_PAGE_500')?ERROR_PAGE_500:'Error500'),$errormsg];
 			$errorPage="<title>Error..</title><center><span style='font-size:300px;color:gray;font-family:黑体'>{$code}...</span></center>";
 			if(method_exists($errorController,$errorRouter[1]))//当前已加载的控制器或默认控制器中含有ERROR处理
 			{
@@ -464,7 +426,7 @@ class App
 				{
 					$GLOBALS['APP']['controller'][$errorController]=new $errorController($errorRouter);
 				}
-				$errorPage=is_callable(array($GLOBALS['APP']['controller'][$errorController],$errorRouter[1]))?call_user_func_array(array($GLOBALS['APP']['controller'][$errorController],$errorRouter[1]),array($errormsg)):$errorPage;
+				$errorPage=is_callable([$GLOBALS['APP']['controller'][$errorController],$errorRouter[1]])?call_user_func_array([$GLOBALS['APP']['controller'][$errorController],$errorRouter[1]],[$errormsg]):$errorPage;
 			}
 			exit($errorPage);
 		}
@@ -650,13 +612,13 @@ class Request
 	}
 	public static function info($key=null,$default=null)
 	{
-		$data=array('ip'=>self::ip(),'ajax'=>self::isAjax(),'ua'=>self::ua(),'refer'=>self::refer(),'protocol'=>(isset($_SERVER['HTTPS'])&&(strtolower($_SERVER['HTTPS']) != 'off'))?"https":"http");
+		$data=['ip'=>self::ip(),'ajax'=>self::isAjax(),'ua'=>self::ua(),'refer'=>self::refer(),'protocol'=>(isset($_SERVER['HTTPS'])&&(strtolower($_SERVER['HTTPS']) != 'off'))?"https":"http"];
 		if($key){return isset($data[$key])?$data[$key]:$default;}
 		return $data;
 	}
 	public static function serverInfo($key=null,$default=null)
 	{
-		$info=array('php_os'=>PHP_OS,'php_sapi'=>PHP_SAPI,'php_vision'=>PHP_VERSION,'post_max_size'=>ini_get('post_max_size'),'max_execution_time'=>ini_get('max_execution_time'),'server_ip'=>gethostbyname($_SERVER['SERVER_NAME']),'upload_max_filesize'=>ini_get('file_uploads')?ini_get('upload_max_filesize'):0);
+		$info=['php_os'=>PHP_OS,'php_sapi'=>PHP_SAPI,'php_vision'=>PHP_VERSION,'post_max_size'=>ini_get('post_max_size'),'max_execution_time'=>ini_get('max_execution_time'),'server_ip'=>gethostbyname($_SERVER['SERVER_NAME']),'upload_max_filesize'=>ini_get('file_uploads')?ini_get('upload_max_filesize'):0];
 		if($key){return isset($info[$key])?$info[$key]:$default;}
 		return $info;
 	}
@@ -697,7 +659,7 @@ class Request
 	}
 	public static function filterPost(Array $rule,$callback=null,$clean=false)
 	{
-		$allowed=array();
+		$allowed=[];
 		foreach ($rule as $key => $value)
 		{
 			$allowed[]=is_int($key)?$value:$key;
@@ -707,7 +669,7 @@ class Request
 	}
 	public static function filterGet(Array $rule,$callback=null,$clean=false)
 	{
-		$allowed=array();
+		$allowed=[];
 		foreach ($rule as $key => $value)
 		{
 			$allowed[]=is_int($key)?$value:$key;
@@ -741,7 +703,7 @@ class Request
 	{
 		if(is_array($var)&&$var)
 		{
-			$data=array();
+			$data=[];
 			foreach ($var as $k)
 			{
 				$data[$k]=isset($origin[$k])?($clean?self::clean($origin[$k],$clean):trim($origin[$k])):$default;
@@ -823,7 +785,7 @@ class Validate
 		}
 		catch(Exception $e)
 		{
-			$data=array('code'=>$e->getCode(),'msg'=>$e->getMessage());
+			$data=['code'=>$e->getCode(),'msg'=>$e->getMessage()];
 			return $callback?(($callback instanceof Closure)?$callback(json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$data):json($data)):false;
 		}
 		if(!empty($sw))
@@ -935,7 +897,7 @@ class DB
 	{
 		if(!self::$pdo)
 		{
-			$options=array(PDO::ATTR_PERSISTENT=>TRUE,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>1);
+			$options=[PDO::ATTR_PERSISTENT=>TRUE,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>1];
 			try
 			{
 				self::$pdo=new PDO($dbDsn,$dbUser,$dbPass,$options);
@@ -981,7 +943,7 @@ class DB
 		{
 			app::set('sys-sql-count',app::get('sys-sql-count')+1);
 			$rs=self::ready()->query($sql);
-			return $rs===false?array():$rs->fetchAll(PDO::FETCH_ASSOC);
+			return $rs===false?[]:$rs->fetchAll(PDO::FETCH_ASSOC);
 		}
 		catch (PDOException $e)
 		{
@@ -995,7 +957,7 @@ class DB
 		{
 			app::set('sys-sql-count',app::get('sys-sql-count')+1);
 			$rs=self::ready()->query($sql);
-			return $rs===false?array():$rs->fetch(PDO::FETCH_ASSOC);
+			return $rs===false?[]:$rs->fetch(PDO::FETCH_ASSOC);
 		}
 		catch (PDOException $e)
 		{
@@ -1036,7 +998,7 @@ class DB
 	{
 		if(method_exists(self::ready(),$method))
 		{
-			return call_user_func_array(array(self::$pdo,$method),$args);
+			return call_user_func_array([self::$pdo,$method],$args);
 		}
 		return app::Error(500,'Call Error Method '.$method.' In Class '.get_called_class());
 	}
@@ -1072,7 +1034,7 @@ function session($key,$val=null,$delete=false)
 	{
 		if($delete)
 		{
-			foreach(is_array($key)?$key:array($key) as $k)
+			foreach(is_array($key)?$key:[$key] as $k)
 			{
 				unset($_SESSION[$k]);
 			}
@@ -1101,14 +1063,13 @@ function json(Array $data,$callback=null)
 function byteFormat($size,$dec=2)
 {
 	$size=max($size,0);
-	$unit=array('B','KB','MB','GB','TB','PB','EB','ZB','YB');
+	$unit=['B','KB','MB','GB','TB','PB','EB','ZB','YB'];
 	return $size>=1024?round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i]:$size.' B';
 }
-//外部重定向,会立即结束脚本以发送header,内部重定向app::run(array);
 function redirect($url,$timeout=0)
 {
 	$timeout=intval($timeout);
-	if(in_array($timeout,array(0,301,302,303,307)))
+	if(in_array($timeout,[0,301,302,303,307]))
 	{
 		header("Location:{$url}",true,$timeout);
 	}
@@ -1127,7 +1088,7 @@ function baseUrl($path=null)
 	}
 	else
 	{
-		$protocol=(isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) != 'off')) ? "https" : "http";
+		$protocol=(isset($_SERVER['HTTPS'])&&(strtolower($_SERVER['HTTPS'])!='off'))?"https":"http";
 		$host=isset($_SERVER['HTTP_HOST'])?$_SERVER['HTTP_HOST']:'';
 		$path=is_null($path)?null:(is_bool($path)?($path?$_SERVER['REQUEST_URI']:'/'.implode('/',$GLOBALS['APP']['router'])):'/'.ltrim($path,'/'));
 		return "{$protocol}://{$host}{$path}";
@@ -1135,11 +1096,11 @@ function baseUrl($path=null)
 }
 function encrypt($input,$key=null)
 {
-	return str_replace(array('+','/','='),array('-','_',''),base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_128,md5($key),$input,MCRYPT_MODE_ECB,mcrypt_create_iv(mcrypt_get_iv_size(MCRYPT_BLOWFISH,MCRYPT_MODE_ECB),MCRYPT_DEV_URANDOM))));
+	return str_replace(['+','/','='],['-','_',''],base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_128,md5($key),$input,MCRYPT_MODE_ECB,mcrypt_create_iv(mcrypt_get_iv_size(MCRYPT_BLOWFISH,MCRYPT_MODE_ECB),MCRYPT_DEV_URANDOM))));
 }
 function decrypt($input,$key=null)
 {
-	$input=str_replace(array('-','_'), array('+','/'), $input);
+	$input=str_replace(['-','_'],['+','/'],$input);
 	if($mod=strlen($input)%4)
 	{
 		$input.=substr('====', $mod);
@@ -1184,7 +1145,7 @@ function sendMail($mailTo,$mailSubject,$mailMessage=null)
 		}
 		fputs($fp,"EHLO mail\r\n");
 		$lastmessage=fgets($fp,128);
-		if(!in_array(substr($lastmessage,0,3),array(220,250)))
+		if(!in_array(substr($lastmessage,0,3),[220,250]))
 		{
 			throw new Exception("HELO/EHLO - {$lastmessage}",3);
 		}
