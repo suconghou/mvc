@@ -243,15 +243,14 @@ final class App
 				return ['time'=>round((microtime(true)-self::get('sys-start-time',0)),4),'memory'=>byteFormat(memory_get_usage()-self::get('sys-start-memory',0)),'query'=>self::get('sys-sql-count',0)];
 		}
 	}
-	/**
-	 * 计算缓存位置,或删除缓存,传入路由数组或路由字符串
-	 */
+
 	public static function fileCache($router=[],$delete=false)
 	{
 		$router=$router?(is_array($router)?implode('/',$router):$router):DEFAULT_CONTROLLER.'/'.DEFAULT_ACTION;
 		$cacheFile=VAR_PATH_HTML.DIRECTORY_SEPARATOR.md5(baseUrl($router)).'.html';
 		return $delete?(is_file($cacheFile)&&unlink($cacheFile)):$cacheFile;
 	}
+
 	public static function opt($key,$default=null)
 	{
 		$key="--{$key}=";
@@ -264,15 +263,18 @@ final class App
 		}
 		return $default;
 	}
+
 	public static function get($key,$default=null)
 	{
 		return isset(self::$global[$key])?self::$global[$key]:$default;
 	}
+
 	public static function set($key,$value)
 	{
 		self::$global[$key]=$value;
 		return self::$global;
 	}
+
 	public static function setItem($key,$value)
 	{
 		$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT).'.config';
@@ -286,6 +288,7 @@ final class App
 		}
 		return file_put_contents($file,serialize($data))?true:false;
 	}
+
 	public static function getItem($key,$default=null)
 	{
 		$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT).'.config';
@@ -295,6 +298,7 @@ final class App
 		}
 		return $default;
 	}
+
 	public static function clearItem($key=null)
 	{
 		$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT).'.config';
@@ -312,6 +316,7 @@ final class App
 			return true;
 		}
 	}
+
 	public static function timer(Closure $function,$exit=false,Closure $callback=null)
 	{
 		while(true)
@@ -324,9 +329,10 @@ final class App
 			}
 		}
 	}
+
 	public static function config($key=null,$default=null,$configFile='config.php')
 	{
-		$config=is_array($configFile)?$configFile:(isset(self::$global[$configFile])?self::$global[$configFile]:(self::$global[$configFile]=include ROOT.$configFile));
+		$config=is_array($configFile)?$configFile:(isset(self::$global[$configFile])?self::$global[$configFile]:(self::$global[$configFile]=include $configFile));
 		if($key=array_filter(explode('.',$key),function($item){return $item;}))
 		{
 			foreach ($key as $item)
@@ -343,14 +349,17 @@ final class App
 		}
 		return $config;
 	}
+
 	public static function on($event,$function)
 	{
 		return self::$global['event'][$event]=$function;
 	}
+
 	public static function off($event)
 	{
 		unset(self::$global['event'][$event]);
 	}
+
 	public static function emit($event,$arguments=[])
 	{
 		if(!empty(self::$global['event'][$event]))
@@ -358,10 +367,12 @@ final class App
 			return call_user_func_array(self::$global['event'][$event],is_array($arguments)?$arguments:[$arguments]);
 		}
 	}
+
 	public static function method($method,Closure $function)
 	{
 		return self::$global['method'][$method]=$function;
 	}
+
 	public static function __callStatic($method,$args=null)
 	{
 		if(isset(self::$global['method'][$method]))
@@ -370,12 +381,12 @@ final class App
 		}
 		return self::Error(500,"Call Error Static Method {$method} In Class ".get_called_class());
 	}
-	//异常处理 404 500等
+
 	public static function Error($errno,$errstr=null,$errfile=null,$errline=null)
 	{
 		if((DEBUG<2)&&in_array($errno,[E_NOTICE,E_WARNING]))
 		{
-			return;
+			return false;
 		}
 		else if(is_object($errno))
 		{
@@ -399,7 +410,7 @@ final class App
 			$errormsg="ERROR({$errno}) {$errstr} in {$errfile} on line {$errline}";
 			$code=500;
 		}
-		$errno==404||app::log($errormsg,'ERROR');
+		$errno==404?app::log($errormsg,'DEBUG',$errno):app::log($errormsg,'ERROR');
 		defined('STDIN')||(app::get('sys-error')&&exit("Error Found In Error Handler:{$errormsg}"))||(header("Error-At:{$errstr}",true,$code)||app::set('sys-error',true));
 		if(DEBUG||defined('STDIN'))
 		{
@@ -431,6 +442,7 @@ final class App
 			exit($errorPage);
 		}
 	}
+
 	public static function Shutdown()
 	{
 		$lastError=error_get_last();
@@ -443,7 +455,6 @@ final class App
 	}
 
 }
-// End of class app
 
 function M($model)
 {
