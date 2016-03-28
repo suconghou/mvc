@@ -894,26 +894,16 @@ class DB
 		{
 			return call_user_func_array([self::$pdo,$method],$args);
 		}
-		return app::Error(500,'Call Error Method '.$method.' In Class '.get_called_class());
+		return app::Error(500,"Call Error Method {$method} In Class ".get_called_class());
 	}
 }
 
 function __autoload($class)
 {
-	if(is_file($modelFile=MODEL_PATH.$class.'.php'))
+	if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.class.php")||is_file($file=LIB_PATH."{$class}.class.php"))
 	{
-		require_once $modelFile;
-		return class_exists($class)||app::Error(500,"Load File {$modelFile} Succeed,But Not Found Class {$class}");
-	}
-	else if(is_file($controllerFile=CONTROLLER_PATH.$class.'.php'))
-	{
-		require_once $controllerFile;
-		return class_exists($class)||app::Error(500,"Load File {$controllerFile} Succeed,But Not Found Class {$class}");
-	}
-	else if(is_file($libFile=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.class.php"))
-	{
-		require_once $libFile;
-		return class_exists($class)||app::Error(500,"Load File {$libFile} Succeed,But Not Found Class {$class}");
+		require_once $file;
+		return class_exists($class)||app::Error(500,"File {$file} Does Not Contain Class {$class}");
 	}
 	return false;
 }

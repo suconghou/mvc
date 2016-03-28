@@ -1,82 +1,49 @@
 <?php
 
 /**
-*	set/get/del/flush
-*	还可调用query/exec等继承方法
-*/
-class Kvdb extends SQLite3
-{
-	private static $path;
+ * Kvdb 小数据持久化存储
+ */
 
-	function __construct($file=null)
+final class Kvdb
+{
+	const tCache='`kvdb`';
+	private static $instance;
+
+	final public static function ready($file='kvdb.db')
 	{
-		$this->init($file);
+		if(!self::$instance)
+		{
+			self::$instance=new SQLite3($file);
+			self::$instance->exec('PRAGMA SYNCHRONOUS=OFF');
+			self::$instance->exec('PRAGMA CACHE_SIZE =8000');
+			self::$instance->exec('PRAGMA TEMP_STORE = MEMORY');
+			self::$instance->exec('CREATE TABLE IF NOT EXISTS '.self::tCache.' ("k" text NOT NULL, "v" text NOT NULL, "t" integer NOT NULL, PRIMARY KEY ("k") )');
+		}
+		return self::$instance;
 	}
 
-	private function init($file=null)
+	final public static function get($key,$default=null)
 	{
-		if($file)
+		$value=self::ready()->querySingle("SELECT v FROM ".self::tCache." WHERE k='{$key}' and t > ".time());
+		return $value?json_decode($value,true):$default;
+	}
+
+	final public static function set($key,$value,$expired=86400)
+	{
+		$value=json_encode($value,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+		return self::ready()->exec("REPLACE INTO ".self::tCache." (k,v,t) VALUES ('{$key}','{$value}',".(time()+intval($expired)).") ");
+	}
+
+	final public static function clear($key=null)
+	{
+		if($key)
 		{
-			self::$path=defined(VAR_PATH)?VAR_PATH.$file:$file;
-		}
-		else if(is_writeable('/dev/shm/'))
-		{
-			self::$path='/dev/shm/kvdb.db';
+			$sql=$key===true?('TRUNCATE TABLE '.self::tCache):("DELETE FROM ".self::tCache." WHERE `k` IN (".(is_array($key)?implode(',',$key):$key).")");
 		}
 		else
 		{
-			self::$path=sys_get_temp_dir().DIRECTORY_SEPARATOR.'kvdb.db';
+			$sql="DELETE FROM ".self::tCache." WHERE t < ".time();
 		}
-		$this->open(self::$path);
-		$this->exec('PRAGMA synchronous=OFF');
-		$this->exec('PRAGMA cache_size =8000');
-		$this->exec('PRAGMA temp_store = MEMORY');
-		$sql="CREATE TABLE IF NOT EXISTS `kvdb` (`k` text NOT NULL  PRIMARY KEY,`v` text NOT NULL)";
-		return $this->exec($sql);
+		return self::ready()->exec($sql);
 	}
-
-	public function set($key,$value)
-	{
-		$value=serialize($value);
-		$sql="REPLACE INTO `kvdb` (k,v) VALUES('{$key}','{$value}') ";
-		return $this->exec($sql);
-	}
-
-	public function get($key,$default=null)
-	{
-		$sql="SELECT v FROM `kvdb` WHERE k='{$key}' ";
-		$rs=$this->query($sql);
-		if(FALSE==$rs)return $default;
-		$value=$rs->fetchArray(SQLITE3_ASSOC);
-		$data=unserialize($value['v']);
-		return $data?$data:null; 
-	}
-
-	public function del($key)
-	{
-		$key=is_array($key)?$key:array($key);
-		$keys=implode(',', $key);
-		$sql="DELETE FROM `kvdb` WHERE `k` IN ($keys)";
-		return $this->exec($sql);
-	}
-
-	public function flush()
-	{
-		$sql="DELETE FROM `kvdb`";
-		return $this->exec($sql);
-	}
-	
-	public function copy($path)
-	{
-		return copy(self::$path,$path);
-	}
-
-	function __destruct()
-	{
-		if(!rand(0,999))
-		{
-			$this->exec("VACUUM");
-		}
-	}
-
 }

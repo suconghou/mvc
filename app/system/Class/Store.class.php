@@ -3,6 +3,9 @@
 /**
 * 文本存储,静态类
 * Store::get();
+* Store::set();
+* Store::clear();
+* Store::flush();
 */
 
 final class Store
@@ -25,27 +28,30 @@ final class Store
 
 	public static function set($key,$value,$expire=86400)
 	{
-		$filepath=self::getKeyPath($key);
+		$filepath=self::getPath($key);
 		file_put_contents($filepath,serialize($value));
 		return touch($filepath,time()+intval($expire));
 	}
-	
-	public static function get($key)
+
+	public static function get($key,$default=null)
 	{
-		$filepath=self::getKeyPath($key);
-		return self::isExpired($filepath)?null:self::getCacheData($filepath);
+		$filepath=self::getPath($key);
+		return self::isExpired($filepath)?$default:self::getCacheData($filepath);
 	}
 
-	public static function del($key)
+	public static function clear($key=null)
 	{
-		$filepath=self::getKeyPath($key);
-		return is_file($filepath)&&unlink($filepath);
+		if($key)
+		{
+			$filepath=self::getPath($key);
+			return is_file($filepath)&&unlink($filepath);
+		}
+		return self::clearExpiredData();
 	}
 
 	public static function flush()
 	{
-		self::clearExpiredData();
-		return self::delTree(self::ready());
+		return self::delete(self::ready());
 	}
 
 	private static function getCacheData($filepath)
@@ -53,17 +59,17 @@ final class Store
 		return unserialize(file_get_contents($filepath));
 	}
 
-	private static function delTree($dir) 
+	private static function delete($dir)
 	{
-		$files=array_diff(scandir($dir),array('.','..')); 
+		$files=array_diff(scandir($dir),array('.','..'));
 		foreach($files as $file)
 		{
-			(is_dir("$dir/$file"))?self::delTree("$dir/$file"):unlink("$dir/$file");
+			(is_dir("$dir/$file"))?self::delete("$dir/$file"):unlink("$dir/$file");
 		}
 		return rmdir($dir);
 	}
 
-	private static function getKeyPath($key)
+	private static function getPath($key)
 	{
 		$key=md5($key);
 		$dir=substr($key,0,2);
@@ -89,13 +95,15 @@ final class Store
 
 	private static function clearExpiredData()
 	{
-		foreach (array_diff(scandir(self::ready()),array('.','..')) as $dir)
+		$db=self::ready();
+		foreach (array_diff(scandir($db),array('.','..')) as $dir)
 		{
-			foreach (array_diff(scandir(self::ready().$dir),array('.','..')) as $filename)
+			foreach (array_diff(scandir($db.$dir),array('.','..')) as $filename)
 			{
-				self::isExpired(self::ready().$dir.DIRECTORY_SEPARATOR.$filename);
+				self::isExpired($db.$dir.DIRECTORY_SEPARATOR.$filename);
 			}
 		}
+		return $db;
 	}
 
 }

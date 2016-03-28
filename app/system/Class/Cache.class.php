@@ -3,7 +3,7 @@
 * memcache,memcached,redis 缓存
 * Usage
 * Cache::ready('memcache')
-* 
+*
 * @author suconghou
 * @link http://blog.suconghou.cn
 * @version V1.23
@@ -15,7 +15,7 @@ final class Cache
 	private static $method=array();
 	private static $currentInstanceName;
 
-	public static function ready($name,$type=null,$host=null,$port=null)
+	public static function ready($name=null,$type=null,$host=null,$port=null)
 	{
 		$config=&self::$config;
 		$name=strtolower($name);
@@ -100,7 +100,7 @@ final class Cache
 		}
 		return $instance;
 	}
-	
+
 	public static function method($method,Closure $function)
 	{
 		return self::$method[$method]=$function;
@@ -132,22 +132,6 @@ final class Cache
 			throw new Exception("Call Error Method {$method} In Class ".get_called_class(),1);
 		}
 	}
-	
-	function __set($key,$value)
-	{
-		return self::instance()->set($key,$value);
-	}
-
-	function __get($key)
-	{
-		return self::instance()->get($key);
-	}
-
-	function __isset($key)
-	{
-		return self::instance()->get($key);
-	}
-
 }
 
 
