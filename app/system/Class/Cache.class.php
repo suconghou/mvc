@@ -88,15 +88,7 @@ final class Cache
 				$instance->pconnect($host,$port,1);
 				break;
 			default:
-				if(function_exists('memcache_init'))
-				{
-					$instance=memcache_init();
-				}
-				else
-				{
-					throw new Exception("Error Cache Driver",1);
-				}
-				break;
+				throw new Exception("Error Cache Driver",1);
 		}
 		return $instance;
 	}

@@ -24,25 +24,25 @@ final class Kvdb
 
 	final public static function get($key,$default=null)
 	{
-		$value=self::ready()->querySingle("SELECT v FROM ".self::tCache." WHERE k='{$key}' and t > ".time());
+		$value=self::ready()->querySingle('SELECT v FROM '.self::tCache." WHERE k='{$key}' and t > ".time());
 		return $value?json_decode($value,true):$default;
 	}
 
 	final public static function set($key,$value,$expired=86400)
 	{
 		$value=json_encode($value,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
-		return self::ready()->exec("REPLACE INTO ".self::tCache." (k,v,t) VALUES ('{$key}','{$value}',".(time()+intval($expired)).") ");
+		return self::ready()->exec('REPLACE INTO '.self::tCache." (k,v,t) VALUES ('{$key}','{$value}',".(time()+intval($expired)).") ");
 	}
 
 	final public static function clear($key=null)
 	{
 		if($key)
 		{
-			$sql=$key===true?('TRUNCATE TABLE '.self::tCache):("DELETE FROM ".self::tCache." WHERE `k` IN (".(is_array($key)?implode(',',$key):$key).")");
+			$sql='DELETE FROM '.self::tCache.($key===true?null:(" WHERE `k` IN (".(is_array($key)?implode(',',$key):$key).")"));
 		}
 		else
 		{
-			$sql="DELETE FROM ".self::tCache." WHERE t < ".time();
+			$sql='DELETE FROM '.self::tCache." WHERE t < ".time();
 		}
 		return self::ready()->exec($sql);
 	}
