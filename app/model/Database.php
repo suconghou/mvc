@@ -1,8 +1,6 @@
 <?php
-/**
-* 基础数据库访问
-*
-*/
+
+
 class Database extends DB
 {
 	protected static $initCmd=array('SET NAMES UTF8');
@@ -15,29 +13,59 @@ class Database extends DB
 
 	final public static function find($where,$column='*')
 	{
-		$table=isset(self::$table)?self::$table:get_called_class();
+		$table=self::getCurrentTable();
 		return is_numeric($where)?self::selectById($table,$where,$column):self::selectWhere($table,$where,null,$column);
 	}
 
 	final public static function insert($data,$replace=false)
 	{
-		$table=isset(self::$table)?self::$table:get_called_class();
-		return self::insertData($table,$data,$replace);
+		return self::insertData(self::getCurrentTable(),$data,$replace);
 	}
 
 	final public static function delete($where)
 	{
-		$table=isset(self::$table)?self::$table:get_called_class();
+		$table=self::getCurrentTable();
 		return is_numeric($where)?self::deleteById($table,$where):self::deleteWhere($table,$where);
 	}
 
 	final public static function update($where,$data)
 	{
-		$table=isset(self::$table)?self::$table:get_called_class();
+		$table=self::getCurrentTable();
 		return is_numeric($where)?self::updateById($table,$where,$data):self::updateWhere($table,$where,$data);
 	}
 
-	final public static function selectById($table=null,$id,$column='*')
+	final private static function getCurrentTable()
+	{
+		return isset(self::$table)?self::$table:get_called_class();
+	}
+
+	final private static function getCondition($where)
+	{
+		if($where)
+		{
+			if(is_array($where))
+			{
+				$k=array();
+				foreach ($where as $key => $value)
+				{
+					if(is_int($key))
+					{
+						$k[]=$value;
+					}
+					else
+					{
+						$value=self::quote($value);
+						$k[]='(`'.$key.'`='.$value.')';
+					}
+				}
+				$where=implode(" AND ",$k);
+			}
+			return " WHERE ({$where}) ";
+		}
+		return ' ';
+	}
+
+	final public static function selectById($table,$id,$column='*')
 	{
 		$id=intval($id);
 		$sql="SELECT {$column} FROM {$table} WHERE id={$id} ";
@@ -101,35 +129,7 @@ class Database extends DB
 
 	final public static function selectWhere($table,$where=null,$orderlimit=null,$column='*')
 	{
-		if($where)
-		{
-			if(is_array($where))
-			{
-				$k=array();
-				foreach ($where as $key => $value)
-				{
-					if(is_int($key))
-					{
-						$k[]=$value;
-					}
-					else
-					{
-						$value=self::quote($value);
-						$k[]='(`'.$key.'`='.$value.')';
-					}
-				}
-				$strk=implode(" AND ",$k);
-			}
-			else
-			{
-				$strk=$where;
-			}
-			$sql="SELECT {$column} FROM {$table} WHERE ({$strk}) ";
-		}
-		else
-		{
-			$sql="SELECT {$column} FROM {$table} ";
-		}
+		$sql="SELECT {$column} FROM {$table} ".self::getCondition($where);
 		if($orderlimit)
 		{
 			$sql.=$orderlimit;
@@ -139,54 +139,19 @@ class Database extends DB
 
 	final public static function deleteWhere($table,$where=null)
 	{
-		if($where)
-		{
-			if(is_array($where))
-			{
-				$k=array();
-				foreach ($where as $key => $value)
-				{
-					$value=self::quote($value);
-					$k[]='(`'.$key.'`='.$value.')';
-				}
-				$strk=implode(" AND ",$k);
-			}
-			else
-			{
-				$strk=$where;
-			}
-			$sql="DELETE FROM {$table} WHERE ({$strk}) ";
-		}
-		else
-		{
-			$sql="DELETE FROM {$table} ";
-		}
+		$sql="DELETE FROM {$table} ".self::getCondition($where);
 		return self::runSql($sql);
 	}
 
 	final public static function updateWhere($table,$where,$data)
 	{
-		$k=$v=array();
-		if(is_array($where))
-		{
-			foreach ($where as $key => $value)
-			{
-				$value=self::quote($value);
-				$k[]='(`'.$key.'`='.$value.')';
-			}
-			$strk=implode(" AND ",$k);
-		}
-		else
-		{
-			$strk=$where;
-		}
+		$set=array();
 		foreach ($data as $key => $value)
 		{
-			$v[]=$key.'='."'".$value."'";
+			$set[]=$key.'='."'".$value."'";
 		}
-		$strv=implode(' , ',$v);
-		$sql="UPDATE {$table} SET {$strv} WHERE ({$strk})";
-		return self::runSql($sql);
+		$strv=implode(' , ',$set);
+		return self::runSql("UPDATE {$table} SET {$strv} ".self::getCondition($where));
 	}
 
 	/***
@@ -310,32 +275,9 @@ class Database extends DB
 	{
 		$page=max(1,intval($page));
 		$offset=max(0,($page-1)*$pageSize);
-		if($where)
-		{
-			if(is_array($where))
-			{
-				$k=array();
-				foreach ($where as $key => $value)
-				{
-					$value=self::quote($value);
-					$k[]='(`'.$key.'`='.$value.')';
-				}
-				$strk=implode(" AND ",$k);
-			}
-			else
-			{
-				$strk=$where;
-			}
-			$list="SELECT {$selectcolumn} FROM {$table} WHERE  ({$strk})  ORDER BY {$orderby} LIMIT {$offset},{$pageSize} ";
-			$pages="SELECT COUNT(1) FROM {$table} WHERE ({$strk}) ";
-		}
-		else
-		{
-			$list="SELECT {$selectcolumn} FROM {$table} ORDER BY {$orderby} LIMIT {$offset},{$pageSize} ";
-			$pages="SELECT COUNT(1) FROM {$table} ";
-		}
-		$list=self::getData($list);
-		$total=self::getVar($pages);
+		$where=self::getCondition($where);
+		$list=self::getData("SELECT {$selectcolumn} FROM {$table} {$where}  ORDER BY {$orderby} LIMIT {$offset},{$pageSize}");
+		$total=self::getVar("SELECT COUNT(1) FROM {$table} {$where}");
 		$pages=ceil($total/$pageSize);
 		return array('list'=>$list,'page'=>$pages,'total'=>$total,'current'=>$page,'prev'=>max(1,$page-1),'next'=>min($pages,$page+1));
 	}
@@ -348,26 +290,7 @@ class Database extends DB
 
 	final public static function count($table,$where=null)
 	{
-		if($where)
-		{
-			if(is_array($where))
-			{
-				$k=array();
-				foreach ($where as $key => $value)
-				{
-					$k[]='(`'.$key.'`="'.$value.'")';
-				}
-				$strk=implode(" AND ",$k);
-			}
-			else
-			{
-				$strk=$where;
-			}
-			$where=" WHERE ({$strk}) ";
-		}
-		$sql="SELECT COUNT(1) FROM {$table} {$where} ";
-		return self::getVar($sql);
-
+		return self::getVar("SELECT COUNT(1) FROM {$table} ".self::getCondition($where));
 	}
 
 

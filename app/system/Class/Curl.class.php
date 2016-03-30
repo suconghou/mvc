@@ -195,7 +195,7 @@ class Curl
 	/**
      * 支持单线程,多线程 http get/post 请求
      */
-    private static function http($urls,$timeout=8,$data=null)
+    final public static function http($urls,$timeout=8,$data=null)
     {
         if(!is_array($urls))
         {
@@ -235,6 +235,11 @@ class Curl
             $content=count($urls)>1?$urls:reset($urls);
             return $content;
         }
+    }
+
+    final public static function readfile($url)
+    {
+
     }
 
 	function add($url,$header=0,$nobody=0,$timeout=10)
@@ -318,6 +323,7 @@ class Curl
 				return $this->filter($res,$type,$index);
 		}
 	}
+
 	private function filter($html,$regex,$index=null)
 	{
 		if(preg_match_all($regex,$html,$matches))

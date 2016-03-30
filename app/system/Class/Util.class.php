@@ -3,12 +3,12 @@
 /**
 * 静态工具类,无需实例化,直接调用
 */
-class Util
+final class Util
 {
-	
+
 	function __construct()
 	{
-		
+
 	}
 
 	public static function __callStatic($method,$args=null)
