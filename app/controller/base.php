@@ -7,31 +7,22 @@ class base
 {
 
 	private static $version;
-
 	private static $baseUrl;
-
 	private static $project;
-
-	private static $pathMap=array('css'=>'/static/css/','style'=>'/static/style/','js'=>'/static/js/','img'=>'/static/img/');
+	private static $pathMap=['css'=>'/static/css/','style'=>'/static/style/','js'=>'/static/js/','img'=>'/static/img/'];
 
 	public function __construct()
 	{
 		$this->globalIndex(); //全局加载的
 	}
 
-	final private function globalIndex()
-	{
-		return $this->firewall();
-	}
-
-	final private function firewall($use=false)
+	final private function globalIndex($use=false)
 	{
 		if($use)
 		{
 			try
 			{
-				$ip=array('127.0.0.2');
-				return $this->IpBlacklist($ip)->SpiderBlock()->BusyBlock(array(1,20));
+				$this->busyBlock();
 			}
 			catch(Exception $e)
 			{
@@ -48,9 +39,9 @@ class base
 		header('HTTP/1.1 403 Forbidden',true,403)||exit($msg);
 	}
 
-	final private static function cors($allow=array())
+	final private static function cors($allow=[])
 	{
-		$allow=is_array($allow)?$allow:array($allow);
+		$allow=is_array($allow)?$allow:[$allow];
 		if(!empty($allow))
 		{
 			header('Access-Control-Allow-Origin: '.implode(',',$allow),true);
@@ -86,7 +77,7 @@ class base
 		return Request::isPost()||self::forbidden();
 	}
 
-	final protected function IpBlacklist(Array $ips,Closure $callback=null)
+	final protected function ipBlacklist(Array $ips,Closure $callback=null)
 	{
 		$ip=Request::ip();
 		if(!$ip || in_array($ip,$ips))
@@ -95,12 +86,12 @@ class base
 			{
 				return $callback($ip);
 			}
-			throw new Exception("IpBlacklist Block {$ip}",1);
+			throw new Exception("ipBlacklist {$ip}",1);
 		}
 		return $this;
 	}
 
-	final protected function SpiderBlock(Closure $callback=null)
+	final protected function spiderBlock(Closure $callback=null)
 	{
 		if(Request::isSpider())
 		{
@@ -109,30 +100,26 @@ class base
 			{
 				return $callback($ip);
 			}
-			throw new Exception("SpiderBlock Block {$ip}",2);
+			throw new Exception("spiderBlock {$ip}",2);
 		}
 		return $this;
 	}
 
-	final protected function BusyBlock(array $hz=array(1,30),Closure $callback=null)
+	final protected function busyBlock($minute=1,$times=30,Closure $callback=null)
 	{
 		$ip=Request::ip();
 		if($ip)
 		{
-			$key=md5($ip);
 			$now=time();
-			$seconds=intval($hz[0]*60);
-			$times=intval($hz[1]);
-			$dir=sys_get_temp_dir().DIRECTORY_SEPARATOR.'BusyBlock'.DIRECTORY_SEPARATOR.substr($key,0,2);
-			is_dir($dir) || mkdir($dir,0777,true);
-			$file=$dir.DIRECTORY_SEPARATOR.substr($key,-6);
+			$seconds=intval($minute*60);
+			$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.sprintf('%x.kv',crc32($ip));
 			if(is_file($file))
 			{
 				$data=unserialize(file_get_contents($file));
-				$data[$ip]=isset($data[$ip])?$data[$ip]:array(0,0);
+				$data[$ip]=isset($data[$ip])?$data[$ip]:[0,0];
 				list($currentTimes,$lastAccess)=$data[$ip];
 				$currentTimes=($now-$lastAccess)>$seconds?0:$currentTimes+1;
-				$data[$ip]=array($currentTimes,$now);
+				$data[$ip]=[$currentTimes,$now];
 				file_put_contents($file,serialize($data));
 				if($currentTimes>$times)
 				{
@@ -140,13 +127,13 @@ class base
 					{
 						return $callback($ip);
 					}
-					throw new Exception("BusyBlock Block {$ip}",4);
+					throw new Exception("busyBlock {$ip}",4);
 				}
 				return $this;
 			}
 			else
 			{
-				$data=array($ip=>array(0,0));
+				$data=[$ip=>[0,0]];
 				file_put_contents($file,serialize($data));
 				return $this;
 			}
@@ -155,7 +142,7 @@ class base
 		{
 			return $callback($ip);
 		}
-		throw new Exception("BusyBlock Block {$ip}",3);
+		throw new Exception("busyBlock {$ip}",3);
 	}
 
 
@@ -192,29 +179,24 @@ class base
 
 	/**********************************资源以及版本管理********************************/
 
-	final private static function version($version)
+	final private static function version($version=null)
 	{
-		self::$version=DEBUG?'?debug':'?ver='.substr(md5($version),0,9);
-		return self::$version;
+		return $version?(self::$version=DEBUG?'?debug':'?ver='.sprintf('%x',crc32($version))):self::$version;
 	}
 
-	final private static function url($url)
+	final private static function url($url=null)
 	{
-		self::$baseUrl=$url;
-		return self::$baseUrl;
+		return $url?(self::$baseUrl=$url):self::$baseUrl;
 	}
+
 	final private static function project($project=null)
 	{
-		if($project)
-		{
-			self::$project=$project;
-		}
-		return self::$project;
+		return $project?(self::$project=$project):self::$project;
 	}
 
-	final private static function setPath($type,$value)
+	final private static function setPath($key,$value)
 	{
-		self::$pathMap[$type]='/'.trim($value,'/').'/';
+		self::$pathMap[$key]='/'.trim($value,'/').'/';
 		return self::$pathMap;
 	}
 
@@ -235,54 +217,53 @@ class base
 
 	final private static function assets($asset,$type,$project=null)
 	{
-		$links=array();
+		$links=[];
 		$version=self::$version;
-		$asset=is_array($asset)?$asset:array($asset);
-		$basePath=$project?rtrim(self::$baseUrl,'/').'/'.$project:rtrim(self::$baseUrl,'/');
-		$basePath=$basePath.self::$pathMap[$type];
+		$asset=is_array($asset)?$asset:[$asset];
+		$basePath=($project?rtrim(self::$baseUrl,'/')."/{$project}":rtrim(self::$baseUrl,'/')).self::$pathMap[$type];
+		$ext=DEBUG?".min.{$type}":".{$type}{$version}";
 		switch ($type)
 		{
 			case 'css':
 				foreach ($asset as $item)
 				{
-					$links[]="<link rel='stylesheet' href='{$basePath}{$item}.css{$version}'>";
+					$links[]="<link rel='stylesheet' href='{$basePath}{$item}{$ext}'>";
 				}
-				break;
+				return implode('',$links);
 			case 'js':
 				foreach ($asset as $item)
 				{
-					$links[]="<script src='{$basePath}{$item}.js{$version}' defer></script>";
+					$links[]="<script src='{$basePath}{$item}{$ext}' defer></script>";
 				}
-				break;
+				return implode('',$links);
 			case 'img':
 				foreach ($asset as $item)
 				{
 					$links[]="<img src='{$basePath}{$item}{$version}'>";
 				}
-				break;
+				return implode('',$links);
 			default:
-				break;
+				return null;
 		}
-		return implode('',$links);
 	}
 
-	final private static function lib($item,$main='main',$ext=array())
+	final private static function lib($item,$main='main',$ext=[])
 	{
 		$version=self::$version;
-		$base=array('main'=>$main,'ver'=>$version);
+		$base=['main'=>$main,'ver'=>$version];
 		$ext=array_merge($base,$ext);
 		foreach ($ext as $key => $value)
 		{
 			$ext[$key]="data-{$key}='{$value}'";
 		}
-		$script="<script src='{$item}{$version}' ".implode(' ',$ext)." id='js-main' defer></script>";
+		$script="<script src='{$item}{$version}' ".implode(' ',$ext)." defer></script>";
 		return $script;
 	}
 
-	final private static function meta($title=null,$description=null,$keywords=null,$ext=array(),$ie=false)
+	final private static function meta($title=null,$description=null,$keywords=null,$ext=[],$ie=false)
 	{
-		$meta=array("<meta charset='UTF-8'>","<title>{$title}</title>","<meta http-equiv=X-UA-Compatible content='IE=edge,chrome=1'>");
-		$base=array('csrf-token'=>csrf_token(),'renderer'=>'webkit','viewport'=>'width=device-width, initial-scale=1.0,maximum-scale=1.0, user-scalable=no','description'=>$description,'keywords'=>$keywords);
+		$meta=["<meta charset='UTF-8'>","<title>{$title}</title>","<meta http-equiv=X-UA-Compatible content='IE=edge,chrome=1'>"];
+		$base=['csrf-token'=>csrf_token(),'renderer'=>'webkit','viewport'=>'width=device-width, initial-scale=1.0,maximum-scale=1.0, user-scalable=no','description'=>$description,'keywords'=>$keywords];
 		$ext=array_merge($base,$ext);
 		foreach ($ext as $name => $content)
 		{
