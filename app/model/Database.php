@@ -3,8 +3,8 @@
 
 class Database extends DB
 {
-	protected static $initCmd=array('SET NAMES UTF8');
-	protected static $initCmdSqlite=array('PRAGMA SYNCHRONOUS=OFF','PRAGMA CACHE_SIZE=8000','PRAGMA TEMP_STORE=MEMORY');
+	protected static $initCmd=['SET NAMES UTF8'];
+	protected static $initCmdSqlite=['PRAGMA SYNCHRONOUS=OFF','PRAGMA CACHE_SIZE=8000','PRAGMA TEMP_STORE=MEMORY'];
 
 	public function __construct()
 	{
@@ -17,7 +17,7 @@ class Database extends DB
 		return is_numeric($where)?self::selectById($table,$where,$column):self::selectWhere($table,$where,null,$column);
 	}
 
-	final public static function insert($data,$replace=false)
+	final public static function insert(Array $data,$replace=false)
 	{
 		return self::insertData(self::getCurrentTable(),$data,$replace);
 	}
@@ -28,7 +28,7 @@ class Database extends DB
 		return is_numeric($where)?self::deleteById($table,$where):self::deleteWhere($table,$where);
 	}
 
-	final public static function update($where,$data)
+	final public static function update($where,Array $data)
 	{
 		$table=self::getCurrentTable();
 		return is_numeric($where)?self::updateById($table,$where,$data):self::updateWhere($table,$where,$data);
@@ -36,7 +36,7 @@ class Database extends DB
 
 	final private static function getCurrentTable()
 	{
-		return isset(self::$table)?self::$table:get_called_class();
+		return defined('static::table')?static::table:strtolower(get_called_class());
 	}
 
 	final private static function getCondition($where)
@@ -45,7 +45,7 @@ class Database extends DB
 		{
 			if(is_array($where))
 			{
-				$k=array();
+				$k=[];
 				foreach ($where as $key => $value)
 				{
 					if(is_int($key))
@@ -68,21 +68,21 @@ class Database extends DB
 	final public static function selectById($table,$id,$column='*')
 	{
 		$id=intval($id);
-		$sql="SELECT {$column} FROM {$table} WHERE id={$id} ";
+		$sql="SELECT {$column} FROM {$table} WHERE id={$id}";
 		return self::getLine($sql);
 	}
 
 	final public static function deleteById($table,$id)
 	{
 		$id=intval($id);
-		$sql="DELETE FROM {$table} WHERE id={$id} ";
+		$sql="DELETE FROM {$table} WHERE id={$id}";
 		return self::runSql($sql);
 	}
 
-	final public static function updateById($table,$id,$data)
+	final public static function updateById($table,$id,Array $data)
 	{
 		$id=intval($id);
-		$updateStr=array();
+		$updateStr=[];
 		foreach ($data as $key => $value)
 		{
 			$updateStr[]='`'.$key.'`='.self::quote($value);
@@ -94,14 +94,14 @@ class Database extends DB
 
 	final public static function insertData($table,Array $data,$replace=false)
 	{
-		$k=$v=array();
+		$k=$v=[];
 		foreach ($data as $key => $value)
 		{
 			$k[]='`'.$key.'`';
 			$v[]=self::quote($value);
 		}
-		$strv=implode(',',$v);
 		$strk=implode(',',$k);
+		$strv=implode(',',$v);
 		if($replace===true)
 		{
 			$sql="REPLACE INTO {$table} ({$strk}) VALUES ({$strv})";
@@ -112,7 +112,7 @@ class Database extends DB
 		}
 		else if(is_array($replace))
 		{
-			$updateStr=array();
+			$updateStr=[];
 			foreach($replace as $key => $value)
 			{
 				$updateStr[]='`'.$key.'`='.self::quote($value);
@@ -129,11 +129,7 @@ class Database extends DB
 
 	final public static function selectWhere($table,$where=null,$orderlimit=null,$column='*')
 	{
-		$sql="SELECT {$column} FROM {$table} ".self::getCondition($where);
-		if($orderlimit)
-		{
-			$sql.=$orderlimit;
-		}
+		$sql="SELECT {$column} FROM {$table} ".self::getCondition($where).$orderlimit;
 		return self::getData($sql);
 	}
 
@@ -143,17 +139,16 @@ class Database extends DB
 		return self::runSql($sql);
 	}
 
-	final public static function updateWhere($table,$where,$data)
+	final public static function updateWhere($table,$where,Array $data)
 	{
-		$set=array();
+		$strv=[];
 		foreach ($data as $key => $value)
 		{
-			$set[]=$key.'='."'".$value."'";
+			$strv[]='`'.$key.'`='.self::quote($value);
 		}
-		$strv=implode(' , ',$set);
+		$strv=implode(',',$strv);
 		return self::runSql("UPDATE {$table} SET {$strv} ".self::getCondition($where));
 	}
-
 	/***
 	 *	$data=array(
 	 *			array('name'=>'s1','pass'=>'p1','email'=>'123@qq.com'),
@@ -161,12 +156,12 @@ class Database extends DB
 	 *			array('name'=>'s3','pass'=>'p3','email'=>'789@qq.com')
 	 *	);
 	**/
-	final public static function multInsert($table,$data,Closure $callback=null)
+	final public static function multInsert($table,Array $data,Closure $callback=null)
 	{
 		try
 		{
 			self::beginTransaction();
-			$columns=array_keys($data[0]);
+			$columns=array_keys(current($data));
 			$columnStr=implode(',',$columns);
 			$valueStr=implode(',:', $columns);
 			$sql="INSERT INTO {$table} ({$columnStr}) VALUES (:{$valueStr})";
@@ -175,7 +170,7 @@ class Database extends DB
 			{
 				$stmt->bindParam(":{$k}",$$k);
 			}
-			foreach ($data as $i=>$item)
+			foreach ($data as $item)
 			{
 				foreach ($item as $k => $v)
 				{
@@ -190,7 +185,6 @@ class Database extends DB
 			self::rollback();
 			return $callback?$callback($e):false;
 		}
-
 	}
 	/***
 	 *	批量更新
@@ -199,21 +193,21 @@ class Database extends DB
 	 *			'19'=>array('name'=>'name19','pass'=>'22')
 	 *	);
 	 **/
-	final public static function multUpdate($table,$data,Closure $callback=null)
+	final public static function multUpdate($table,Array $data,Closure $callback=null)
 	{
 		try
 		{
 			self::beginTransaction();
-			$keys=array_keys(current($data));
-			$v=array();
-			foreach ($keys as $k)
+			$columns=array_keys(current($data));
+			$v=[];
+			foreach ($columns as $k)
 			{
 				$v[]=$k.'='.":".$k."";
 			}
-			$strv=implode(',', $v);
+			$strv=implode(',',$v);
 			$sql="UPDATE {$table} SET {$strv} WHERE id=:id";
 			$stmt=self::prepare($sql);
-			foreach ($keys as $k)
+			foreach ($columns as $k)
 			{
 				$stmt->bindParam(":{$k}", $$k);
 			}
@@ -237,49 +231,35 @@ class Database extends DB
 
 	final public static function multDelete($table,$inStr,$column='id')
 	{
-		$str=is_array($inStr)?implode(',', $inStr):$inStr;
+		$str=is_array($inStr)?implode(',',$inStr):$inStr;
 		$sql="DELETE FROM {$table} WHERE {$column} IN ({$str})";
 		return self::runSql($sql);
 	}
 
 	final public static function multSelect($table,$inStr,$selectcolumn='*',$column='id')
 	{
-		$str=is_array($inStr)?implode(',', $inStr):$inStr;
-		$sql="SELECT {$selectcolumn} FROM {$table} WHERE {$column} IN ({$str}) ";
-		$ret=self::getData($sql);
-		$res=array();
-		foreach ($ret as $item)
-		{
-			$id=$item[$column];
-			unset($item[$column]);
-			$res[$id]=count($item)==1?current($item):$item;
-		}
-		return $res;
+		$str=is_array($inStr)?implode(',',$inStr):$inStr;
+		$sql="SELECT {$selectcolumn} FROM {$table} WHERE {$column} IN ({$str})";
+		return self::getData($sql);
 	}
 
-	final public static function incrById($table,$column,$id,$num=1)
+	final public static function setKey($table,$id,$column,$value=true)
 	{
 		$id=intval($id);
-		$sql="UPDATE {$table} SET {$column}={$column}+{$num} WHERE id={$id} ";
+		$value=$value===true?("{$column}+1"):($value===false?("{$column}-1"):"'{$value}'");
+		$sql="UPDATE {$table} SET `{$column}`={$value} WHERE id={$id} ";
 		return self::runSql($sql);
 	}
 
-	final public static function decrById($table,$column,$id,$num=1)
-	{
-		$id=intval($id);
-		$sql="UPDATE {$table} SET {$column}={$column}-{$num} WHERE id={$id} ";
-		return self::runSql($sql);
-	}
-
-	final public static function getList($table,$page=1,$where=null,$orderby='id desc',$pageSize=20,$selectcolumn='*')
+	final public static function getList($table,$page=1,$where=null,$orderby=null,$pageSize=20,$selectcolumn='*')
 	{
 		$page=max(1,intval($page));
 		$offset=max(0,($page-1)*$pageSize);
 		$where=self::getCondition($where);
-		$list=self::getData("SELECT {$selectcolumn} FROM {$table} {$where}  ORDER BY {$orderby} LIMIT {$offset},{$pageSize}");
+		$list=self::getData("SELECT {$selectcolumn} FROM {$table} {$where} ".($orderby?"ORDER BY {$orderby}":'')." LIMIT {$offset},{$pageSize}");
 		$total=self::getVar("SELECT COUNT(1) FROM {$table} {$where}");
 		$pages=ceil($total/$pageSize);
-		return array('list'=>$list,'page'=>$pages,'total'=>$total,'current'=>$page,'prev'=>max(1,$page-1),'next'=>min($pages,$page+1));
+		return ['list'=>$list,'page'=>$pages,'total'=>$total,'current'=>$page,'prev'=>max(1,$page-1),'next'=>min($pages,$page+1)];
 	}
 
 	final public static function like($table,$column,$like,$selectcolumn='*',$num=50)
@@ -292,8 +272,5 @@ class Database extends DB
 	{
 		return self::getVar("SELECT COUNT(1) FROM {$table} ".self::getCondition($where));
 	}
-
-
 }
-// end class database
 
