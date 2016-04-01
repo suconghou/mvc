@@ -179,9 +179,9 @@ class base
 
 	/**********************************资源以及版本管理********************************/
 
-	final private static function version($version=null)
+	final private static function version($version=null,$debug=false)
 	{
-		return $version?(self::$version=DEBUG?'?debug':'?ver='.sprintf('%x',crc32($version))):self::$version;
+		return $version?(self::$version=$debug?'?debug':('?ver='.sprintf('%x',crc32($version)))):self::$version;
 	}
 
 	final private static function url($url=null)
@@ -221,7 +221,7 @@ class base
 		$version=self::$version;
 		$asset=is_array($asset)?$asset:[$asset];
 		$basePath=($project?rtrim(self::$baseUrl,'/')."/{$project}":rtrim(self::$baseUrl,'/')).self::$pathMap[$type];
-		$ext=DEBUG?".min.{$type}":".{$type}{$version}";
+		$ext=strlen($version)<8?".{$type}{$version}":".min.{$type}{$version}";
 		switch ($type)
 		{
 			case 'css':

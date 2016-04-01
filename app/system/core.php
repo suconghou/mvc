@@ -612,7 +612,7 @@ class Request
 	{
 		return isset($_SERVER['HTTP_REFERER'])?$_SERVER['HTTP_REFERER']:$default;
 	}
-	public static function form(Array $rule,$callback=null,$post=true)
+	public static function form(Array $rule,$callback=true,$post=true)
 	{
 		$keys=[];
 		$data=$post===true?$_POST:(is_array($post)?$post:$_REQUEST);
@@ -674,7 +674,7 @@ class Request
 
 class Validate
 {
-	public static function rule($rule,$data,$callback=null)
+	public static function rule($rule,$data,$callback=true)
 	{
 		try
 		{
