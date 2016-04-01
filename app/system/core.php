@@ -640,11 +640,11 @@ class Request
 			$data=[];
 			foreach ($var as $k)
 			{
-				$data[$k]=isset($origin[$k])?($clean?self::clean($origin[$k],$clean):trim($origin[$k])):$default;
+				$data[$k]=isset($origin[$k])?($clean?self::clean($origin[$k],$clean):$origin[$k]):$default;
 			}
 			return $data;
 		}
-		return isset($origin[$var])?($clean?self::clean($origin[$var],$clean):trim($origin[$var])):$default;
+		return isset($origin[$var])?($clean?self::clean($origin[$var],$clean):$origin[$var]):$default;
 	}
 	public static function clean($val,$type=null)
 	{
@@ -922,7 +922,7 @@ function session($key,$val=null,$delete=false)
 		}
 		return Request::session($key,null,false);
 	}
-	return $_SESSION[$key]=is_array($val)?json_encode($val,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES):$val;
+	return $_SESSION[$key]=$val;
 }
 function cookie($key,$val=null,$expire=0)
 {
