@@ -355,7 +355,7 @@ final class App
 	}
 	public static function Error($errno,$errstr=null,$errfile=null,$errline=null)
 	{
-		if((DEBUG<2)&&in_array($errno,[E_NOTICE,E_WARNING]))
+		if(is_int($errno)&&(DEBUG<2)&&in_array($errno,[E_NOTICE,E_WARNING]))
 		{
 			return false;
 		}
