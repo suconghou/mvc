@@ -2,191 +2,217 @@
 
 /**
 * Static Provider
-* 
+*
 */
 class StaticProvider
 {
-	const route='\/(?:([\w\-]+)\/)?static\/(css|style|js)(?:\/([\w\-\.]+))';
+	const route='\/(((?:([\w\-]{2,12})\/)?static\/)[a-z]{2,8}\/)([\w\-]{2,20})(\.min)?\.(css|js)';
 
-	private static $debug=false;
-
-	private static $project;
-
-	public function __construct($project=null,$type=null,$name=null)
+	public function __construct($fullPath,$staticPath,$project,$filename,$compress,$ext)
 	{
-		self::$project=$project;
-		if($type or $name)
+		$ver=isset($_GET['ver'])?$_GET['ver']:null;
+		$config=$staticPath.'static.json';
+		is_file($config)&&($config=json_decode(file_get_contents($config),true));
+		if($ext=='js')
 		{
-			$this->init($type,$name);
-		}
-		else
-		{
-			$this->overWriteRouter();
-		}
-	}
-
-	public function overWriteRouter()
-	{
-		app::route(self::route,function($type,$name=null)
-		{
-			return $this->init($type,$name);
-		});
-	}
-
-	public function init($type,$name=null)
-	{
-		self::$debug=isset($_GET['debug']);
-		if($type=='js')
-		{
-			$files=array();
-			$basePath='static'.DIRECTORY_SEPARATOR.'js'.DIRECTORY_SEPARATOR;
-			if(self::$project)
+			if($config&&isset($config['static']['js'][$filename]))
 			{
-				$basePath=self::$project.DIRECTORY_SEPARATOR.$basePath;
-			}
-			foreach(explode('-',str_ireplace('.js','',$name)) as $file)
-			{
-				if($file and $filePath=$basePath.$file.'.js')
-				{
-					if(!in_array($filePath,$files))
-					{
-						if(is_file($filePath))
-						{
-							$files[]=$filePath;
-						}
-						else
-						{
-							return header('HTTP/1.1 404 Not Found',true,404);
-						}
-					}
-				}
-			}
-			if($files)
-			{
-				return self::compileJs($files);
-			}
-			return header('HTTP/1.1 404 Not Found',true,404);
-		}
-		else
-		{
-			$filePath=str_ireplace('.css','','static'.DIRECTORY_SEPARATOR.$type.DIRECTORY_SEPARATOR.$name).'.less';
-			if(self::$project)
-			{
-				$filePath=self::$project.DIRECTORY_SEPARATOR.$filePath;
-			}
-			if(is_file($filePath))
-			{
-				return self::compileLess($filePath);
-			}
-			return header('HTTP/1.1 404 Not Found',true,404);
-		}
-	}
-
-	public static function compileLess($filePath)
-	{
-		$cacheObject=self::getItem($filePath);
-		$input=$cacheObject?$cacheObject:$filePath;
-		$less = new Lessc;
-		self::$debug?null:$less->setFormatter("compressed");
-		try
-		{
-			$ret=$less->cachedCompile($input);
-			ob_end_clean() and ob_start("ob_gzhandler");
-			header('Content-Type: text/css');
-			header("Etag: W/{$ret['updated']}");
-			if(!self::$debug)
-			{
-				header("Expires: ".gmdate("D, d M Y H:i:s",$ret['updated']+86400)." GMT");
-				header("Cache-Control: max-age=86400");
-			}
-			if(!is_array($input) or $ret['updated']>$input['updated'])
-			{
-				self::setItem($filePath,$ret);
-				header('X-Cache: Miss',true,200);
-				echo $ret['compiled'];
+				$files=array_unique(array_values($config['static']['js'][$filename]));
+				$files=array_map(function($item)use($fullPath){return $fullPath.$item;},$files);
 			}
 			else
 			{
-				$code=isset($_SERVER['HTTP_IF_NONE_MATCH'])&&$_SERVER['HTTP_IF_NONE_MATCH']=="W/{$ret['updated']}"?304:200;
-				header('X-Cache: Hit',true,$code);
-				echo $code==304?null:$ret['compiled'];
+				$files=array_map(function($item)use($fullPath,$ext){return $fullPath.$item.'.'.$ext;},array_unique(explode('-',$filename)));
 			}
-			ob_end_flush() and flush();
+			$this->outPutJs($files,$project,$ver,$compress,$staticPath);
 		}
-		catch(Exception $e)
+		else if($ext=='css')
 		{
-			echo $e->getMessage();
-		}
-	}
-
-	public static function compileJs($files)
-	{
-		$key=implode('-',$files);
-		$cacheObject=self::getItem($key);
-		$cacheObject=$cacheObject?$cacheObject:array('updated'=>0,'compiled'=>'','files'=>array());
-		$lastUpdate=&$cacheObject['updated'];
-		$fileList=&$cacheObject['files'];
-		$fileTimes=array();
-		foreach($files as $file)
-		{
-			$ftime=filemtime($file);
-			$fileTimes[]=$ftime;
-			if(!(isset($cacheObject['ftime-'.$file]) and $cacheObject['ftime-'.$file]>=$ftime))
+			if($config&&isset($config['static']['css'][$filename]))
 			{
-				$fileList[$file]=file_get_contents($file);
-				$cacheObject['ftime-'.$file]=$ftime;
+				$files=array_unique(array_values($config['static']['css'][$filename]));
+				$files=array_map(function($item)use($fullPath){return $fullPath.$item;},$files);
 			}
-		}
-		ob_end_clean() and ob_start('ob_gzhandler');
-		header('Content-type: text/javascript');
-		self::$debug or header("Cache-Control: max-age=86400");
-		if($lastUpdate>=max($fileTimes))
-		{
-			$contents=$cacheObject['compiled'];
-			$code=isset($_SERVER['HTTP_IF_NONE_MATCH'])&&$_SERVER['HTTP_IF_NONE_MATCH']=="W/{$lastUpdate}"?304:200;
-			header("Etag: W/{$lastUpdate}");
-			header('X-Cache: Hit',true,$code);
-			self::$debug or header("Expires: ".gmdate("D, d M Y H:i:s",$lastUpdate+86400)." GMT");
-			echo $code==304?null:$contents;
+			else
+			{
+				$files=array_map(function($item)use($fullPath,$ext){return $fullPath.$item.'.less';},array_unique(explode('-',$filename)));
+			}
+			$this->outPutCss($files,$project,$ver,$compress,$staticPath);
 		}
 		else
 		{
-			$contents=self::compressJs(implode(PHP_EOL,$fileList));
-			$cacheObject['compiled']=$contents;
-			$lastUpdate=time();
-			self::setItem($key,$cacheObject);
-			header("Etag: W/{$lastUpdate}");
-			header('X-Cache: Miss',true,200);
-			self::$debug or header("Expires: ".gmdate("D, d M Y H:i:s",$lastUpdate+86400)." GMT");
-			echo $contents;	
+			self::clearItem($staticPath);
 		}
-
 	}
 
-	public static function compressJs($data)
+	private function outPutCss($files,$project,$ver,$compress,$staticPath)
 	{
-		if(self::$debug)
+		try
 		{
-			return $data;
+			$debug=!($compress||$ver);
+			$key=$content=$staticPath;
+			$maxTime=$this->fileExist($files,$key,$content);
+			if(isset($_SERVER['HTTP_IF_NONE_MATCH'])&&$_SERVER['HTTP_IF_NONE_MATCH']=="W/{$maxTime}")
+			{
+				return header('Content-Type: text/css',true,304);
+			}
+			if($content)
+			{
+				header('X-Cache: Hit',true);
+			}
+			else
+			{
+				header('X-Cache: Miss',true);
+				$content=Minifier::parse($files,$debug,$ver,$project);
+				$item=['update'=>$maxTime,'content'=>&$content];
+				self::setItem($key,$item,$staticPath);
+			}
+			if(!$debug)
+			{
+				header("Expires: ".gmdate("D, d M Y H:i:s",$maxTime+86400)." GMT");
+				header("Cache-Control: max-age=86400");
+			}
+			header("Etag: W/{$maxTime}");
+			header('Content-Type: text/css');
+			echo $content;
 		}
-		$packer=new JSqueeze;
-		return $packer->squeeze($data,true,false);
-	}
-
-	private static function setItem($key,$data)
-	{
-		$filename=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT.$key);
-		return file_put_contents($filename,serialize($data));
-	}
-
-	private static function getItem($key)
-	{
-		$filename=sys_get_temp_dir().DIRECTORY_SEPARATOR.md5(ROOT.$key);
-		if(is_file($filename))
+		catch(Exception $e)
 		{
-			return unserialize(file_get_contents($filename));
+			$msg=$e->getMessage();
+			$code=$e->getCode();
+			header("Error-At:{$msg}",true,$code==404?404:500);
+			header('Content-Type: text/plain');
+			return printf('Error %u : %s',$code,$msg);
 		}
 	}
 
+	private function outPutJs($files,$project,$ver,$compress,$staticPath)
+	{
+		try
+		{
+			$debug=!($compress||$ver);
+			$key=$content=$staticPath;
+			$maxTime=$this->fileExist($files,$key,$content);
+			if(isset($_SERVER['HTTP_IF_NONE_MATCH'])&&$_SERVER['HTTP_IF_NONE_MATCH']=="W/{$maxTime}")
+			{
+				return header('Content-type: text/javascript',true,304);
+			}
+			if($content)
+			{
+				header('X-Cache: Hit',true);
+			}
+			else
+			{
+				header('X-Cache: Miss',true);
+				$content=Minifier::minify($files,$debug,$ver,$project);
+				$item=['update'=>$maxTime,'content'=>&$content];
+				self::setItem($key,$item,$staticPath);
+			}
+			if(!$debug)
+			{
+				header("Expires: ".gmdate("D, d M Y H:i:s",$maxTime+86400)." GMT");
+				header("Cache-Control: max-age=86400");
+			}
+			header("Etag: W/{$maxTime}");
+			header('Content-type: text/javascript');
+			echo $content;
+		}
+		catch(Exception $e)
+		{
+			$msg=$e->getMessage();
+			$code=$e->getCode();
+			header("Error-At:{$msg}",true,$code==404?404:500);
+			header('Content-Type: text/plain');
+			return printf('Error %u : %s',$code,$msg);
+		}
+	}
 
+	private function fileExist(Array $files,&$staticPath,&$content=null)
+	{
+		$time=[];
+		foreach ($files as $file)
+		{
+			if(is_file($file))
+			{
+				$time[]=filemtime($file);
+			}
+			else
+			{
+				throw new Exception("{$file} not found",404);
+			}
+		}
+		$time=max($time);
+		if($content)
+		{
+			$key=sprintf('%x',crc32(implode('',$files)));
+			$item=self::getItem($key,$staticPath);
+			$staticPath=$key;
+			if($item&&$item['update']>=$time)
+			{
+				$content=$item['content'];
+			}
+			else
+			{
+				$content=null;
+			}
+		}
+		return $time;
+	}
+
+	private static function setItem($key,Array $content,$staticPath,$expired=864000)
+	{
+		$file=$staticPath.'static.db';
+		$data=is_file($file)?unserialize(file_get_contents($file)):[];
+		$content['expired']=time()+$expired;
+		$data[$key]=$content;
+		return file_put_contents($file,serialize($data));
+	}
+
+	private static function getItem($key,$staticPath)
+	{
+		$file=$staticPath.'static.db';
+		$data=is_file($file)?unserialize(file_get_contents($file)):[];
+		$item=isset($data[$key])?$data[$key]:null;
+		if(isset($item['expired'])&&$item['expired']<time())
+		{
+			unset($data[$key]);
+			file_put_contents($file,serialize($data));
+			return null;
+		}
+		return $item;
+	}
+
+	private static function clearItem($staticPath,$key=null)
+	{
+		$file=$staticPath.'static.db';
+		if($key)
+		{
+			if($key===true)
+			{
+				return is_file($file)&&unlink($file);
+			}
+			else
+			{
+				$data=is_file($file)?unserialize(file_get_contents($file)):[];
+				unset($data[$key]);
+				return file_put_contents($file,serialize($data));
+			}
+		}
+		else
+		{
+			$data=is_file($file)?unserialize(file_get_contents($file)):[];
+			$now=time();
+			$ok=true;
+			foreach ($data as $key => $item)
+			{
+				if(!isset($item['expired'])||$item['expired']<$now)
+				{
+					$ok=false;
+					unset($data[$key]);
+				}
+			}
+			return $ok?:file_put_contents($file,serialize($data));
+		}
+	}
 }
+
