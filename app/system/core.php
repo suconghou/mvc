@@ -4,7 +4,7 @@
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.9.3
+ * @version 1.9.4
  */
 
 final class App
@@ -67,6 +67,16 @@ final class App
 	}
 	private static function init($script)
 	{
+		if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'],$_SERVER['HTTP_IF_NONE_MATCH'])&&(count($arr=explode('-',$_SERVER['HTTP_IF_NONE_MATCH']))==2))
+		{
+			$last=strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
+			list($expired,$cacheTime)=$arr;
+			if($expired>$_SERVER['REQUEST_TIME']||($last+$cacheTime>$_SERVER['REQUEST_TIME']))
+			{
+				header('Cache-Control: public, max-age='.($expired-$_SERVER['REQUEST_TIME']));
+				exit(header('Expires: '.gmdate('D, d M Y H:i:s',$expired).' GMT',true,304));
+			}
+		}
 		list($uri)=explode('?',$_SERVER['REQUEST_URI']);
 		$uri=strpos($uri,$script)===false?$uri:str_ireplace($script,null,$uri);
 		$router=self::regexRouter($uri);
@@ -147,13 +157,13 @@ final class App
 		if(is_file($path=CONTROLLER_PATH.$router[0].'.php'))
 		{
 			list($controllerName,$action)=$router;
-			$param=2;
+			$index=2;
 		}
 		else if(is_file($path=CONTROLLER_PATH.$router[0].DIRECTORY_SEPARATOR.$router[1].'.php'))
 		{
 			$controllerName=$router[1];
 			$action=isset($router[2])?$router[2]:DEFAULT_ACTION;
-			$param=3;
+			$index=3;
 		}
 		else
 		{
@@ -162,12 +172,23 @@ final class App
 		require_once $path;
 		class_exists($controllerName)||self::Error(404,"Request Controller Class {$controllerName} Not Found");
 		method_exists($controllerName,$action)||self::Error(404,"Request Controller Class {$controllerName} Does Not Contain Method {$action}");
-		$GLOBALS['APP']['controller'][$controllerName]=isset($GLOBALS['APP']['controller'][$controllerName])?$GLOBALS['APP']['controller'][$controllerName]:$controllerName;
-		if(!$GLOBALS['APP']['controller'][$controllerName] instanceof $controllerName)
+		$GLOBALS['APP']['ctl'][$controllerName]=isset($GLOBALS['APP']['ctl'][$controllerName])?$GLOBALS['APP']['ctl'][$controllerName]:$controllerName;
+		if((!$GLOBALS['APP']['ctl'][$controllerName] instanceof $controllerName)&&($class=new ReflectionClass($controllerName))&&($class->isInstantiable()))
 		{
-			$GLOBALS['APP']['controller'][$controllerName]=new $controllerName($router);
+			if(($constructor=$class->getConstructor())&&($params=$constructor->getParameters()))
+			{
+				foreach ($params as &$param)
+				{
+					$param=(($di=$param->getClass())&&($m=$di->name))?($GLOBALS['APP']['lib'][$m]=isset($GLOBALS['APP']['lib'][$m])?$GLOBALS['APP']['lib'][$m]:(new $m())):$router;
+				}
+			    $GLOBALS['APP']['ctl'][$controllerName]=$class->newInstanceArgs($params);
+			}
+			else
+			{
+				$GLOBALS['APP']['ctl'][$controllerName]=new $controllerName($router);
+			}
 		}
-		return is_callable([$GLOBALS['APP']['controller'][$controllerName],$action])?call_user_func_array([$GLOBALS['APP']['controller'][$controllerName],$action],array_slice($router,$param)):self::Error(404,"Request Controller Class {$controllerName} Method {$action} Is Not Callable");
+		return is_callable([$GLOBALS['APP']['ctl'][$controllerName],$action])?call_user_func_array([$GLOBALS['APP']['ctl'][$controllerName],$action],array_slice($router,$index)):self::Error(404,"Request Controller Class {$controllerName} Method {$action} Is Not Callable");
 	}
 	public static function route($regex,$arr)
 	{
@@ -175,10 +196,10 @@ final class App
 	}
 	public static function log($msg,$type='DEBUG',$file=null)
 	{
-		if(is_writable(VAR_PATH_LOG)&&(DEBUG||strtoupper($type)=='ERROR'))
+		if(is_writable(VAR_PATH_LOG)&&(DEBUG||$type=='ERROR'))
 		{
 			$path=VAR_PATH_LOG.DIRECTORY_SEPARATOR.($file?$file:date('Y-m-d')).'.log';
-			$msg=strtoupper($type).'-'.date('Y-m-d H:i:s').' ==> '.(is_scalar($msg)?$msg:PHP_EOL.print_r($msg,true)).PHP_EOL;
+			$msg=$type.'-'.date('Y-m-d H:i:s').' ==> '.(is_scalar($msg)?$msg:PHP_EOL.print_r($msg,true)).PHP_EOL;
 			return error_log($msg,3,$path);
 		}
 	}
@@ -204,7 +225,7 @@ final class App
 					else
 					{
 						//插件模式,根据路由触发一个类
-						return call_user_func_array('S',array_merge([$item],$matches));
+						return call_user_func_array('with',array_merge([$item],$matches));
 					}
 				}
 			}
@@ -403,12 +424,12 @@ final class App
 			$errorPage="<title>Error..</title><center><span style='font-size:300px;color:gray;font-family:黑体'>{$code}...</span></center>";
 			if(method_exists($errorController,$errorRouter[1]))//当前已加载的控制器或默认控制器中含有ERROR处理
 			{
-				$GLOBALS['APP']['controller'][$errorController]=isset($GLOBALS['APP']['controller'][$errorController])?$GLOBALS['APP']['controller'][$errorController]:$errorController;
-				if(!$GLOBALS['APP']['controller'][$errorController] instanceof $errorController)
+				$GLOBALS['APP']['ctl'][$errorController]=isset($GLOBALS['APP']['ctl'][$errorController])?$GLOBALS['APP']['ctl'][$errorController]:$errorController;
+				if(!$GLOBALS['APP']['ctl'][$errorController] instanceof $errorController)
 				{
-					$GLOBALS['APP']['controller'][$errorController]=new $errorController($errorRouter);
+					$GLOBALS['APP']['ctl'][$errorController]=new $errorController($errorRouter);
 				}
-				$errorPage=is_callable([$GLOBALS['APP']['controller'][$errorController],$errorRouter[1]])?call_user_func_array([$GLOBALS['APP']['controller'][$errorController],$errorRouter[1]],[$errormsg]):$errorPage;
+				$errorPage=is_callable([$GLOBALS['APP']['ctl'][$errorController],$errorRouter[1]])?call_user_func_array([$GLOBALS['APP']['ctl'][$errorController],$errorRouter[1]],[$errormsg]):$errorPage;
 			}
 			exit($errorPage);
 		}
@@ -424,92 +445,80 @@ final class App
 	}
 }
 
-function M($model)
+class Response
 {
-	$arguments=func_get_args();
-	$arr=explode('/',array_shift($arguments));
-	$m=end($arr);
-	$GLOBALS['APP']['model'][$m]=isset($GLOBALS['APP']['model'][$m])?$GLOBALS['APP']['model'][$m]:$m;
-	if($GLOBALS['APP']['model'][$m] instanceof $m)
+	private $data;
+	public function __construct(Array &$data)
 	{
-		return $GLOBALS['APP']['model'][$m];
+		$this->data=&$data;
 	}
-	else
+	public function out($template=null,$min=0,$file=false)
 	{
-		$modelFile=MODEL_PATH.$model.'.php';
-		(is_file($modelFile) && require_once $modelFile)||app::Error(500,"Load Model {$m} Failed , Mdoel File {$modelFile} Not Found");
-		class_exists($m)||app::Error(500,"Model File {$modelFile} Does Not Contain Class {$m}");
-		$class = new ReflectionClass($m);
-		$GLOBALS['APP']['model'][$m]=$class->newInstanceArgs($arguments);
-		return $GLOBALS['APP']['model'][$m];
-	}
-}
-
-function S($lib)
-{
-	$arguments=func_get_args();
-	$arr=explode('/',array_shift($arguments));
-	$l=end($arr);
-	$GLOBALS['APP']['lib'][$l]=isset($GLOBALS['APP']['lib'][$l])?$GLOBALS['APP']['lib'][$l]:$l;
-	if($GLOBALS['APP']['lib'][$l] instanceof $l)
-	{
-		return $GLOBALS['APP']['lib'][$l];
-	}
-	else
-	{
-		if(is_file($classFile=LIB_PATH.$lib.'.class.php'))
+		if(is_string($template))
 		{
-			require_once $classFile;
-			class_exists($l)||app::Error(500,"Library File {$classFile} Does Not Contain Class {$l}");
-			$class = new ReflectionClass($l);
-			$GLOBALS['APP']['lib'][$l]=$class->newInstanceArgs($arguments);
-			return $GLOBALS['APP']['lib'][$l];
-		}
-		else if(is_file($file=LIB_PATH.$lib.'.php'))
-		{
-			unset($GLOBALS['APP']['lib'][$l]);
-			return require_once $file;
+			return $this->view($template,$min,$file);
 		}
 		else
 		{
-			return app::Error(500,"Library File {$l}  Not Found");
+			return $this->json(is_array($template)?$template:(is_array($min)?$min:[]),is_int($template)?$template:(is_int($min)?$min:0),$file);
+		}
+	}
+	public function view($template,$min=0,$file=false)
+	{
+		$this->httpcache($min);
+		$callback=$file?function(&$buffer) use($min)
+		{
+			$expire=intval($_SERVER['REQUEST_TIME']+($min*60));
+			$router=$GLOBALS['APP']['router'];
+			$file=is_object($router[1])?app::fileCache($router[0]):app::fileCache($router);
+			return is_writable(VAR_PATH_HTML)&&file_put_contents($file,$buffer)&&touch($file,$expire);
+		}:null;
+		return template($v,$this->data,$callback);
+	}
+	public function json($msg,$min=0,$callback=null)
+	{
+		return $this->httpcache($min)||json($this->data,$callback);
+	}
+	private function httpcache($min=0)
+	{
+		if($min=intval($min*60))
+		{
+			$now=$_SERVER['REQUEST_TIME'];
+			header('Expires: '.gmdate('D, d M Y H:i:s',$now+$min).' GMT');
+			header("Cache-Control: public, max-age={$min}");
+			header('Last-Modified: '.gmdate('D, d M Y H:i:s',$now).' GMT');
+			return header('Etag: '.($now+$min)."-{$min}");
 		}
 	}
 }
 
-function V($v,$data=null,$fileCacheMinute=0)
+function with($class)
 {
-	if($fileCacheMinute||(is_int($data)&&($data>0)))
+	if(is_string($class))
 	{
-		$cacheTime=$fileCacheMinute?$fileCacheMinute:$data;
-		$GLOBALS['APP']['cache']=['time'=>intval($cacheTime*60),'file'=>true];
+		$arguments=func_get_args();
+		$arr=explode('/',array_shift($arguments));
+		$m=end($arr);
+		$GLOBALS['APP']['lib'][$m]=isset($GLOBALS['APP']['lib'][$m])?$GLOBALS['APP']['lib'][$m]:$m;
+		if($GLOBALS['APP']['lib'][$m] instanceof $m)
+		{
+			return $GLOBALS['APP']['lib'][$m];
+		}
+		if(is_file($file=MODEL_PATH."{$m}.php")||is_file($file=CONTROLLER_PATH."{$m}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$m}.class.php")||is_file($file=LIB_PATH."{$m}.class.php"))
+		{
+			(require_once $file&&class_exists($m))||app::Error(500,"{$file} Does Not Contain Class {$m}");
+			$class=new ReflectionClass($m);
+			$GLOBALS['APP']['lib'][$m]=$class->newInstanceArgs($arguments);
+			return $GLOBALS['APP']['lib'][$m];
+		}
+		if(is_file($file=LIB_PATH.$m.'.php'))
+		{
+			unset($GLOBALS['APP']['lib'][$m]);
+			return require_once $file;
+		}
+		return app::Error("Can not load {$class}");
 	}
-	$callback=$GLOBALS['APP']['cache']['file']?function(&$buffer)
-	{
-		$expire=intval($_SERVER['REQUEST_TIME']+$GLOBALS['APP']['cache']['time']);
-		$router=$GLOBALS['APP']['router'];
-		$file=is_object($router[1])?app::fileCache($router[0]):app::fileCache($router);
-		is_writable(VAR_PATH_HTML)&&file_put_contents($file,$buffer)&&touch($file,$expire);
-		return $file;
-	}:null;
-	return template($v,is_array($data)?$data:null,$callback);
-}
-
-function C($time,$file=false)
-{
-	$seconds=intval($time*60);
-	$GLOBALS['APP']['cache']=['time'=>$seconds,'file'=>$file];
-	$now=$_SERVER['REQUEST_TIME'];
-	$lastExpire=isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])?strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']):0;
-	if($lastExpire&&($lastExpire+$seconds-$now>0))
-	{
-		header('Expires: '.gmdate('D, d M Y H:i:s',$lastExpire+$seconds).' GMT');
-		header('Cache-Control: public, max-age='.($lastExpire+$seconds-$now));
-		exit(header('Last-Modified: '.gmdate('D, d M Y H:i:s',$lastExpire). ' GMT',true,304));
-	}
-	header('Expires: '.gmdate('D, d M Y H:i:s',$now+$seconds).' GMT');
-	header("Cache-Control: public, max-age={$seconds}");
-	header('Last-Modified: '.gmdate('D, d M Y H:i:s',$now).' GMT');
+	return new Response($class);
 }
 
 function template($v,Array $_data_=null,Closure $callback=null)
@@ -631,7 +640,7 @@ class Request
 		{
 			$data[$key]=isset($data[$key])?$data[$key]:null;
 		}
-		return Validate::rule($rule,$data,$callback);
+		return Validate::verify($rule,$data,$callback);
 	}
 	private static function getVar($origin,$var,$default=null,$clean=false)
 	{
@@ -674,7 +683,7 @@ class Request
 
 class Validate
 {
-	public static function rule($rule,$data,$callback=true)
+	public static function verify($rule,$data,$callback=true)
 	{
 		try
 		{
