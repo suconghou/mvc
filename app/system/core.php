@@ -4,7 +4,7 @@
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link http://github.com/suconghou/mvc
- * @version 1.9.4
+ * @version 1.9.5
  */
 
 final class App
@@ -67,65 +67,58 @@ final class App
 	}
 	private static function init($script)
 	{
-		if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'],$_SERVER['HTTP_IF_NONE_MATCH'])&&(count($arr=explode('-',$_SERVER['HTTP_IF_NONE_MATCH']))==2))
+		if(!self::httpCache())
 		{
-			$last=strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
-			list($expired,$cacheTime)=$arr;
-			if($expired>$_SERVER['REQUEST_TIME']||($last+$cacheTime>$_SERVER['REQUEST_TIME']))
+			list($uri)=explode('?',$_SERVER['REQUEST_URI']);
+			$uri=strpos($uri,$script)===false?$uri:str_ireplace($script,null,$uri);
+			$router=self::regexRouter($uri);
+			if($router)
 			{
-				header('Cache-Control: public, max-age='.($expired-$_SERVER['REQUEST_TIME']));
-				exit(header('Expires: '.gmdate('D, d M Y H:i:s',$expired).' GMT',true,304));
-			}
-		}
-		list($uri)=explode('?',$_SERVER['REQUEST_URI']);
-		$uri=strpos($uri,$script)===false?$uri:str_ireplace($script,null,$uri);
-		$router=self::regexRouter($uri);
-		if($router)
-		{
-			return $router;
-		}
-		else
-		{
-			foreach(explode('/',$uri) as $segment)
-			{
-				if(!empty($segment))
-				{
-					$router[]=$segment;
-				}
-			}
-		}
-		if(empty($router[0]))
-		{
-			$router=[DEFAULT_CONTROLLER,DEFAULT_ACTION];
-		}
-		else if(empty($router[1]))
-		{
-			if(preg_match('/^[a-z]\w{0,20}$/i',$router[0]))
-			{
-				$router=[$router[0],DEFAULT_ACTION];
+				return $router;
 			}
 			else
 			{
-				return self::Error(404,"Request Controller {$router[0]} Error");
+				foreach(explode('/',$uri) as $segment)
+				{
+					if(!empty($segment))
+					{
+						$router[]=$segment;
+					}
+				}
 			}
-		}
-		else
-		{
-			if(!preg_match('/^[a-z]\w{0,20}$/i',$router[0]))
+			if(empty($router[0]))
 			{
-				return self::Error(404,"Request Controller {$router[0]} Error");
+				$router=[DEFAULT_CONTROLLER,DEFAULT_ACTION];
 			}
-			if(!preg_match('/^[a-z]\w{0,20}$/i',$router[1]))
+			else if(empty($router[1]))
 			{
-				return self::Error(404,"Request Action {$router[0]}:{$router[1]} Error");
+				if(preg_match('/^[a-z]\w{0,20}$/i',$router[0]))
+				{
+					$router=[$router[0],DEFAULT_ACTION];
+				}
+				else
+				{
+					return self::Error(404,"Request Controller {$router[0]} Error");
+				}
 			}
+			else
+			{
+				if(!preg_match('/^[a-z]\w{0,20}$/i',$router[0]))
+				{
+					return self::Error(404,"Request Controller {$router[0]} Error");
+				}
+				if(!preg_match('/^[a-z]\w{0,20}$/i',$router[1]))
+				{
+					return self::Error(404,"Request Action {$router[0]}:{$router[1]} Error");
+				}
+			}
+			return $router;
 		}
-		return $router;
 	}
 	//Object为插件模式,router[1]为Object是闭包模式,0为对应URL,此处未执行闭包
 	private static function process($router)
 	{
-		if(!is_object($router))
+		if($router&&!is_object($router))
 		{
 			$GLOBALS['APP']['router']=$router;
 			$file=is_object($router[1])?self::fileCache($router[0]):self::fileCache($router);
@@ -259,17 +252,26 @@ final class App
 		$cacheFile=VAR_PATH_HTML.DIRECTORY_SEPARATOR.sprintf('%u.html',crc32(ROOT.strtolower($router)));
 		return $delete?(is_file($cacheFile)&&unlink($cacheFile)):$cacheFile;
 	}
-	public static function opt($key,$default=null)
+	public static function httpCache($min=0)
 	{
-		$key="--{$key}=";
-		foreach ($GLOBALS['argv'] as $item)
+		if($min=intval($min*60))
 		{
-			if(sizeof($arr=explode($key,$item))==2)
+			$now=$_SERVER['REQUEST_TIME'];
+			header('Expires: '.gmdate('D, d M Y H:i:s',$now+$min).' GMT');
+			header("Cache-Control: public, max-age={$min}");
+			header('Last-Modified: '.gmdate('D, d M Y H:i:s',$now).' GMT');
+			return !header('Etag: '.($now+$min)."-{$min}");
+		}
+		else if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'],$_SERVER['HTTP_IF_NONE_MATCH'])&&(count($param=explode('-',$_SERVER['HTTP_IF_NONE_MATCH']))==2))
+		{
+			$last=strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
+			list($expired,$cacheTime)=$param;
+			if($expired>$_SERVER['REQUEST_TIME']||($last+$cacheTime>$_SERVER['REQUEST_TIME']))
 			{
-				return end($arr);
+				header('Cache-Control: public, max-age='.($expired-$_SERVER['REQUEST_TIME']),true);
+				return !header('Expires: '.gmdate('D, d M Y H:i:s',$expired).' GMT',true,304);
 			}
 		}
-		return $default;
 	}
 	public static function get($key,$default=null)
 	{
@@ -425,9 +427,20 @@ final class App
 			if(method_exists($errorController,$errorRouter[1]))//当前已加载的控制器或默认控制器中含有ERROR处理
 			{
 				$GLOBALS['APP']['ctl'][$errorController]=isset($GLOBALS['APP']['ctl'][$errorController])?$GLOBALS['APP']['ctl'][$errorController]:$errorController;
-				if(!$GLOBALS['APP']['ctl'][$errorController] instanceof $errorController)
+				if((!$GLOBALS['APP']['ctl'][$errorController] instanceof $errorController)&&($class=new ReflectionClass($errorController))&&($class->isInstantiable()))
 				{
-					$GLOBALS['APP']['ctl'][$errorController]=new $errorController($errorRouter);
+					if(($constructor=$class->getConstructor())&&($params=$constructor->getParameters()))
+					{
+						foreach ($params as &$param)
+						{
+							$param=(($di=$param->getClass())&&($m=$di->name))?($GLOBALS['APP']['lib'][$m]=isset($GLOBALS['APP']['lib'][$m])?$GLOBALS['APP']['lib'][$m]:(new $m())):(isset($GLOBALS['APP']['router'])?$GLOBALS['APP']['router']:null);
+						}
+					    $GLOBALS['APP']['ctl'][$errorController]=$class->newInstanceArgs($params);
+					}
+					else
+					{
+						$GLOBALS['APP']['ctl'][$errorController]=new $errorController($router);
+					}
 				}
 				$errorPage=is_callable([$GLOBALS['APP']['ctl'][$errorController],$errorRouter[1]])?call_user_func_array([$GLOBALS['APP']['ctl'][$errorController],$errorRouter[1]],[$errormsg]):$errorPage;
 			}
@@ -465,7 +478,7 @@ class Response
 	}
 	public function view($template,$min=0,$file=false)
 	{
-		$this->httpcache($min);
+		$min&&app::httpCache($min);
 		$callback=$file?function(&$buffer) use($min)
 		{
 			$expire=intval($_SERVER['REQUEST_TIME']+($min*60));
@@ -473,22 +486,20 @@ class Response
 			$file=is_object($router[1])?app::fileCache($router[0]):app::fileCache($router);
 			return is_writable(VAR_PATH_HTML)&&file_put_contents($file,$buffer)&&touch($file,$expire);
 		}:null;
-		return template($v,$this->data,$callback);
+		return template($template,$this->data,$callback);
 	}
-	public function json($msg,$min=0,$callback=null)
+	public function json(Array $msg,$min=0,$callback=null)
 	{
-		return $this->httpcache($min)||json($this->data,$callback);
-	}
-	private function httpcache($min=0)
-	{
-		if($min=intval($min*60))
+		$min&&app::httpCache($min);
+		if($msg)
 		{
-			$now=$_SERVER['REQUEST_TIME'];
-			header('Expires: '.gmdate('D, d M Y H:i:s',$now+$min).' GMT');
-			header("Cache-Control: public, max-age={$min}");
-			header('Last-Modified: '.gmdate('D, d M Y H:i:s',$now).' GMT');
-			return header('Etag: '.($now+$min)."-{$min}");
+			$msg['data']=&$this->data;
 		}
+		else
+		{
+			$msg=&$this->data;
+		}
+		return json($msg,$callback);
 	}
 }
 
@@ -659,20 +670,13 @@ class Request
 	{
 		switch ($type)
 		{
-			case 'int':
-				return intval($val);
-			case 'float':
-				return floatval($val);
-			case 'string':
-				return trim(strval($val));
-			case 'xss':
-				return filter_var(htmlspecialchars(strip_tags($val),ENT_QUOTES),FILTER_SANITIZE_STRING);
-			case 'html':
-				return trim(strip_tags($val));
-			case 'en':
-				return preg_replace('/[\x80-\xff]/','',$val);
-			default:
-				return $type?sprintf($type,$val):trim($val);
+			case 'int': return intval($val);
+			case 'float': return floatval($val);
+			case 'string': return trim(strval($val));
+			case 'xss': return filter_var(htmlspecialchars(strip_tags($val),ENT_QUOTES),FILTER_SANITIZE_STRING);
+			case 'html': return trim(strip_tags($val));
+			case 'en': return preg_replace('/[\x80-\xff]/','',$val);
+			default: return $type?sprintf($type,$val):trim($val);
 		}
 	}
 	public static function __callStatic($method,$args)
@@ -972,16 +976,13 @@ function baseUrl($path=null)
 {
 	if(is_int($path))
 	{
-		$router=$GLOBALS['APP']['router'];
+		$router=&$GLOBALS['APP']['router'];
 		return isset($router[$path])?$router[$path]:null;
 	}
-	else
-	{
-		$protocol=(isset($_SERVER['HTTPS'])&&(strtolower($_SERVER['HTTPS'])!='off'))?"https":"http";
-		$host=isset($_SERVER['HTTP_HOST'])?$_SERVER['HTTP_HOST']:'';
-		$path=is_null($path)?null:(is_bool($path)?($path?$_SERVER['REQUEST_URI']:'/'.implode('/',$GLOBALS['APP']['router'])):'/'.ltrim($path,'/'));
-		return "{$protocol}://{$host}{$path}";
-	}
+	$protocol=(isset($_SERVER['HTTPS'])&&(strtolower($_SERVER['HTTPS'])!='off'))?"https":"http";
+	$host=isset($_SERVER['HTTP_HOST'])?$_SERVER['HTTP_HOST']:'';
+	$path=is_null($path)?null:(is_bool($path)?($path?$_SERVER['REQUEST_URI']:'/'.implode('/',$GLOBALS['APP']['router'])):'/'.ltrim($path,'/'));
+	return "{$protocol}://{$host}{$path}";
 }
 function encrypt($input,$key=null)
 {
@@ -1008,15 +1009,12 @@ function csrf_token($check=false,$name='_token',Closure $callback=null)
 		}
 		return true;
 	}
-	else
+	if(!$token)
 	{
-		if(!$token)
-		{
-			$token=md5(uniqid());
-			$_SESSION['csrf_token']=$token;
-		}
-		return $token;
+		$token=md5(uniqid());
+		$_SESSION['csrf_token']=$token;
 	}
+	return $token;
 }
 //发送邮件,用来替代原生mail,多个接受者用分号隔开
 function sendMail($mailTo,$mailSubject,$mailMessage=null)
