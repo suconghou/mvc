@@ -236,14 +236,10 @@ final class App
 	{
 		switch ($type)
 		{
-			case 'time':
-				return round((microtime(true)-self::get('sys-start-time',0)),4);
-			case 'memory':
-				return byteFormat(memory_get_usage()-self::get('sys-start-memory',0));
-			case 'query':
-				return self::get('sys-sql-count',0);
-			default:
-				return ['time'=>round((microtime(true)-self::get('sys-start-time',0)),4),'memory'=>byteFormat(memory_get_usage()-self::get('sys-start-memory',0)),'query'=>self::get('sys-sql-count',0)];
+			case 'time': return round((microtime(true)-self::get('sys-start-time',0)),4);
+			case 'memory': return byteFormat(memory_get_usage()-self::get('sys-start-memory',0));
+			case 'query': return self::get('sys-sql-count',0);
+			default: return ['time'=>round((microtime(true)-self::get('sys-start-time',0)),4),'memory'=>byteFormat(memory_get_usage()-self::get('sys-start-memory',0)),'query'=>self::get('sys-sql-count',0)];
 		}
 	}
 	public static function fileCache($router=[],$delete=false)
@@ -480,12 +476,15 @@ class Response
 	public function view($template,$min=0,$file=false)
 	{
 		$min&&app::httpCache($min);
-		$callback=$file?function(&$buffer) use($min)
+		$callback=($file&&$min)?function(&$buffer) use($min)
 		{
-			$expire=intval($_SERVER['REQUEST_TIME']+($min*60));
-			$router=$GLOBALS['APP']['router'];
-			$file=is_object($router[1])?app::fileCache($router[0]):app::fileCache($router);
-			return is_writable(VAR_PATH_HTML)&&file_put_contents($file,$buffer)&&touch($file,$expire);
+			if(is_writable(VAR_PATH_HTML))
+			{
+				$router=&$GLOBALS['APP']['router'];
+				$file=is_object($router[1])?app::fileCache($router[0]):app::fileCache($router);
+				file_put_contents($file,$buffer)&&touch($file,intval($_SERVER['REQUEST_TIME']+($min*60)));
+			}
+			echo $buffer;
 		}:null;
 		return template($template,$this->data,$callback);
 	}
@@ -542,12 +541,11 @@ function template($v,Array $_data_=null,Closure $callback=null)
 		{
 			ob_start()&&include $_v_;
 			$contents=ob_get_contents();
-			ob_end_clean();
-			return $callback($contents);
+			return ob_end_clean()&&$callback($contents);
 		}
 		return include $_v_;
 	}
-	return app::Error(404,"Template File {$_v_} Not Found");
+	return app::Error(404,"File {$_v_} Not Found");
 }
 
 class Request
