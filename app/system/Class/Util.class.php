@@ -101,6 +101,18 @@ final class Util
 		return dechex($r).dechex($g).dechex($b);
 	}
 
+	public static function opt($key,$default=null)
+	{
+		$key="--{$key}=";
+		foreach ($GLOBALS['argv'] as $item)
+		{
+			if(sizeof($arr=explode($key,$item))==2)
+			{
+				return end($arr);
+			}
+		}
+		return $default;
+	}
 
 
 

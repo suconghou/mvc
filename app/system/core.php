@@ -260,12 +260,13 @@ final class App
 			header('Expires: '.gmdate('D, d M Y H:i:s',$now+$min).' GMT');
 			header("Cache-Control: public, max-age={$min}");
 			header('Last-Modified: '.gmdate('D, d M Y H:i:s',$now).' GMT');
-			return !header('Etag: '.($now+$min)."-{$min}");
+			return !header('ETag: W/'.($now+$min).'-'.$min,true);
 		}
-		else if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'],$_SERVER['HTTP_IF_NONE_MATCH'])&&(count($param=explode('-',$_SERVER['HTTP_IF_NONE_MATCH']))==2))
+		else if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'],$_SERVER['HTTP_IF_NONE_MATCH'])&&(count($param=explode('-',trim($_SERVER['HTTP_IF_NONE_MATCH'],'W/')))==2))
 		{
 			$last=strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
-			list($expired,$cacheTime)=$param;
+			$expired=intval($param[0]);
+			$cacheTime=intval($param[1]);
 			if($expired>$_SERVER['REQUEST_TIME']||($last+$cacheTime>$_SERVER['REQUEST_TIME']))
 			{
 				header('Cache-Control: public, max-age='.($expired-$_SERVER['REQUEST_TIME']),true);
