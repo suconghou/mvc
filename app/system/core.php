@@ -356,10 +356,7 @@ final class App
 	}
 	public static function emit($event,$arguments=[])
 	{
-		if(!empty(self::$global['event'][$event]))
-		{
-			return call_user_func_array(self::$global['event'][$event],is_array($arguments)?$arguments:[$arguments]);
-		}
+		return empty(self::$global['event'][$event])?:call_user_func_array(self::$global['event'][$event],is_array($arguments)?$arguments:[$arguments]);
 	}
 	public static function method($method,Closure $function)
 	{
@@ -367,11 +364,7 @@ final class App
 	}
 	public static function __callStatic($method,$args=null)
 	{
-		if(isset(self::$global['method'][$method]))
-		{
-			return call_user_func_array(self::$global['method'][$method],$args);
-		}
-		return self::Error(500,"Call Error Static Method {$method} In Class ".get_called_class());
+		return isset(self::$global['method'][$method])?call_user_func_array(self::$global['method'][$method],$args):self::Error(500,"Call Error Static Method {$method} In Class ".get_called_class());
 	}
 	public static function Error($errno,$errstr=null,$errfile=null,$errline=null)
 	{
@@ -831,53 +824,30 @@ class DB
 	}
 	final public static function runSql($sql)
 	{
-		try
-		{
-			app::set('sys-sql-count',app::get('sys-sql-count')+1);
-			app::set('sys-sql-last',$sql);
-			return self::ready()->exec($sql);
-		}
-		catch (PDOException $e)
-		{
-			return app::Error(500,"Run Sql [ {$sql} ] Error : ".$e->getMessage());
-		}
+		return self::execute($sql);
 	}
 	final public static function getData($sql)
 	{
-		try
-		{
-			app::set('sys-sql-count',app::get('sys-sql-count')+1);
-			app::set('sys-sql-last',$sql);
-			$rs=self::ready()->query($sql);
-			return $rs===false?[]:$rs->fetchAll(PDO::FETCH_ASSOC);
-		}
-		catch (PDOException $e)
-		{
-			return app::Error(500,"Run Sql [ {$sql} ] Error : ".$e->getMessage());
-		}
+		$rs=self::execute($sql,true);
+		return $rs===false?[]:$rs->fetchAll(PDO::FETCH_ASSOC);
 	}
 	final public static function getLine($sql)
 	{
-		try
-		{
-			app::set('sys-sql-count',app::get('sys-sql-count')+1);
-			app::set('sys-sql-last',$sql);
-			$rs=self::ready()->query($sql);
-			return $rs===false?[]:$rs->fetch(PDO::FETCH_ASSOC);
-		}
-		catch (PDOException $e)
-		{
-			return app::Error(500,"Run Sql [ {$sql} ] Error : ".$e->getMessage());
-		}
+		$rs=self::execute($sql,true);
+		return $rs===false?[]:$rs->fetch(PDO::FETCH_ASSOC);
 	}
 	final public static function getVar($sql)
+	{
+		$rs=self::execute($sql,true);
+		return $rs===false?null:$rs->fetchColumn();
+	}
+	final public static function execute($sql,$isQuery=false)
 	{
 		try
 		{
 			app::set('sys-sql-count',app::get('sys-sql-count')+1);
 			app::set('sys-sql-last',$sql);
-			$rs=self::ready()->query($sql);
-			return $rs===false?null:$rs->fetchColumn();
+			return $isQuery?(self::ready()->query($sql)):(self::ready()->exec($sql));
 		}
 		catch (PDOException $e)
 		{
