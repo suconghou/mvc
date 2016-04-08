@@ -22,7 +22,7 @@ final class App
 		date_default_timezone_set(defined('TIMEZONE')?TIMEZONE:'PRC');
 		defined('DEFAULT_ACTION')||define('DEFAULT_ACTION','index');
 		defined('DEFAULT_CONTROLLER')||define('DEFAULT_CONTROLLER','home');
-		defined('STDIN')||(defined('GZIP')?ob_start("ob_gzhandler"):ob_start());
+		defined('GZIP')?ob_start("ob_gzhandler"):ob_start();
 		list($pharRun,$pharVar,$scriptName)=[substr(ROOT,0,7)=='phar://',substr(VAR_PATH,0,7)=='phar://','/'.trim($_SERVER['SCRIPT_NAME'],'./')];
 		$varPath=$pharVar?str_ireplace(['phar://',$scriptName],null,VAR_PATH):VAR_PATH;
 		define('VAR_PATH_LOG',$varPath.'log')&&define('VAR_PATH_HTML',$varPath.'html');
@@ -510,7 +510,7 @@ function with($class)
 		}
 		if(is_file($file=MODEL_PATH."{$m}.php")||is_file($file=CONTROLLER_PATH."{$m}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$m}.class.php")||is_file($file=LIB_PATH."{$m}.class.php"))
 		{
-			(require_once $file&&class_exists($m))||app::Error(500,"{$file} Does Not Contain Class {$m}");
+			((require_once $file)&&class_exists($m))||app::Error(500,"{$file} Does Not Contain Class {$m}");
 			$class=new ReflectionClass($m);
 			$GLOBALS['APP']['lib'][$m]=$class->newInstanceArgs($arguments);
 			return $GLOBALS['APP']['lib'][$m];
@@ -601,10 +601,6 @@ class Request
 	{
 		return isset($_SERVER['HTTP_X_PJAX'])&&$_SERVER['HTTP_X_PJAX'];
 	}
-	public static function isPost()
-	{
-		return isset($_SERVER['REQUEST_METHOD'])&&$_SERVER['REQUEST_METHOD']==='POST';
-	}
 	public static function isSpider()
 	{
 		$agent=isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:null;
@@ -615,6 +611,11 @@ class Request
 		$agent=isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:null;
 		$regexMatch="/(nokia|iphone|android|motorola|ktouch|samsung|symbian|blackberry|CoolPad|huawei|hosin|htc|smartphone)/i";
 		return $agent?preg_match($regexMatch,$agent):true;
+	}
+	public static function method($method=null,Closure $callback=null)
+	{
+		$type=isset($_SERVER['REQUEST_METHOD'])?$_SERVER['REQUEST_METHOD']:'GET';
+		return $method?(($type===strtoupper($method))?($callback?$callback():true):false):$type;
 	}
 	public static function ua($default=null)
 	{
