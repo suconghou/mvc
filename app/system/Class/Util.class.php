@@ -13,7 +13,7 @@ final class Util
 
 	public static function __callStatic($method,$args=null)
 	{
-		return false;
+		throw new Exception("Call Error Method {$method} In Class".get_called_class(),404);
 	}
 
 	public static function uuid($prefix='',$split='')
@@ -113,8 +113,6 @@ final class Util
 		}
 		return $default;
 	}
-
-
 
 }
 
