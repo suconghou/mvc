@@ -508,7 +508,7 @@ function with($class)
 		{
 			return $GLOBALS['APP']['lib'][$m];
 		}
-		if(is_file($file=MODEL_PATH."{$m}.php")||is_file($file=CONTROLLER_PATH."{$m}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$m}.class.php")||is_file($file=LIB_PATH."{$m}.class.php"))
+		if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.class.php")||is_file($file=LIB_PATH."{$class}.class.php"))
 		{
 			((require_once $file)&&class_exists($m))||app::Error(500,"{$file} Does Not Contain Class {$m}");
 			$class=new ReflectionClass($m);
@@ -525,7 +525,7 @@ function with($class)
 	return new Response($class);
 }
 
-function template($v,Array $_data_=null,Closure $callback=null)
+function template($v,Array $_data_=null,$callback=null)
 {
 	if((is_file($_v_=VIEW_PATH.$v.'.php'))||(is_file($_v_=VIEW_PATH.$v)))
 	{
@@ -534,7 +534,7 @@ function template($v,Array $_data_=null,Closure $callback=null)
 		{
 			ob_start()&&include $_v_;
 			$contents=ob_get_contents();
-			return ob_end_clean()&&$callback($contents);
+			return (ob_end_clean()&&($callback instanceof Closure))?$callback($contents):$contents;
 		}
 		return include $_v_;
 	}
@@ -625,7 +625,7 @@ class Request
 	{
 		return isset($_SERVER['HTTP_REFERER'])?$_SERVER['HTTP_REFERER']:$default;
 	}
-	public static function form(Array $rule,$callback=true,$post=true)
+	public static function verify(Array $rule,$callback=true,$post=true)
 	{
 		$keys=[];
 		$data=$post===true?$_POST:(is_array($post)?$post:$_REQUEST);
@@ -701,7 +701,6 @@ class Validate
 						}
 						else if(!self::check($data[$k],$type))
 						{
-							self::check($data[$k],$type,$msg);
 							throw new Exception($msg,-11);
 						}
 					}
