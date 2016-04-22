@@ -429,7 +429,7 @@ final class App
 					}
 					else
 					{
-						$GLOBALS['APP']['ctl'][$errorController]=new $errorController($router);
+						$GLOBALS['APP']['ctl'][$errorController]=new $errorController($errorRouter);
 					}
 				}
 				$errorPage=is_callable([$GLOBALS['APP']['ctl'][$errorController],$errorRouter[1]])?call_user_func_array([$GLOBALS['APP']['ctl'][$errorController],$errorRouter[1]],[$errormsg]):$errorPage;
@@ -1007,29 +1007,32 @@ function sendMail($mailTo,$mailSubject,$mailMessage=null)
 		}
 		while(true)
 		{
-			if(substr($lastmessage,3,1)!='-' || empty($lastmessage))
+			if(substr($lastmessage,3,1)!='-'||empty($lastmessage))
 			{
 				break;
 			}
 			$lastmessage=fgets($fp,128);
 		}
-		fputs($fp,"AUTH LOGIN\r\n");
-		$lastmessage=fgets($fp,128);
-		if(substr($lastmessage,0,3)!=334)
+		if(!defined('MAIL_AUTH')||defined('MAIL_AUTH')&&MAIL_AUTH)
 		{
-			throw new Exception("AUTH LOGIN - {$lastmessage}",4);
-		}
-		fputs($fp,base64_encode(MAIL_USERNAME)."\r\n");
-		$lastmessage=fgets($fp,128);
-		if(substr($lastmessage,0,3)!=334)
-		{
-			throw new Exception("AUTH LOGIN - {$lastmessage}",5);
-		}
-		fputs($fp,base64_encode(MAIL_PASSWORD)."\r\n");
-		$lastmessage=fgets($fp,128);
-		if(substr($lastmessage,0,3)!=235)
-		{
-			throw new Exception("AUTH LOGIN - {$lastmessage}",6);
+			fputs($fp,"AUTH LOGIN\r\n");
+			$lastmessage=fgets($fp,128);
+			if(substr($lastmessage,0,3)!=334)
+			{
+				throw new Exception("AUTH LOGIN - {$lastmessage}",4);
+			}
+			fputs($fp,base64_encode(MAIL_USERNAME)."\r\n");
+			$lastmessage=fgets($fp,128);
+			if(substr($lastmessage,0,3)!=334)
+			{
+				throw new Exception("AUTH LOGIN - {$lastmessage}",5);
+			}
+			fputs($fp,base64_encode(MAIL_PASSWORD)."\r\n");
+			$lastmessage=fgets($fp,128);
+			if(substr($lastmessage,0,3)!=235)
+			{
+				throw new Exception("AUTH LOGIN - {$lastmessage}",6);
+			}
 		}
 		fputs($fp,"MAIL FROM: <".MAIL_USERNAME.">\r\n");
 		$lastmessage=fgets($fp,128);
