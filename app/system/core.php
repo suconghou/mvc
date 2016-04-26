@@ -22,7 +22,7 @@ final class App
 		date_default_timezone_set(defined('TIMEZONE')?TIMEZONE:'PRC');
 		defined('DEFAULT_ACTION')||define('DEFAULT_ACTION','index');
 		defined('DEFAULT_CONTROLLER')||define('DEFAULT_CONTROLLER','home');
-		defined('GZIP')?ob_start("ob_gzhandler"):ob_start();
+		defined('STDIN')||(defined('GZIP')?ob_start("ob_gzhandler"):ob_start());
 		list($pharRun,$pharVar,$scriptName)=[substr(ROOT,0,7)=='phar://',substr(VAR_PATH,0,7)=='phar://','/'.trim($_SERVER['SCRIPT_NAME'],'./')];
 		$varPath=$pharVar?str_ireplace(['phar://',$scriptName],null,VAR_PATH):VAR_PATH;
 		define('VAR_PATH_LOG',$varPath.'log')&&define('VAR_PATH_HTML',$varPath.'html');
@@ -403,7 +403,7 @@ final class App
 			{
 				if(isset($trace['file']))
 				{
-					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".(DEBUG==1||empty($trace['args'])?null:implode(array_map(function($item){return strlen(print_r($item,true))>80?'...':(is_null($item)?'null':str_replace([PHP_EOL,'  '],null,print_r($item,true)));},$trace['args']),',')).")";
+					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".((!$trace['args']||(!defined('STDIN')&&DEBUG<2))?null:(implode(array_map(function($item){return strlen(print_r($item,true))>90?'...':(is_null($item)?'null':str_replace([PHP_EOL,'  '],null,print_r($item,true)));},$trace['args']),','))).")";
 				}
 			}
 			$li=implode(defined('STDIN')?PHP_EOL:'</p><p>',array_reverse($li));
@@ -648,16 +648,20 @@ class Request
 	}
 	private static function getVar($origin,$var,$default=null,$clean=false)
 	{
-		if(is_array($var)&&$var)
+		if($var)
 		{
-			$data=[];
-			foreach ($var as $k)
+			if(is_array($var))
 			{
-				$data[$k]=isset($origin[$k])?($clean?self::clean($origin[$k],$clean):$origin[$k]):$default;
+				$data=[];
+				foreach ($var as $k)
+				{
+					$data[$k]=isset($origin[$k])?($clean?self::clean($origin[$k],$clean):$origin[$k]):$default;
+				}
+				return $data;
 			}
-			return $data;
+			return isset($origin[$var])?($clean?self::clean($origin[$var],$clean):$origin[$var]):$default;
 		}
-		return isset($origin[$var])?($clean?self::clean($origin[$var],$clean):$origin[$var]):$default;
+		return $origin;
 	}
 	public static function clean($val,$type=null)
 	{
@@ -841,13 +845,13 @@ class DB
 		$rs=self::execute($sql,true);
 		return $rs===false?null:$rs->fetchColumn();
 	}
-	final public static function execute($sql,$isQuery=false)
+	final public static function execute($sql,$isQuery=null)
 	{
+		app::set('sys-sql-last',$sql);
+		app::set('sys-sql-count',app::get('sys-sql-count')+1);
 		try
 		{
-			app::set('sys-sql-count',app::get('sys-sql-count')+1);
-			app::set('sys-sql-last',$sql);
-			return $isQuery?(self::ready()->query($sql)):(self::ready()->exec($sql));
+			return $isQuery===false?(self::ready()->prepare($sql)):($isQuery?(self::ready()->query($sql)):(self::ready()->exec($sql)));
 		}
 		catch (PDOException $e)
 		{
