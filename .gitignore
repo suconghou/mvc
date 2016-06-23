@@ -1,7 +1,9 @@
 /var
 /tmp
+/static
 /.idea
 /.git
+*.db
 *.phar
 *.swp
 *.log

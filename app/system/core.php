@@ -3,8 +3,8 @@
 /**
  * @author suconghou
  * @blog http://blog.suconghou.cn
- * @link http://github.com/suconghou/mvc
- * @version 1.9.5
+ * @link https://github.com/suconghou/mvc
+ * @version 1.9.6.0623
  */
 
 final class App
@@ -55,9 +55,9 @@ final class App
 			{
 				$phar->addFromString(substr($file,strlen(ROOT)),php_strip_whitespace($file));
 			}
-			$phar->setStub((defined('EXE')?"#!/usr/bin/env php".PHP_EOL:null)."<?php Phar::mapPhar('$pharName');require 'phar://{$pharName}/{$script}';__HALT_COMPILER();");
+			$phar->setStub((getenv('EXE')?"#!/usr/bin/env php".PHP_EOL:null)."<?php Phar::mapPhar('$pharName');require 'phar://{$pharName}/{$script}';__HALT_COMPILER();");
 			$phar->stopBuffering();
-			defined('EXE')&&chmod($path,0700);
+			getenv('EXE')&&chmod($path,0700);
 			echo "{$phar->count()} files stored in {$path}".PHP_EOL;
 		}
 		catch(Exception $e)
@@ -238,8 +238,8 @@ final class App
 		{
 			case 'time': return round((microtime(true)-self::get('sys-start-time',0)),4);
 			case 'memory': return byteFormat(memory_get_usage()-self::get('sys-start-memory',0));
-			case 'query': return self::get('sys-sql-count',0);
-			default: return ['time'=>round((microtime(true)-self::get('sys-start-time',0)),4),'memory'=>byteFormat(memory_get_usage()-self::get('sys-start-memory',0)),'query'=>self::get('sys-sql-count',0)];
+			case 'query': return DB::$sqlCount?:0;
+			default: return ['time'=>round((microtime(true)-self::get('sys-start-time',0)),4),'memory'=>byteFormat(memory_get_usage()-self::get('sys-start-memory',0)),'query'=>DB::$sqlCount?:0];
 		}
 	}
 	public static function fileCache($router=[],$delete=false)
@@ -395,7 +395,7 @@ final class App
 			$code=500;
 		}
 		$errno==404?app::log($errormsg,'DEBUG',$errno):app::log($errormsg,'ERROR');
-		defined('STDIN')||(app::get('sys-error')&&exit("Error Found In Error Handler:{$errormsg}"))||(header("Error-At:{$errstr}",true,$code)||app::set('sys-error',true));
+		defined('STDIN')||(app::get('sys-error')&&exit("Error Found In Error Handler:{$errormsg}"))||(header('Error-At:'.str_replace(PHP_EOL,null,$errstr),true,$code)||app::set('sys-error',true));
 		if(DEBUG||defined('STDIN'))
 		{
 			$li=[];
@@ -442,7 +442,7 @@ final class App
 		if($lastError=error_get_last())
 		{
 			$errormsg="ERROR({$lastError['type']}) {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}";
-			headers_sent()||header('Error-At:'.(DEBUG?"{$lastError['file']}:{$lastError['line']}=>{$lastError['message']}":basename($lastError['file']).":{$lastError['line']}"),true,500);
+			headers_sent()||header('Error-At:'.str_replace(PHP_EOL,null,DEBUG?"{$lastError['file']}:{$lastError['line']}=>{$lastError['message']}":(basename($lastError['file']).":{$lastError['line']}")),true,500);
 			return app::log($errormsg,'ERROR');
 		}
 	}
@@ -796,6 +796,8 @@ class Validate
 class DB
 {
 	private static $pdo;
+	public static $lastSql;
+	public static $sqlCount;
 	final private static function init($dbDsn,$dbUser,$dbPass)
 	{
 		if(!self::$pdo)
@@ -833,29 +835,28 @@ class DB
 	final public static function getData($sql)
 	{
 		$rs=self::execute($sql,true);
-		return $rs===false?[]:$rs->fetchAll(PDO::FETCH_ASSOC);
+		return $rs===false?:$rs->fetchAll(PDO::FETCH_ASSOC);
 	}
 	final public static function getLine($sql)
 	{
 		$rs=self::execute($sql,true);
-		return $rs===false?[]:$rs->fetch(PDO::FETCH_ASSOC);
+		return $rs===false?:$rs->fetch(PDO::FETCH_ASSOC);
 	}
 	final public static function getVar($sql)
 	{
 		$rs=self::execute($sql,true);
-		return $rs===false?null:$rs->fetchColumn();
+		return $rs===false?:$rs->fetchColumn();
 	}
 	final public static function execute($sql,$isQuery=null)
 	{
-		app::set('sys-sql-last',$sql);
-		app::set('sys-sql-count',app::get('sys-sql-count')+1);
 		try
 		{
+			(self::$lastSql=$sql)&&self::$sqlCount++;
 			return $isQuery===false?(self::ready()->prepare($sql)):($isQuery?(self::ready()->query($sql)):(self::ready()->exec($sql)));
 		}
 		catch (PDOException $e)
 		{
-			return app::Error(500,"Run Sql [ {$sql} ] Error : ".$e->getMessage());
+			return app::Error(500,"Execute [ {$sql} ] Error : ".$e->getMessage());
 		}
 	}
 	final public static function lastId()
