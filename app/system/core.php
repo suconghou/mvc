@@ -4,7 +4,7 @@
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.9.6.0623
+ * @version 1.9.6.0731
  */
 
 final class App
@@ -368,9 +368,9 @@ final class App
 	}
 	public static function Error($errno,$errstr=null,$errfile=null,$errline=null)
 	{
-		if(is_int($errno)&&(DEBUG<2)&&in_array($errno,[E_NOTICE,E_WARNING]))
+		if(($errno===E_WARNING&&substr($errstr,0,3)=='PDO')||(is_int($errno)&&(DEBUG<2)&&in_array($errno,[E_NOTICE,E_WARNING])))
 		{
-			return false;
+			return;
 		}
 		else if(is_object($errno))
 		{
@@ -395,7 +395,7 @@ final class App
 			$code=500;
 		}
 		$errno==404?app::log($errormsg,'DEBUG',$errno):app::log($errormsg,'ERROR');
-		defined('STDIN')||(app::get('sys-error')&&exit("Error Found In Error Handler:{$errormsg}"))||(header('Error-At:'.str_replace(PHP_EOL,null,$errstr),true,$code)||app::set('sys-error',true));
+		defined('STDIN')||(app::get('sys-error')&&exit("Error Found In Error Handler:{$errormsg}"))||(header('Error-At:'.preg_replace('/\s/',null,$errstr),true,$code)||app::set('sys-error',true));
 		if(DEBUG||defined('STDIN'))
 		{
 			$li=[];
@@ -442,7 +442,7 @@ final class App
 		if($lastError=error_get_last())
 		{
 			$errormsg="ERROR({$lastError['type']}) {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}";
-			headers_sent()||header('Error-At:'.str_replace(PHP_EOL,null,DEBUG?"{$lastError['file']}:{$lastError['line']}=>{$lastError['message']}":(basename($lastError['file']).":{$lastError['line']}")),true,500);
+			headers_sent()||header('Error-At:'.preg_replace('/\s/',null,DEBUG?"{$lastError['file']}:{$lastError['line']}=>{$lastError['message']}":(basename($lastError['file']).":{$lastError['line']}")),true,500);
 			return app::log($errormsg,'ERROR');
 		}
 	}
@@ -802,7 +802,7 @@ class DB
 	{
 		if(!self::$pdo)
 		{
-			$options=[PDO::ATTR_PERSISTENT=>TRUE,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>1];
+			$options=[PDO::ATTR_PERSISTENT=>TRUE,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>3];
 			try
 			{
 				self::$pdo=new PDO($dbDsn,$dbUser,$dbPass,$options);
