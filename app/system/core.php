@@ -4,7 +4,7 @@
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.9.6.0731
+ * @version 1.9.7
  */
 
 final class App
@@ -18,7 +18,7 @@ final class App
 		set_include_path(LIB_PATH);
 		set_error_handler(['app','Error']);
 		set_exception_handler(['app','Error']);
-		register_shutdown_function(['app','Shutdown']);
+		register_shutdown_function(['app','shutdown']);
 		date_default_timezone_set(defined('TIMEZONE')?TIMEZONE:'PRC');
 		defined('DEFAULT_ACTION')||define('DEFAULT_ACTION','index');
 		defined('DEFAULT_CONTROLLER')||define('DEFAULT_CONTROLLER','home');
@@ -226,10 +226,10 @@ final class App
 		}
 		return [];
 	}
-	public static function async($router=null,Closure $callback=null)
+	public static function async($router=null,closure $callback=null)
 	{
 		function_exists('fastcgi_finish_request')&&fastcgi_finish_request();
-		$data=($router instanceof Closure)?$router():self::run($router);
+		$data=($router instanceof closure)?$router():self::run($router);
 		return $callback?$callback($data):$data;
 	}
 	public static function cost($type=null)
@@ -315,12 +315,12 @@ final class App
 		}
 		return true;
 	}
-	public static function timer(Closure $function,$exit=false,Closure $callback=null)
+	public static function timer(closure $function,$exit=false,closure $callback=null)
 	{
 		while(true)
 		{
 			$data=$function();
-			$break=($exit instanceof Closure)?$exit($data):$exit;
+			$break=($exit instanceof closure)?$exit($data):$exit;
 			if($break)
 			{
 				return $callback?$callback($data):$data;
@@ -358,7 +358,7 @@ final class App
 	{
 		return empty(self::$global['event'][$event])?:call_user_func_array(self::$global['event'][$event],is_array($arguments)?$arguments:[$arguments]);
 	}
-	public static function method($method,Closure $function)
+	public static function method($method,closure $function)
 	{
 		return self::$global['method'][$method]=$function;
 	}
@@ -396,7 +396,7 @@ final class App
 		}
 		$errno==404?app::log($errormsg,'DEBUG',$errno):app::log($errormsg,'ERROR');
 		defined('STDIN')||(app::get('sys-error')&&exit("Error Found In Error Handler:{$errormsg}"))||(header('Error-At:'.preg_replace('/\s/',null,$errstr),true,$code)||app::set('sys-error',true));
-		if(DEBUG||defined('STDIN'))
+		if(DEBUG||getenv('EXE'))
 		{
 			$li=[];
 			foreach($backtrace as $trace)
@@ -437,7 +437,7 @@ final class App
 			exit($errorPage);
 		}
 	}
-	public static function Shutdown()
+	public static function shutdown()
 	{
 		if($lastError=error_get_last())
 		{
@@ -451,7 +451,7 @@ final class App
 class Response
 {
 	private $data;
-	public function __construct(Array &$data)
+	public function __construct(array &$data)
 	{
 		$this->data=&$data;
 	}
@@ -481,7 +481,7 @@ class Response
 		}:null;
 		return template($template,$this->data,$callback);
 	}
-	public function json(Array $msg,$min=0,$callback=null)
+	public function json(array $msg,$min=0,$callback=null)
 	{
 		$min&&app::httpCache($min);
 		if($msg)
@@ -515,7 +515,7 @@ function with($class)
 			$GLOBALS['APP']['lib'][$m]=$class->newInstanceArgs($arguments);
 			return $GLOBALS['APP']['lib'][$m];
 		}
-		if(is_file($file=LIB_PATH.$m.'.php'))
+		if(is_file($file=LIB_PATH.$class.'.php')||is_file($file=LIB_PATH.$class.'.phar'))
 		{
 			unset($GLOBALS['APP']['lib'][$m]);
 			return require_once $file;
@@ -525,7 +525,7 @@ function with($class)
 	return new Response($class);
 }
 
-function template($v,Array $_data_=null,$callback=null)
+function template($v,array $_data_=null,$callback=null)
 {
 	if((is_file($_v_=VIEW_PATH.$v.'.php'))||(is_file($_v_=VIEW_PATH.$v)))
 	{
@@ -534,7 +534,7 @@ function template($v,Array $_data_=null,$callback=null)
 		{
 			ob_start()&&include $_v_;
 			$contents=ob_get_contents();
-			return (ob_end_clean()&&($callback instanceof Closure))?$callback($contents):$contents;
+			return (ob_end_clean()&&($callback instanceof closure))?$callback($contents):$contents;
 		}
 		return include $_v_;
 	}
@@ -612,7 +612,7 @@ class Request
 		$regexMatch="/(nokia|iphone|android|motorola|ktouch|samsung|symbian|blackberry|CoolPad|huawei|hosin|htc|smartphone)/i";
 		return $agent?preg_match($regexMatch,$agent):true;
 	}
-	public static function method($method=null,Closure $callback=null)
+	public static function method($method=null,closure $callback=null)
 	{
 		$type=isset($_SERVER['REQUEST_METHOD'])?$_SERVER['REQUEST_METHOD']:'GET';
 		return $method?(($type===strtoupper($method))?($callback?$callback():true):false):$type;
@@ -625,7 +625,7 @@ class Request
 	{
 		return isset($_SERVER['HTTP_REFERER'])?$_SERVER['HTTP_REFERER']:$default;
 	}
-	public static function verify(Array $rule,$callback=true,$post=true)
+	public static function verify(array $rule,$callback=true,$post=true)
 	{
 		$keys=[];
 		$data=$post===true?$_POST:(is_array($post)?$post:$_REQUEST);
@@ -695,7 +695,7 @@ class Validate
 				{
 					foreach($item as $type=>$msg)
 					{
-						if($msg instanceof Closure)
+						if($msg instanceof closure)
 						{
 							$data[$k]=$msg($data[$k],$k);
 						}
@@ -718,7 +718,7 @@ class Validate
 		catch(Exception $e)
 		{
 			$data=['code'=>$e->getCode(),'msg'=>$e->getMessage()];
-			return $callback?(($callback instanceof Closure)?$callback($data,$e):json($data)):false;
+			return $callback?(($callback instanceof closure)?$callback($data,$e):json($data)):false;
 		}
 		foreach($switch as $from=>$to)
 		{
@@ -802,7 +802,7 @@ class DB
 	{
 		if(!self::$pdo)
 		{
-			$options=[PDO::ATTR_PERSISTENT=>TRUE,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>3];
+			$options=[PDO::ATTR_PERSISTENT=>true,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>3];
 			try
 			{
 				self::$pdo=new PDO($dbDsn,$dbUser,$dbPass,$options);
@@ -919,7 +919,7 @@ function cookie($key,$val=null,$expire=0)
 	}
 	return call_user_func_array('setcookie',func_get_args());
 }
-function json(Array $data,$callback=null)
+function json(array $data,$callback=null)
 {
 	$data=json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
 	$callback=$callback===true?(empty($_GET['callback'])?null:$_GET['callback']):$callback;
@@ -971,7 +971,7 @@ function decrypt($input,$key=null)
 	}
 	return trim(mcrypt_decrypt(MCRYPT_RIJNDAEL_128,md5($key),base64_decode($input),MCRYPT_MODE_ECB,mcrypt_create_iv(mcrypt_get_iv_size(MCRYPT_BLOWFISH,MCRYPT_MODE_ECB),MCRYPT_DEV_URANDOM)));
 }
-function csrf_token($check=false,$name='_token',Closure $callback=null)
+function csrf_token($check=false,$name='_token',closure $callback=null)
 {
 	isset($_SESSION)||session_start();
 	$token=isset($_SESSION['csrf_token'])?$_SESSION['csrf_token']:null;
