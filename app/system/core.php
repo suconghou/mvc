@@ -4,7 +4,7 @@
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.9.7
+ * @version 1.9.8
  */
 
 final class App
@@ -125,13 +125,12 @@ final class App
 			if(is_file($file))
 			{
 				$expire=filemtime($file);
-				$now=$_SERVER['REQUEST_TIME'];
-				if($now<$expire)
+				if($_SERVER['REQUEST_TIME']<$expire)
 				{
 					header('Expires: '.gmdate('D, d M Y H:i:s',$expire).' GMT');
-					header('Cache-Control: public, max-age='.($expire-$now));
-					header('X-Cache: Hit',true);
-					return isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])?header('Last-Modified: '.$_SERVER['HTTP_IF_MODIFIED_SINCE'],true,304):(header('Last-Modified: '.gmdate('D, d M Y H:i:s',$now).' GMT',true,200)||readfile($file));
+					header('Cache-Control: public, max-age='.($expire-$_SERVER['REQUEST_TIME']));
+					header('X-Cache: Hit');
+					return isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])?header('Last-Modified: '.$_SERVER['HTTP_IF_MODIFIED_SINCE'],true,304):(header('Last-Modified: '.gmdate('D, d M Y H:i:s',$_SERVER['REQUEST_TIME']).' GMT',true,200)||readfile($file));
 				}
 				unlink($file);
 			}
@@ -250,22 +249,20 @@ final class App
 	}
 	public static function httpCache($min=0)
 	{
-		if($min=intval($min*60))
+		if($min=$min*60)
 		{
-			$now=$_SERVER['REQUEST_TIME'];
-			header('Expires: '.gmdate('D, d M Y H:i:s',$now+$min).' GMT');
+			header('Expires: '.gmdate('D, d M Y H:i:s',$_SERVER['REQUEST_TIME']+$min).' GMT');
 			header("Cache-Control: public, max-age={$min}");
-			header('Last-Modified: '.gmdate('D, d M Y H:i:s',$now).' GMT');
-			return !header('ETag: W/'.($now+$min).'-'.$min,true);
+			header('Last-Modified: '.gmdate('D, d M Y H:i:s',$_SERVER['REQUEST_TIME']).' GMT');
+			return !header('ETag: W/'.($_SERVER['REQUEST_TIME']+$min).'-'.$min);
 		}
-		else if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'],$_SERVER['HTTP_IF_NONE_MATCH'])&&(count($param=explode('-',trim($_SERVER['HTTP_IF_NONE_MATCH'],'W/')))==2))
+		else if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'],$_SERVER['HTTP_IF_NONE_MATCH'])&&(count($param=explode('-',ltrim($_SERVER['HTTP_IF_NONE_MATCH'],'W/')))==2))
 		{
 			$last=strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
-			$expired=intval($param[0]);
-			$cacheTime=intval($param[1]);
+			list($expired,$cacheTime)=$param;
 			if($expired>$_SERVER['REQUEST_TIME']||($last+$cacheTime>$_SERVER['REQUEST_TIME']))
 			{
-				header('Cache-Control: public, max-age='.($expired-$_SERVER['REQUEST_TIME']),true);
+				header('Cache-Control: public, max-age='.($expired-$_SERVER['REQUEST_TIME']));
 				return !header('Expires: '.gmdate('D, d M Y H:i:s',$expired).' GMT',true,304);
 			}
 		}
@@ -290,7 +287,7 @@ final class App
 		{
 			$data=[$key=>$value];
 		}
-		return file_put_contents($file,serialize($data))?true:false;
+		return file_put_contents($file,serialize($data));
 	}
 	public static function getItem($key,$default=null)
 	{
@@ -311,7 +308,7 @@ final class App
 		if(is_file($file)&&is_array($data=unserialize(file_get_contents($file)))&&isset($data[$key]))
 		{
 			unset($data[$key]);
-			return file_put_contents($file,serialize($data))?true:false;
+			return file_put_contents($file,serialize($data));
 		}
 		return true;
 	}
@@ -475,7 +472,7 @@ class Response
 			{
 				$router=&$GLOBALS['APP']['router'];
 				$file=is_object($router[1])?app::fileCache($router[0]):app::fileCache($router);
-				file_put_contents($file,$buffer)&&touch($file,intval($_SERVER['REQUEST_TIME']+($min*60)));
+				file_put_contents($file,$buffer)&&touch($file,$_SERVER['REQUEST_TIME']+($min*60));
 			}
 			echo $buffer;
 		}:null;
@@ -944,7 +941,7 @@ function redirect($url,$timeout=0)
 	{
 		header("Refresh:{$timeout};url={$url}",true,302);
 	}
-	exit(header('Cache-Control:no-cache, no-store, max-age=0, must-revalidate',true));
+	exit(header('Cache-Control:no-cache, no-store, max-age=0, must-revalidate'));
 }
 function baseUrl($path=null)
 {

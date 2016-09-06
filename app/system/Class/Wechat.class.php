@@ -14,19 +14,20 @@ class Wechat
 
 	private static $msgdata;
 	private static $response;
-	
+
+	private static $qy;
 
 	function __construct()
 	{
-		
+
 	}
-	
+
 	public static function ready($token=null,$appid=null,$secret=null)
 	{
 		self::$token=$token;
-	    return self::signature($token,$appid,$secret);
+		return self::signature($token,$appid,$secret);
 	}
-	
+
 	public static function signature($token=null,$appid=null,$secret=null)
 	{
 		list($signature,$timestamp,$nonce,$echostr)=array_values(self::get(array('signature','timestamp','nonce','echostr')));
@@ -42,9 +43,93 @@ class Wechat
 		{
 			return self::json(array('code'=>-100,'msg'=>'signature check failed'));
 		}
-
 	}
-	
+
+	public static function setAppid($appid,$secret=null)
+	{
+		self::$appid=$appid;
+		if($secret)
+		{
+			self::$secret=$secret;
+		}
+	}
+
+	public static function getSignPackage($appid,$secret,$qy=true)
+	{
+		self::$appid=$appid;
+		self::$secret=$secret;
+		self::$qy=$qy;
+		$key='jsapiTicket';
+		$jsapiTicket=self::session($key);
+		if(!$jsapiTicket)
+		{
+			$accKey='accessToken';
+			$accessToken=self::session($accKey);
+			if(!$accessToken)
+			{
+				$accUri=self::$qy?("/gettoken?corpid=".self::$appid."&corpsecret=".self::$secret):("/token?grant_type=client_credential&appid=".self::$appid."&secret=".self::$secret);
+				$ret=self::url($accUri);
+				$accData=json_decode($ret,true);
+				if(isset($accData['access_token']))
+				{
+					$accessToken=$accData['access_token'];
+					self::session($accKey,$accessToken);
+				}
+				else
+				{
+					throw new Exception("Get Access Token Error: ".$ret,1);
+				}
+			}
+			$uri=self::$qy?"/get_jsapi_ticket?access_token=$accessToken":"/ticket/getticket?type=jsapi&access_token=$accessToken";
+			$ret=self::url($uri);
+			$data=json_decode($ret,true);
+			if(isset($data['ticket']))
+			{
+				$jsapiTicket=$data['ticket'];
+				self::session($key,$jsapiTicket);
+			}
+			else
+			{
+				throw new Exception("Get Jsapi Ticket Error: ".$ret,2);
+			}
+		}
+		$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+		$url="$protocol$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+		$timestamp = time();
+		$nonceStr = self::createNonceStr();
+		// 这里参数的顺序要按照 key 值 ASCII 码升序排序
+		$string = "jsapi_ticket=$jsapiTicket&noncestr=$nonceStr&timestamp=$timestamp&url=$url";
+		$signature = sha1($string);
+		$signPackage =
+		[
+			"appId"     => self::$appid,
+			"nonceStr"  => $nonceStr,
+			"timestamp" => $timestamp,
+			"url"       => $url,
+			"signature" => $signature,
+			"rawString" => $string
+		];
+		return $signPackage;
+	}
+
+	private static function createNonceStr($length = 16)
+	{
+		$chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+		$str = "";
+		for ($i = 0; $i < $length; $i++)
+		{
+			$str .= substr($chars, mt_rand(0, strlen($chars) - 1), 1);
+		}
+		return $str;
+	}
+
+	public static function getUserAccessToken($code)
+	{
+		$url="https://api.weixin.qq.com/sns/oauth2/access_token?appid=".self::$appid."&secret=".self::$secret."&code=".$code."&grant_type=authorization_code";
+		$data=self::url($url);
+		return json_decode($data,true);
+	}
+
 	public static function onMessage($token,$echostr)
 	{
 		$data=self::getMsgData();
@@ -81,9 +166,9 @@ class Wechat
 		{
 			return self::response($echostr);
 		}
-		
+
 	}
-	
+
 	/**
 	 * 普通消息类型text/image/voice/video/shortvideo/location/link
 	 * 事件推送类型event
@@ -93,16 +178,16 @@ class Wechat
 		$event=strtolower($event);
 		return self::$event[$event]=$callback;
 	}
-	
+
 	/**
 	 * 事件推送类型event包括subscribe/unsubscribe/scan/location/click/view
 	 */
 	public static function event($event,Closure $callback)
 	{
 		$event=strtolower($event);
-		return self::$event["event.{$event}"]=$callback;	
+		return self::$event["event.{$event}"]=$callback;
 	}
-	
+
 	/**
 	 * 解除事件绑定,event须添加event.
 	 */
@@ -112,14 +197,14 @@ class Wechat
 		unset($event[$event]);
 		return $event;
 	}
-	
+
 	public static function sendText($text,$toUser,$fromUser)
 	{
 		$now=time();
 		$data=array('<xml>',"<ToUserName><![CDATA[{$toUser}]]></ToUserName>","<FromUserName><![CDATA[{$fromUser}]]></FromUserName>","<CreateTime>{$now}</CreateTime>",'<MsgType><![CDATA[text]]></MsgType>',"<Content><![CDATA[{$text}]]></Content>",'</xml>');
 		return self::sendMsgData(implode(PHP_EOL,$data));
 	}
-	
+
 	public static function sendImg($file,$toUser,$fromUser)
 	{
 		$now=time();
@@ -132,28 +217,28 @@ class Wechat
 		}
 		return false;
 	}
-	
+
 	public static function sendVoice($media_id,$toUser,$fromUser)
 	{
 		$now=time();
 		$data=array('<xml>',"<ToUserName><![CDATA[{$toUser}]]></ToUserName>","<FromUserName><![CDATA[{$fromUser}]]></FromUserName>","<CreateTime>{$now}</CreateTime>",'<MsgType><![CDATA[voice]]></MsgType>','<Voice>',"<MediaId><![CDATA[{$media_id}]]></MediaId>",'</Voice>','</xml>');
 		return self::sendMsgData(implode(PHP_EOL,$data));
 	}
-	
+
 	public static function sendVideo($media_id,$toUser,$fromUser,$title=null,$description=null)
 	{
 		$now=time();
 		$data=array('<xml>',"<ToUserName><![CDATA[{$toUser}]]></ToUserName>","<FromUserName><![CDATA[{$fromUser}]]></FromUserName>","<CreateTime>{$now}</CreateTime>",'<MsgType><![CDATA[video]]></MsgType>','<Video>',"<MediaId><![CDATA[{$media_id}]]></MediaId>","<Title><![CDATA[{$title}]]></Title>","<Description><![CDATA[{$description}]]></Description>",'</Video>','</xml>');
 		return self::sendMsgData(implode(PHP_EOL,$data));
 	}
-	
+
 	public static function sendMusic($MUSIC_Url,$toUser,$fromUser,$TITLE=null,$DESCRIPTION=null,$HQ_MUSIC_Url=null,$media_id=null)
 	{
 		$now=time();
 		$data=array('<xml>',"<ToUserName><![CDATA[{$toUser}]]></ToUserName>","<FromUserName><![CDATA[{$fromUser}]]></FromUserName>","<CreateTime>{$now}</CreateTime>",'<MsgType><![CDATA[music]]></MsgType>','<Music>',"<Title><![CDATA[{$TITLE}]]></Title>","<Description><![CDATA[{$DESCRIPTION}]]></Description>","<MusicUrl><![CDATA[{$MUSIC_Url}]]></MusicUrl>","<HQMusicUrl><![CDATA[{$HQ_MUSIC_Url}]]></HQMusicUrl>","<ThumbMediaId><![CDATA[{$media_id}]]></ThumbMediaId>",'</Music>','</xml>');
 		return self::sendMsgData(implode(PHP_EOL,$data));
 	}
-	
+
 	public static function sendNews(Array $news,$toUser,$fromUser)
 	{
 		$now=time();
@@ -172,7 +257,7 @@ class Wechat
 		$data=array('<xml>',"<ToUserName><![CDATA[{$toUser}]]></ToUserName>","<FromUserName><![CDATA[{$fromUser}]]></FromUserName>","<CreateTime>{$now}</CreateTime>",'<MsgType><![CDATA[news]]></MsgType>',"<ArticleCount>{$count}</ArticleCount>",'<Articles>',$items,'</Articles>','</xml>');
 		return self::sendMsgData(implode(PHP_EOL,$data));
 	}
-	
+
 	public static function sendTextToCurrent($text)
 	{
 		$msgdata=&self::$msgdata;
@@ -245,7 +330,7 @@ class Wechat
 		$token=self::token();
 		return self::url("/media/get?access_token={$token}&media_id={$media_id}");
 	}
-	
+
 	public static function uploadImg($file)
 	{
 		if(is_file($file))
@@ -298,7 +383,7 @@ class Wechat
 	{
 		return json_decode(json_encode(simplexml_load_string(file_get_contents('php://input'),null,LIBXML_NOCDATA)),true);
 	}
-	
+
 	/**
 	 * 所有消息回复中枢
 	 */
@@ -309,8 +394,9 @@ class Wechat
 
 	public static function url($uri,$data=array(),$post=false)
 	{
-		$url=self::baseurl.trim($uri,'/?');
-		if(!$post&&$data)
+		$baseurl=self::$qy?str_replace('https://api','https://qyapi',self::baseurl):self::baseurl;
+		$url=(substr($uri,0,4)=='http')?trim($uri,'/?'):($baseurl.trim($uri,'/?'));
+		if(!$post&&!empty($data))
 		{
 			$url=$url.(stripos($url,'?')?'&':'?').(is_array($data)?http_build_query($data):$data);
 		}
@@ -349,10 +435,11 @@ class Wechat
 
 	}
 
+
 	/**
 	 * 本地存储会话数据
 	 */
-	public static function session($key,$value=null)
+	public static function session($key,$value=null,$expire=3600)
 	{
 		$file=sys_get_temp_dir().DIRECTORY_SEPARATOR."wechat.data";
 		is_file($file)||touch($file);
@@ -360,11 +447,19 @@ class Wechat
 		$data=is_array($data)?$data:array();
 		if($value)
 		{
+			$value=['v'=>$value,'t'=>time()+$expire];
 			$data[$key]=serialize($value);
 			return file_put_contents($file,serialize($data));
 		}
-		$value=isset($data[$key])?$data[$key]:null;
-		return is_null($value)?$value:unserialize($value);
+		if(isset($data[$key]))
+		{
+			$value=unserialize($data[$key]);
+			if($value['t']>time())
+			{
+				return $value['v'];
+			}
+		}
+		return null;
 	}
 
 	private static function getRequestVar($origin,$key,$default=null)
@@ -396,7 +491,7 @@ class Wechat
 		header('Content-Type: text/json',true,200);
 		self::response(json_encode($data,JSON_UNESCAPED_UNICODE));
 	}
-	
+
 	private static function response($text)
 	{
 		if(!self::isEnd())
@@ -417,15 +512,16 @@ class Wechat
 		return self::$response;
 	}
 
-	public static function log($msg,$debug='DEBUG')
+	public static function log($msg,$type='DEBUG')
 	{
-		$logFunction=isset(self::$event['log'])?self::$event['log']:null;
-		return $logFunction?$logFunction($msg,$debug):$msg;
+		$path=date('Y-m-d').'.log';
+		$msg=$type.'-'.date('Y-m-d H:i:s').' ==> '.(is_scalar($msg)?$msg:PHP_EOL.print_r($msg,true)).PHP_EOL;
+		return error_log($msg,3,$path);
 	}
 
 	public function __destruct()
 	{
-		
+
 	}
 
 
