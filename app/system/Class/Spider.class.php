@@ -13,19 +13,19 @@ Spider::query($url)->find('img')->result('src');
 class Spider
 {
 
-	private static $headers=array('User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.85 Safari/537.36','Accept'=>'*/*');
+	private static $headers=['User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.85 Safari/537.36','Accept: */*'];
 
-	private static $jqueryInstance=array();
+	private static $jqueryInstance=[];
 
 	public static function setHeader($key,$value=null)
 	{
 		if($value)
 		{
-			self::$headers[$key]=$value;
+			self::$headers[]="{$key}: {$value}";
 		}
 		else if(is_array($key))
 		{
-			self::$headers=array_merge(self::$headers,$key);
+			self::$headers=$key;
 		}
 	}
 
@@ -39,22 +39,13 @@ class Spider
 	public static function html($html=null,$encoding=null)
 	{
 		self::resetJqueryInstance();
-		if(is_array($html))
+		$html=is_array($html)?$html:[$html];
+		foreach ($html as $item)
 		{
-			foreach ($html as $item)
-			{
-				$instance=self::getJqueryInstance($item,$encoding);
-				self::$jqueryInstance[]=$instance;
-			}
-			return $instance;
-		}
-		else
-		{
-			$instance=self::getJqueryInstance($html,$encoding);
+			$instance=self::getJqueryInstance($item,$encoding);
 			self::$jqueryInstance[]=$instance;
-			return $instance;
 		}
-
+		return $instance;
 	}
 
 	public static function jqueryInstanceList()
@@ -64,16 +55,12 @@ class Spider
 
 	private static function resetJqueryInstance()
 	{
-		self::$jqueryInstance=array();
+		self::$jqueryInstance=[];
 	}
 
 	private static function getJqueryInstance($html=null,$encoding=null)
 	{
-		if(!$html)
-		{
-			$html="<html></html>";
-		}
-		return Jquery::ready($html,$encoding);
+		return Jquery::ready($html?$html:'<html></html>',$encoding);
 	}
 
 	public static function get($urls,$timeout=20)
@@ -81,7 +68,7 @@ class Spider
 		return self::http($urls,$timeout);
 	}
 
-	public static function post($urls,$timeout=40,$data=array())
+	public static function post($urls,$timeout=40,$data=[])
 	{
 		return self::http($urls,$timeout,$data);
 	}
@@ -140,8 +127,7 @@ class Jquery
 {
 	private $xpath;
 
-
-	private $resultList=array();
+	private $resultList=[];
 
 	function __construct(DOMXpath $xpath)
 	{
@@ -195,7 +181,7 @@ class Jquery
 			//子查询
 			if(is_array($resultList))
 			{
-				$result=array();
+				$result=[];
 				foreach ($resultList as $NodeList)
 				{
 					//批量中的子查询
@@ -286,7 +272,7 @@ class Jquery
 	function result($attr=null,$findstr=null,$callback=null)
 	{
 		$resultList=&$this->resultList;
-		$results=array();
+		$results=[];
 		if(is_array($resultList))
 		{
 			foreach ($resultList as $item)
@@ -321,7 +307,7 @@ class Jquery
 			}
 			else
 			{
-				$array=array();
+				$array=[];
 				for ($i = 0, $length = $NodeList->length; $i < $length; ++$i)
 				{
 					if ($NodeList->item($i)->nodeType == XML_ELEMENT_NODE)
@@ -385,7 +371,7 @@ class Jquery
 				case 'tagName':
 					return is_callable($callback)?($callback($node->tagName)):$node->tagName;
 				case 'attrs':
-					$attributes=array();
+					$attributes=[];
 					if($node->attributes->length)
 					{
 						foreach($node->attributes as $key => $attr)
@@ -409,7 +395,7 @@ class Jquery
 
 	private function reset()
 	{
-		return $this->resultList=array();
+		return $this->resultList=[];
 	}
 
 	private static function elementsToArray($result,$idx=null)
@@ -420,7 +406,7 @@ class Jquery
 		}
 		else
 		{
-			$array = array();
+			$array = [];
 			for ($i = 0, $length = $result->length; $i < $length; ++$i)
 			{
 				if ($result->item($i)->nodeType == XML_ELEMENT_NODE)
@@ -436,7 +422,7 @@ class Jquery
 	{
 		if($element)
 		{
-			$attributes=array();
+			$attributes=[];
 			$arr=array('name'=>$element->nodeName,'text'=>$element->textContent,'dom'=>&$element,'attributes'=>&$attributes,'children'=>self::elementsToArray($element->childNodes));
 			if($element->attributes->length)
 			{
