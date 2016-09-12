@@ -76,43 +76,43 @@ class Spider
 	public static function http($urls,$timeout=30,$data=null)
 	{
 		if(!is_array($urls))
-        {
-            $ch=curl_init($urls);
-            curl_setopt_array($ch,array(CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_FOLLOWLOCATION=>1,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
-            $data&&curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data));
-            $content=curl_exec($ch);
-            curl_close($ch);
-            return $content;
-        }
-        else
-        {
-            $mh=curl_multi_init();
-            foreach ($urls as &$url)
-            {
-                $ch=curl_init($url);
-                curl_setopt_array($ch,array(CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_FOLLOWLOCATION=>1,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
-                $data&&curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data));
-                curl_multi_add_handle($mh,$ch);
-                $url=$ch;
-            }
-            $runing=null;
-            do
-            {
-                curl_multi_exec($mh,$runing);
-                curl_multi_select($mh);
-            }
-            while($runing>0);
-            foreach($urls as &$ch)
-            {
-                $content=curl_multi_getcontent($ch);
-                curl_multi_remove_handle($mh,$ch);
-                curl_close($ch);
-                $ch=$content;
-            }
-            curl_multi_close($mh);
-            $content=count($urls)>1?$urls:reset($urls);
-            return $content;
-        }
+		{
+			$ch=curl_init($urls);
+			curl_setopt_array($ch,array(CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_FOLLOWLOCATION=>1,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
+			$data&&curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data));
+			$content=curl_exec($ch);
+			curl_close($ch);
+			return $content;
+		}
+		else
+		{
+			$mh=curl_multi_init();
+			foreach ($urls as &$url)
+			{
+				$ch=curl_init($url);
+				curl_setopt_array($ch,array(CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_FOLLOWLOCATION=>1,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
+				$data&&curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data));
+				curl_multi_add_handle($mh,$ch);
+				$url=$ch;
+			}
+			$runing=null;
+			do
+			{
+				curl_multi_exec($mh,$runing);
+				curl_multi_select($mh);
+			}
+			while($runing>0);
+			foreach($urls as &$ch)
+			{
+				$content=curl_multi_getcontent($ch);
+				curl_multi_remove_handle($mh,$ch);
+				curl_close($ch);
+				$ch=$content;
+			}
+			curl_multi_close($mh);
+			$content=count($urls)>1?$urls:reset($urls);
+			return $content;
+		}
 	}
 
 
@@ -141,7 +141,7 @@ class Jquery
 			libxml_use_internal_errors(true);
 			if($encoding)
 			{
-				$html="<meta charset='{$encoding}'>".$html;
+				$html="<meta http-equiv='Content-Type' content='text/html;charset={$encoding}'><meta charset='{$encoding}'>".$html;
 			}
 			if($html instanceof DOMDocument)
 			{
@@ -152,10 +152,15 @@ class Jquery
 				$dom=new DOMDocument();
 				$dom->preserveWhiteSpace=false;
 				$dom->strictErrorChecking=false;
+				if(libxml_use_internal_errors(true)===true)
+				{
+					libxml_clear_errors();
+				}
 				$ret=$dom->loadHTML($html);
 				if($ret)
 				{
 					$xpath=new DOMXpath($dom);
+					unset($ret,$dom,$html);
 				}
 				else
 				{
