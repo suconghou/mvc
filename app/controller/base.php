@@ -44,21 +44,25 @@ class base
 		$allow=is_array($allow)?$allow:[$allow];
 		if(!empty($allow))
 		{
-			header('Access-Control-Allow-Origin: '.implode(',',$allow),true);
+			header('Access-Control-Allow-Origin: '.implode(',',$allow));
 		}
 		else
 		{
 			$host='*';
-			if(isset($_SERVER['HTTP_REFERER']))
+			if(isset($_SERVER['HTTP_REFERER']) || isset($_SERVER['HTTP_ORIGIN']))
 			{
-				$parts=parse_url($_SERVER['HTTP_REFERER']);
-				$host=$parts['scheme'].'://'.$parts['host'].':'.$parts['port'];
+				$parts=parse_url(isset($_SERVER['HTTP_REFERER'])?$_SERVER['HTTP_REFERER']:$_SERVER['HTTP_ORIGIN']);
+				$host=$parts['scheme'].'://'.$parts['host'];
+				if(isset($parts['port']))
+				{
+					$host=$host.':'.$parts['port'];
+				}
 			}
-			header("Access-Control-Allow-Origin: {$host}",true);
+			header("Access-Control-Allow-Origin: {$host}");
 		}
-		header('Access-Control-Allow-Credentials:true',true);
-		header('Access-Control-Allow-Methods:GET, POST, PUT, DELETE, OPTIONS',true);
-		header('Access-Control-Allow-Headers:Origin, X-Requested-With, Content-Type, Accept',true);
+		header('Access-Control-Allow-Credentials:true');
+		header('Access-Control-Allow-Methods:GET, POST, PUT, DELETE, OPTIONS');
+		header('Access-Control-Allow-Headers:Origin, X-Requested-With, Content-Type, Accept');
 		return header('Access-Control-Max-Age:3600');
 	}
 
