@@ -4,7 +4,7 @@
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.9.9
+ * @version 1.9.10
  */
 
 final class App
@@ -78,13 +78,7 @@ final class App
 			}
 			else
 			{
-				foreach(explode('/',$uri) as $segment)
-				{
-					if(!empty($segment))
-					{
-						$router[]=$segment;
-					}
-				}
+				$router=array_values(array_filter(explode('/',$uri)));
 			}
 			if(empty($router[0]))
 			{
@@ -382,7 +376,7 @@ final class App
 			$backtrace=debug_backtrace();
 		}
 		$errstr=substr($errstr,0,999);
-		$errormsg=sprintf('ERROR(%d) %s%s',$errno,$errstr,$errfile?" in {$errfile}":null,$errline?" on line {$errline}":null);
+		$errormsg=sprintf('ERROR(%d) %s%s%s',$errno,$errstr,$errfile?" in {$errfile}":null,$errline?" on line {$errline}":null);
 		$code=in_array($errno,[400,403,404,414,500,502,503,504])?$errno:500;
 		$errno==404?app::log($errormsg,'DEBUG',$errno):app::log($errormsg,'ERROR');
 		defined('STDIN')||(app::get('sys-error')&&exit("Error Found In Error Handler:{$errormsg}"))||(header('Error-At:'.preg_replace('/\s/',null,$errstr),true,$code)||app::set('sys-error',true));
