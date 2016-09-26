@@ -381,16 +381,9 @@ final class App
 		{
 			$backtrace=debug_backtrace();
 		}
-		if(in_array($errno,[400,403,404,414,500,502,503,504]))
-		{
-			$errormsg="ERROR({$errno}) {$errstr}";
-			$code=$errno;
-		}
-		else
-		{
-			$errormsg="ERROR({$errno}) {$errstr} in {$errfile} on line {$errline}";
-			$code=500;
-		}
+		$errstr=substr($errstr,0,999);
+		$errormsg=sprintf('ERROR(%d) %s%s',$errno,$errstr,$errfile?" in {$errfile}":null,$errline?" on line {$errline}":null);
+		$code=in_array($errno,[400,403,404,414,500,502,503,504])?$errno:500;
 		$errno==404?app::log($errormsg,'DEBUG',$errno):app::log($errormsg,'ERROR');
 		defined('STDIN')||(app::get('sys-error')&&exit("Error Found In Error Handler:{$errormsg}"))||(header('Error-At:'.preg_replace('/\s/',null,$errstr),true,$code)||app::set('sys-error',true));
 		if(DEBUG||getenv('EXE'))
@@ -853,7 +846,7 @@ class DB
 		}
 		catch (PDOException $e)
 		{
-			return app::Error(500,"Execute [ {$sql} ] Error : ".$e->getMessage());
+			return app::Error($e->getCode(),$e->getMessage());
 		}
 	}
 	final public static function lastId()
