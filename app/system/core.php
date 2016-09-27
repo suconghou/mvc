@@ -4,7 +4,7 @@
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.9.10
+ * @version 1.9.11
  */
 
 final class App
@@ -379,7 +379,7 @@ final class App
 		$errormsg=sprintf('ERROR(%d) %s%s%s',$errno,$errstr,$errfile?" in {$errfile}":null,$errline?" on line {$errline}":null);
 		$code=in_array($errno,[400,403,404,414,500,502,503,504])?$errno:500;
 		$errno==404?app::log($errormsg,'DEBUG',$errno):app::log($errormsg,'ERROR');
-		defined('STDIN')||(app::get('sys-error')&&exit("Error Found In Error Handler:{$errormsg}"))||(header('Error-At:'.preg_replace('/\s/',null,$errstr),true,$code)||app::set('sys-error',true));
+		defined('STDIN')||(app::get('sys-error')&&exit("Error Found In Error Handler:{$errormsg}"))||(header('Error-At:'.preg_replace('/\s+/',' ',$errstr),true,$code)||app::set('sys-error',true));
 		if(DEBUG||getenv('EXE'))
 		{
 			$li=[];
@@ -387,7 +387,7 @@ final class App
 			{
 				if(isset($trace['file']))
 				{
-					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".((empty($trace['args'])||(!defined('STDIN')&&DEBUG<2))?null:(implode(array_map(function($item){return strlen(print_r($item,true))>90?'...':(is_null($item)?'null':str_replace([PHP_EOL,'  '],null,print_r($item,true)));},$trace['args']),','))).")";
+					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".((empty($trace['args'])||(!defined('STDIN')&&DEBUG<2))?null:(implode(array_map(function($item){return strlen(print_r($item,true))>90?'...':(is_null($item)?'null':preg_replace('/\s+/',null,print_r($item,true)));},$trace['args']),','))).")";
 				}
 			}
 			$li=implode(defined('STDIN')?PHP_EOL:'</p><p>',array_reverse($li));
@@ -426,7 +426,7 @@ final class App
 		if($lastError=error_get_last())
 		{
 			$errormsg="ERROR({$lastError['type']}) {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}";
-			headers_sent()||header('Error-At:'.preg_replace('/\s/',null,DEBUG?"{$lastError['file']}:{$lastError['line']}=>{$lastError['message']}":(basename($lastError['file']).":{$lastError['line']}")),true,500);
+			headers_sent()||header('Error-At:'.preg_replace('/\s+/',' ',DEBUG?"{$lastError['file']}:{$lastError['line']}=>{$lastError['message']}":(basename($lastError['file']).":{$lastError['line']}")),true,500);
 			return app::log($errormsg,'ERROR');
 		}
 	}
