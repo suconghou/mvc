@@ -167,7 +167,7 @@ final class App
 				{
 					$param=(($di=$param->getClass())&&($m=$di->name))?($GLOBALS['APP']['lib'][$m]=isset($GLOBALS['APP']['lib'][$m])?$GLOBALS['APP']['lib'][$m]:(new $m())):$router;
 				}
-			    $GLOBALS['APP']['ctl'][$controllerName]=$class->newInstanceArgs($params);
+				$GLOBALS['APP']['ctl'][$controllerName]=$class->newInstanceArgs($params);
 			}
 			else
 			{
@@ -272,7 +272,7 @@ final class App
 	}
 	public static function setItem($key,$value)
 	{
-		$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.sprintf('%u.db',crc32(ROOT));
+		$file=sprintf('%s%s%u.db',sys_get_temp_dir(),DIRECTORY_SEPARATOR,crc32(ROOT));
 		if(is_file($file)&&is_array($data=unserialize(file_get_contents($file))))
 		{
 			$data[$key]=$value;
@@ -285,7 +285,7 @@ final class App
 	}
 	public static function getItem($key,$default=null)
 	{
-		$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.sprintf('%u.db',crc32(ROOT));
+		$file=sprintf('%s%s%u.db',sys_get_temp_dir(),DIRECTORY_SEPARATOR,crc32(ROOT));
 		if(is_file($file)&&is_array($data=unserialize(file_get_contents($file))))
 		{
 			return isset($data[$key])?$data[$key]:$default;
@@ -294,7 +294,7 @@ final class App
 	}
 	public static function clearItem($key=null,&$file=null)
 	{
-		$file=sys_get_temp_dir().DIRECTORY_SEPARATOR.sprintf('%u.db',crc32(ROOT));
+		$file=sprintf('%s%s%u.db',sys_get_temp_dir(),DIRECTORY_SEPARATOR,crc32(ROOT));
 		if(is_null($key))
 		{
 			return is_file($file)&&unlink($file);
@@ -409,7 +409,7 @@ final class App
 						{
 							$param=(($di=$param->getClass())&&($m=$di->name))?($GLOBALS['APP']['lib'][$m]=isset($GLOBALS['APP']['lib'][$m])?$GLOBALS['APP']['lib'][$m]:(new $m())):(isset($GLOBALS['APP']['router'])?$GLOBALS['APP']['router']:null);
 						}
-					    $GLOBALS['APP']['ctl'][$errorController]=$class->newInstanceArgs($params);
+						$GLOBALS['APP']['ctl'][$errorController]=$class->newInstanceArgs($params);
 					}
 					else
 					{
