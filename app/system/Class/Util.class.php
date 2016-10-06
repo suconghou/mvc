@@ -114,6 +114,19 @@ final class Util
 		return $default;
 	}
 
+	public static function timer(closure $function,$exit=false,closure $callback=null)
+	{
+		while(true)
+		{
+			$data=$function();
+			$break=($exit instanceof closure)?$exit($data):$exit;
+			if($break)
+			{
+				return $callback?$callback($data):$data;
+			}
+		}
+	}
+
 }
 
 

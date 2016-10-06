@@ -4,10 +4,10 @@
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.9.11
+ * @version 1.9.12
  */
 
-final class App
+final class app
 {
 	private static $global;
 	public static function start()
@@ -16,9 +16,17 @@ final class App
 		self::set('sys-start-memory',memory_get_usage());
 		error_reporting(DEBUG?E_ALL:0);
 		set_include_path(LIB_PATH);
-		set_error_handler(['app','Error']);
-		set_exception_handler(['app','Error']);
-		register_shutdown_function(['app','shutdown']);
+		set_error_handler('app::error');
+		set_exception_handler('app::error');
+		register_shutdown_function(function()
+		{
+			if($error=error_get_last())
+			{
+				$errormsg="ERROR({$error['type']}) {$error['message']} in {$error['file']} on line {$error['line']}";
+				headers_sent()||header('Error-At:'.preg_replace('/\s+/',' ',DEBUG?"{$error['file']}:{$error['line']}=>{$error['message']}":(basename($error['file']).":{$error['line']}")),true,500);
+				return app::log($errormsg,'ERROR');
+			}
+		});
 		date_default_timezone_set(defined('TIMEZONE')?TIMEZONE:'PRC');
 		defined('DEFAULT_ACTION')||define('DEFAULT_ACTION','index');
 		defined('DEFAULT_CONTROLLER')||define('DEFAULT_CONTROLLER','home');
@@ -26,9 +34,9 @@ final class App
 		list($pharRun,$pharVar,$scriptName)=[substr(ROOT,0,7)=='phar://',substr(VAR_PATH,0,7)=='phar://','/'.trim($_SERVER['SCRIPT_NAME'],'./')];
 		$varPath=$pharVar?str_ireplace(['phar://',$scriptName],null,VAR_PATH):VAR_PATH;
 		define('VAR_PATH_LOG',$varPath.'log')&&define('VAR_PATH_HTML',$varPath.'html');
-		return defined('STDIN')?self::runCli($pharRun):self::process(self::init($scriptName));
+		return defined('STDIN')?self::cli($pharRun):self::process(self::init($scriptName));
 	}
-	private static function runCli($phar=false)
+	private static function cli($phar=false)
 	{
 		$router=$GLOBALS['argv'];
 		$script=basename(array_shift($router));
@@ -37,7 +45,7 @@ final class App
 			$_SERVER['REQUEST_URI']=null;
 			$phar||chdir(ROOT);
 			$ret=self::regexRouter('/'.implode('/',$router));
-			return is_object($ret)?$ret:(($GLOBALS['APP']['router']=$ret?$ret:$router)&&self::run($GLOBALS['APP']['router']));
+			return is_object($ret)?$ret:(($GLOBALS['app']['router']=$ret?$ret:$router)&&self::run($GLOBALS['app']['router']));
 		}
 		if($phar)
 		{
@@ -92,18 +100,18 @@ final class App
 				}
 				else
 				{
-					return self::Error(404,"Request Controller {$router[0]} Error");
+					return self::error(404,"Request Controller {$router[0]} Error");
 				}
 			}
 			else
 			{
 				if(!preg_match('/^[a-z]\w{0,20}$/i',$router[0]))
 				{
-					return self::Error(404,"Request Controller {$router[0]} Error");
+					return self::error(404,"Request Controller {$router[0]} Error");
 				}
 				if(!preg_match('/^[a-z]\w{0,20}$/i',$router[1]))
 				{
-					return self::Error(404,"Request Action {$router[0]}:{$router[1]} Error");
+					return self::error(404,"Request Action {$router[0]}:{$router[1]} Error");
 				}
 			}
 			return $router;
@@ -114,7 +122,7 @@ final class App
 	{
 		if($router&&!is_object($router))
 		{
-			$GLOBALS['APP']['router']=$router;
+			$GLOBALS['app']['router']=$router;
 			$file=is_object($router[1])?self::fileCache($router[0]):self::fileCache($router);
 			if(is_file($file))
 			{
@@ -153,32 +161,32 @@ final class App
 		}
 		else
 		{
-			return self::Error(404,"Request Controller {$router[0]} Not Found");
+			return self::error(404,"Request Controller {$router[0]} Not Found");
 		}
 		require_once $path;
-		class_exists($controllerName)||self::Error(404,"Request Controller Class {$controllerName} Not Found");
-		method_exists($controllerName,$action)||self::Error(404,"Request Controller Class {$controllerName} Does Not Contain Method {$action}");
-		$GLOBALS['APP']['ctl'][$controllerName]=isset($GLOBALS['APP']['ctl'][$controllerName])?$GLOBALS['APP']['ctl'][$controllerName]:$controllerName;
-		if((!$GLOBALS['APP']['ctl'][$controllerName] instanceof $controllerName)&&($class=new ReflectionClass($controllerName))&&($class->isInstantiable()))
+		class_exists($controllerName)||self::error(404,"Request Controller Class {$controllerName} Not Found");
+		method_exists($controllerName,$action)||self::error(404,"Request Controller Class {$controllerName} Does Not Contain Method {$action}");
+		$GLOBALS['app']['ctl'][$controllerName]=isset($GLOBALS['app']['ctl'][$controllerName])?$GLOBALS['app']['ctl'][$controllerName]:$controllerName;
+		if((!$GLOBALS['app']['ctl'][$controllerName] instanceof $controllerName)&&($class=new ReflectionClass($controllerName))&&($class->isInstantiable()))
 		{
 			if(($constructor=$class->getConstructor())&&($params=$constructor->getParameters()))
 			{
 				foreach ($params as &$param)
 				{
-					$param=(($di=$param->getClass())&&($m=$di->name))?($GLOBALS['APP']['lib'][$m]=isset($GLOBALS['APP']['lib'][$m])?$GLOBALS['APP']['lib'][$m]:(new $m())):$router;
+					$param=(($di=$param->getClass())&&($m=$di->name))?($GLOBALS['app']['lib'][$m]=isset($GLOBALS['app']['lib'][$m])?$GLOBALS['app']['lib'][$m]:(new $m())):$router;
 				}
-				$GLOBALS['APP']['ctl'][$controllerName]=$class->newInstanceArgs($params);
+				$GLOBALS['app']['ctl'][$controllerName]=$class->newInstanceArgs($params);
 			}
 			else
 			{
-				$GLOBALS['APP']['ctl'][$controllerName]=new $controllerName($router);
+				$GLOBALS['app']['ctl'][$controllerName]=new $controllerName($router);
 			}
 		}
-		return is_callable([$GLOBALS['APP']['ctl'][$controllerName],$action])?call_user_func_array([$GLOBALS['APP']['ctl'][$controllerName],$action],array_slice($router,$index)):self::Error(404,"Request Controller Class {$controllerName} Method {$action} Is Not Callable");
+		return is_callable([$GLOBALS['app']['ctl'][$controllerName],$action])?call_user_func_array([$GLOBALS['app']['ctl'][$controllerName],$action],array_slice($router,$index)):self::error(404,"Request Controller Class {$controllerName} Method {$action} Is Not Callable");
 	}
 	public static function route($regex,$arr)
 	{
-		$GLOBALS['APP']['regexRouter'][$regex]=$arr;
+		$GLOBALS['app']['regexRouter'][$regex]=$arr;
 	}
 	public static function log($msg,$type='DEBUG',$file=null)
 	{
@@ -191,14 +199,14 @@ final class App
 	}
 	private static function regexRouter($uri)
 	{
-		if(!empty($GLOBALS['APP']['regexRouter']))
+		if(!empty($GLOBALS['app']['regexRouter']))
 		{
-			foreach ($GLOBALS['APP']['regexRouter'] as $regex=>$item)
+			foreach ($GLOBALS['app']['regexRouter'] as $regex=>$item)
 			{
 				if(preg_match("/^{$regex}$/",$uri,$matches))
 				{
 					$url=$matches[0];
-					unset($matches[0],$GLOBALS['APP']['regexRouter']);
+					unset($matches[0],$GLOBALS['app']['regexRouter']);
 					if(is_array($item))
 					{
 						return array_merge($item,$matches);
@@ -215,7 +223,7 @@ final class App
 					}
 				}
 			}
-			unset($GLOBALS['APP']['regexRouter']);
+			unset($GLOBALS['app']['regexRouter']);
 		}
 		return [];
 	}
@@ -238,7 +246,7 @@ final class App
 	public static function fileCache($router=[],$delete=false)
 	{
 		$router=$router?(is_array($router)?implode('/',$router):$router):DEFAULT_CONTROLLER.'/'.DEFAULT_ACTION;
-		$cacheFile=VAR_PATH_HTML.DIRECTORY_SEPARATOR.sprintf('%u.html',crc32(ROOT.strtolower($router)));
+		$cacheFile=sprintf('%s%s%u.html',VAR_PATH_HTML,DIRECTORY_SEPARATOR,crc32(ROOT.strtolower($router)));
 		return $delete?(is_file($cacheFile)&&unlink($cacheFile)):$cacheFile;
 	}
 	public static function httpCache($min=0)
@@ -306,21 +314,9 @@ final class App
 		}
 		return true;
 	}
-	public static function timer(closure $function,$exit=false,closure $callback=null)
+	public static function config($key=null,$default=null,$cfgfile='config.php')
 	{
-		while(true)
-		{
-			$data=$function();
-			$break=($exit instanceof closure)?$exit($data):$exit;
-			if($break)
-			{
-				return $callback?$callback($data):$data;
-			}
-		}
-	}
-	public static function config($key=null,$default=null,$configFile='config.php')
-	{
-		$config=is_array($configFile)?$configFile:(isset(self::$global[$configFile])?self::$global[$configFile]:(self::$global[$configFile]=include $configFile));
+		$config=is_array($cfgfile)?$cfgfile:(isset(self::$global[$cfgfile])?self::$global[$cfgfile]:(self::$global[$cfgfile]=include $cfgfile));
 		if($key=array_filter(explode('.',$key),function($item){return $item;}))
 		{
 			foreach ($key as $item)
@@ -355,21 +351,21 @@ final class App
 	}
 	public static function __callStatic($method,$args=null)
 	{
-		return isset(self::$global['method'][$method])?call_user_func_array(self::$global['method'][$method],$args):self::Error(500,"Call Error Static Method {$method} In Class ".get_called_class());
+		return isset(self::$global['method'][$method])?call_user_func_array(self::$global['method'][$method],$args):self::error(500,"Call Error Static Method {$method} In Class ".get_called_class());
 	}
-	public static function Error($errno,$errstr=null,$errfile=null,$errline=null)
+	public static function error($errno,$errstr=null,$errfile=null,$errline=null,array $errcontext=[])
 	{
-		if(($errno===E_WARNING&&substr($errstr,0,3)=='PDO')||(is_int($errno)&&(DEBUG<2)&&in_array($errno,[E_NOTICE,E_WARNING])))
-		{
-			return;
-		}
-		else if(is_object($errno))
+		if($errno instanceof Exception)
 		{
 			$errstr=$errno->getMessage();
 			$errfile=$errno->getFile();
 			$errline=$errno->getLine();
 			$backtrace=$errno->getTrace();
 			$errno=$errno->getCode();
+		}
+		else if(in_array($errno,[E_NOTICE,E_WARNING],true)&&(substr($errstr,0,3)==='PDO'||DEBUG<2))
+		{
+			return;
 		}
 		else
 		{
@@ -395,44 +391,35 @@ final class App
 		}
 		else
 		{
-			$errorController=(isset($GLOBALS['APP']['router'][0])&&is_file(CONTROLLER_PATH.$GLOBALS['APP']['router'][0].'.php'))?$GLOBALS['APP']['router'][0]:DEFAULT_CONTROLLER;
+			$errorController=(isset($GLOBALS['app']['router'][0])&&is_file(CONTROLLER_PATH.$GLOBALS['app']['router'][0].'.php'))?$GLOBALS['app']['router'][0]:DEFAULT_CONTROLLER;
 			$errorRouter=[$errorController,$errno==404?(defined('ERROR_PAGE_404')?ERROR_PAGE_404:'Error404'):(defined('ERROR_PAGE_500')?ERROR_PAGE_500:'Error500'),$errormsg];
 			$errorPage="<title>Error..</title><center><span style='font-size:300px;color:gray;font-family:黑体'>{$code}...</span></center>";
 			if(method_exists($errorController,$errorRouter[1]))//当前已加载的控制器或默认控制器中含有ERROR处理
 			{
-				$GLOBALS['APP']['ctl'][$errorController]=isset($GLOBALS['APP']['ctl'][$errorController])?$GLOBALS['APP']['ctl'][$errorController]:$errorController;
-				if((!$GLOBALS['APP']['ctl'][$errorController] instanceof $errorController)&&($class=new ReflectionClass($errorController))&&($class->isInstantiable()))
+				$GLOBALS['app']['ctl'][$errorController]=isset($GLOBALS['app']['ctl'][$errorController])?$GLOBALS['app']['ctl'][$errorController]:$errorController;
+				if((!$GLOBALS['app']['ctl'][$errorController] instanceof $errorController)&&($class=new ReflectionClass($errorController))&&($class->isInstantiable()))
 				{
 					if(($constructor=$class->getConstructor())&&($params=$constructor->getParameters()))
 					{
 						foreach ($params as &$param)
 						{
-							$param=(($di=$param->getClass())&&($m=$di->name))?($GLOBALS['APP']['lib'][$m]=isset($GLOBALS['APP']['lib'][$m])?$GLOBALS['APP']['lib'][$m]:(new $m())):(isset($GLOBALS['APP']['router'])?$GLOBALS['APP']['router']:null);
+							$param=(($di=$param->getClass())&&($m=$di->name))?($GLOBALS['app']['lib'][$m]=isset($GLOBALS['app']['lib'][$m])?$GLOBALS['app']['lib'][$m]:(new $m())):(isset($GLOBALS['app']['router'])?$GLOBALS['app']['router']:null);
 						}
-						$GLOBALS['APP']['ctl'][$errorController]=$class->newInstanceArgs($params);
+						$GLOBALS['app']['ctl'][$errorController]=$class->newInstanceArgs($params);
 					}
 					else
 					{
-						$GLOBALS['APP']['ctl'][$errorController]=new $errorController($errorRouter);
+						$GLOBALS['app']['ctl'][$errorController]=new $errorController($errorRouter);
 					}
 				}
-				$errorPage=is_callable([$GLOBALS['APP']['ctl'][$errorController],$errorRouter[1]])?call_user_func_array([$GLOBALS['APP']['ctl'][$errorController],$errorRouter[1]],[$errormsg]):$errorPage;
+				$errorPage=is_callable([$GLOBALS['app']['ctl'][$errorController],$errorRouter[1]])?call_user_func_array([$GLOBALS['app']['ctl'][$errorController],$errorRouter[1]],[$errormsg]):$errorPage;
 			}
 			exit($errorPage);
 		}
 	}
-	public static function shutdown()
-	{
-		if($lastError=error_get_last())
-		{
-			$errormsg="ERROR({$lastError['type']}) {$lastError['message']} in {$lastError['file']} on line {$lastError['line']}";
-			headers_sent()||header('Error-At:'.preg_replace('/\s+/',' ',DEBUG?"{$lastError['file']}:{$lastError['line']}=>{$lastError['message']}":(basename($lastError['file']).":{$lastError['line']}")),true,500);
-			return app::log($errormsg,'ERROR');
-		}
-	}
 }
 
-class Response
+class response
 {
 	private $data;
 	public function __construct(array &$data)
@@ -453,11 +440,11 @@ class Response
 	public function view($template,$min=0,$file=false)
 	{
 		$min&&app::httpCache($min);
-		$callback=($file&&$min)?function(&$buffer) use($min)
+		$callback=($file&&$min)?function(&$buffer)use($min)
 		{
 			if(is_writable(VAR_PATH_HTML))
 			{
-				$router=&$GLOBALS['APP']['router'];
+				$router=&$GLOBALS['app']['router'];
 				$file=is_object($router[1])?app::fileCache($router[0]):app::fileCache($router);
 				file_put_contents($file,$buffer)&&touch($file,$_SERVER['REQUEST_TIME']+($min*60));
 			}
@@ -487,26 +474,26 @@ function with($class)
 		$arguments=func_get_args();
 		$arr=explode('/',array_shift($arguments));
 		$m=end($arr);
-		$GLOBALS['APP']['lib'][$m]=isset($GLOBALS['APP']['lib'][$m])?$GLOBALS['APP']['lib'][$m]:$m;
-		if($GLOBALS['APP']['lib'][$m] instanceof $m)
+		$GLOBALS['app']['lib'][$m]=isset($GLOBALS['app']['lib'][$m])?$GLOBALS['app']['lib'][$m]:$m;
+		if($GLOBALS['app']['lib'][$m] instanceof $m)
 		{
-			return $GLOBALS['APP']['lib'][$m];
+			return $GLOBALS['app']['lib'][$m];
 		}
 		if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.class.php")||is_file($file=LIB_PATH."{$class}.class.php"))
 		{
-			((require_once $file)&&class_exists($m))||app::Error(500,"{$file} Does Not Contain Class {$m}");
+			((require_once $file)&&class_exists($m))||app::error(500,"{$file} Does Not Contain Class {$m}");
 			$class=new ReflectionClass($m);
-			$GLOBALS['APP']['lib'][$m]=$class->newInstanceArgs($arguments);
-			return $GLOBALS['APP']['lib'][$m];
+			$GLOBALS['app']['lib'][$m]=$class->newInstanceArgs($arguments);
+			return $GLOBALS['app']['lib'][$m];
 		}
-		if(is_file($file=LIB_PATH.$class.'.php')||is_file($file=LIB_PATH.$class.'.phar'))
+		if(is_file($file=LIB_PATH."{$class}.php")||is_file($file=LIB_PATH."{$class}.phar"))
 		{
-			unset($GLOBALS['APP']['lib'][$m]);
+			unset($GLOBALS['app']['lib'][$m]);
 			return require_once $file;
 		}
-		return app::Error("Can not load {$class}");
+		return app::error(404,"Can not load {$class}");
 	}
-	return new Response($class);
+	return new response($class);
 }
 
 function template($v,array $_data_=null,$callback=null)
@@ -522,10 +509,10 @@ function template($v,array $_data_=null,$callback=null)
 		}
 		return include $_v_;
 	}
-	return app::Error(404,"File {$_v_} Not Found");
+	return app::error(404,"File {$_v_} Not Found");
 }
 
-class Request
+class request
 {
 	public static function post($key=null,$default=null,$clean=false)
 	{
@@ -628,7 +615,7 @@ class Request
 		{
 			$data[$key]=isset($data[$key])?$data[$key]:null;
 		}
-		return Validate::verify($rule,$data,$callback);
+		return validate::verify($rule,$data,$callback);
 	}
 	private static function getVar($origin,$var,$default=null,$clean=false)
 	{
@@ -662,11 +649,11 @@ class Request
 	}
 	public static function __callStatic($method,$args)
 	{
-		return app::Error(500,"Call Error Static Method {$method} In Class ".get_called_class());
+		return app::error(500,"Call Error Static Method {$method} In Class ".get_called_class());
 	}
 }
 
-class Validate
+class validate
 {
 	public static function verify($rule,$data,$callback=true)
 	{
@@ -777,7 +764,7 @@ class Validate
 	}
 }
 
-class DB
+class db
 {
 	private static $pdo;
 	public static $lastSql;
@@ -799,7 +786,7 @@ class DB
 				}
 				catch(PDOException $e)
 				{
-					return app::Error(500,$e->getMessage());
+					return app::error(500,$e->getMessage());
 				}
 			}
 			if(!empty(static::$initCmd)&&is_array(static::$initCmd))
@@ -840,7 +827,7 @@ class DB
 		}
 		catch (PDOException $e)
 		{
-			return app::Error($e->getCode(),$e->getMessage());
+			return app::error($e->getCode(),$e->getMessage());
 		}
 	}
 	final public static function lastId()
@@ -865,7 +852,7 @@ class DB
 		{
 			return call_user_func_array([self::$pdo,$method],$args);
 		}
-		return app::Error(500,"Call Error Method {$method} In Class ".get_called_class());
+		return app::error(500,"Call Error Method {$method} In Class ".get_called_class());
 	}
 }
 
@@ -874,7 +861,7 @@ function __autoload($class)
 	if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.class.php")||is_file($file=LIB_PATH."{$class}.class.php"))
 	{
 		require_once $file;
-		return class_exists($class)||app::Error(500,"File {$file} Does Not Contain Class {$class}");
+		return class_exists($class)||app::error(500,"File {$file} Does Not Contain Class {$class}");
 	}
 	return false;
 }
@@ -934,12 +921,12 @@ function baseUrl($path=null)
 {
 	if(is_int($path))
 	{
-		$router=&$GLOBALS['APP']['router'];
+		$router=&$GLOBALS['app']['router'];
 		return isset($router[$path])?$router[$path]:null;
 	}
 	$protocol=(isset($_SERVER['HTTPS'])&&(strtolower($_SERVER['HTTPS'])!='off'))?"https":"http";
 	$host=isset($_SERVER['HTTP_HOST'])?$_SERVER['HTTP_HOST']:'';
-	$path=is_null($path)?null:(is_bool($path)?($path?$_SERVER['REQUEST_URI']:'/'.implode('/',$GLOBALS['APP']['router'])):'/'.ltrim($path,'/'));
+	$path=is_null($path)?null:(is_bool($path)?($path?$_SERVER['REQUEST_URI']:'/'.implode('/',$GLOBALS['app']['router'])):'/'.ltrim($path,'/'));
 	return "{$protocol}://{$host}{$path}";
 }
 function encrypt($input,$key=null)
@@ -963,11 +950,11 @@ function csrf_token($check=false,$name='_token',closure $callback=null)
 	{
 		if(!(isset($_REQUEST[$name])&&$_REQUEST[$name]===$token))
 		{
-			return $callback?$callback($token):app::Error(403,'Csrf Token Not Match');
+			return $callback?$callback($token):app::error(403,'Csrf Token Not Match');
 		}
 		return true;
 	}
-	if(!$token)
+	else if(!$token)
 	{
 		$token=md5(uniqid());
 		$_SESSION['csrf_token']=$token;
