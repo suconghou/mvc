@@ -1,276 +1,109 @@
 <?php
 
-
 class Database extends DB
 {
 	protected static $initCmd=['SET NAMES UTF8'];
 	protected static $initCmdSqlite=['PRAGMA SYNCHRONOUS=OFF','PRAGMA CACHE_SIZE=8000','PRAGMA TEMP_STORE=MEMORY'];
 
-	public function __construct()
+	final public static function insert(array $data,$table=null,$ignore=false,$replace=false)
+	{
+		$sql=sprintf('%s %sINTO `%s` %s',$replace?'REPLACE':'INSERT',$ignore&&!$replace?'IGNORE ':null,$table?:self::getCurrentTable(),self::values($data));
+		return self::exec($sql,$data);
+	}
+
+	final public static function replace(array $data,$table=null)
+	{
+		return self::insert($data,$table,false,true);
+	}
+
+	final public static function delete(array $where=[],$table=null)
+	{
+		$sql=sprintf('DELETE FROM `%s`%s',$table?:self::getCurrentTable(),self::condition($where));
+		return self::exec($sql,$where);
+	}
+
+	final public static function find(array $where=[],$table=null,$col='*',array $orderLimit=null,$fetch='fetchAll')
+	{
+		$sql=sprintf('SELECT %s FROM `%s`%s%s',$col,$table?:self::getCurrentTable(),self::condition($where),$orderLimit?self::orderLimit($orderLimit):null);
+		return self::exec($sql,$where,$fetch);
+	}
+
+	final public static function findOne(array $where=[],$table=null,$col='*',array $orderLimit=[1],$fetch='fetch')
+	{
+		return self::find($where,$table,$col,$orderLimit,$fetch);
+	}
+
+	final public static function findVar(array $where=[],$table=null,$method='COUNT(1)',array $orderLimit=[1])
+	{
+		return self::find($where,$table,$method,$orderLimit,'fetchColumn');
+	}
+
+	final public static function findPage(array $where=[],$table=null,$col='*',$page=1,$limit=20,array $order=[])
+	{
+		$page=$page<1?1:intval($page);
+		$total=intval(self::findVar($where,$table));
+		$pages=ceil($total/$limit);
+		$list=self::find($where,$table,$col,[($page-1)*$limit=>$limit]+$order);
+		return ['list'=>$list,'pages'=>$pages,'total'=>$total,'current'=>$page,'prev'=>min($pages,max(1,$page-1)),'next'=>min($pages,$page+1)];
+	}
+
+	final public static function update(array $where,array $data,$table=null)
+	{
+		$sql=sprintf('UPDATE `%s` SET %s%s',$table?:self::getCurrentTable(),self::values($data,true),self::condition($where));
+		$intersect=array_keys(array_intersect_key($data,$where));
+		$sql=$intersect?preg_replace(array_map(function($x)use(&$data){$data["{$x}_"]=$data[$x];unset($data[$x]);return sprintf('/:%s/',$x);},$intersect),'\0_',$sql,1):$sql;
+		return self::exec($sql,$data+$where);
+	}
+
+	final public static function exec($sql,array $bind=null,$fetch=null)
+	{
+		$stm=self::execute($sql,false);
+		var_dump($stm,$bind);die;
+	    $rs=$stm->execute($bind);
+	    return is_string($fetch)?$stm->$fetch():($fetch?$stm:$rs);
+	}
+
+	final public static function query(string $sql,array $bind,$fetch=true)
 	{
 
 	}
 
-	final public static function find($where,$column='*')
+	final protected static function getCurrentTable()
 	{
-		$table=self::getCurrentTable();
-		return is_numeric($where)?self::selectById($table,$where,$column):self::selectWhere($table,$where,null,$column);
+		return defined('static::table')?static::table:get_called_class();
 	}
 
-	final public static function insert(Array $data,$replace=false)
+	final protected static function condition(array &$where,$prefix='WHERE')
 	{
-		return self::insertData(self::getCurrentTable(),$data,$replace);
+		$keys=array_keys($where);
+		$condition=$keys?implode(sprintf(' %s ',isset($where[0])?$where[0]:'AND'),array_map(function($v)use(&$where){$x=array_values(array_filter(explode(' ',$v)));$n=null;$k=trim(ltrim($x[0],'!'));if(is_array($where[$v])){$marks=[];$i=0;array_map(function($t)use(&$marks,&$where,&$i){$q='_'.$i++;$marks[]=":{$q}";$where[$q]=$t;},$where[$v]);}else{if($k!=$x[0]){$n=$where[$v];}elseif($x[0]!=$v){$where[$x[0]]=$where[$v];}}$str=sprintf('`%s` %s %s',$k,isset($x[1])?(isset($x[2])?"{$x[1]} {$x[2]}":$x[1]):(is_array($where[$v])?'IN':'='),is_array($where[$v])?sprintf('(%s)',implode(',',$marks)):($n?$n:":{$k}"));if(is_array($where[$v])||$n||$x[0]!=$v){unset($where[$v]);}return $str;},array_filter($keys))):null;
+		unset($where[0],$keys);
+		return $condition?sprintf('%s(%s)',$prefix?" {$prefix} ":null,$condition):null;
 	}
 
-	final public static function delete($where)
+	final protected static function values(array &$data,$set=false,$table=null)
 	{
-		$table=self::getCurrentTable();
-		return is_numeric($where)?self::deleteById($table,$where):self::deleteWhere($table,$where);
+		$keys=array_keys($data);
+		return $set?implode(',',array_map(function($x)use(&$data){$k=trim($x);if($k!=$x){$data[$k]=$data[$x];unset($data[$x]);}$n=ltrim($k,'!');if($n!=$k){$n=$data[$k];unset($data[$k]);}return sprintf('`%s` = %s',trim(ltrim($k,'!')),$n==$k?":{$k}":$n);},$keys)):sprintf('%s(%s) VALUES (%s)',$table?" `{$table}` ":null,implode(',',array_map(function($x){return sprintf('`%s`',trim(ltrim(trim($x),'!')));},$keys)),implode(',',array_map(function($x)use(&$data){$k=trim($x);$n=trim(ltrim($k,'!'));if($n!=$k){$n=$data[$x];unset($data[$x]);}elseif($k!=$x){$data[$k]=$data[$x];unset($data[$x]);}return $n==$k?":{$k}":$n;},$keys)));
 	}
 
-	final public static function update($where,Array $data)
+	final protected static function orderLimit(array $orderLimit,$limit=[])
 	{
-		$table=self::getCurrentTable();
-		return is_numeric($where)?self::updateById($table,$where,$data):self::updateWhere($table,$where,$data);
+		$orderLimit=array_filter($orderLimit,function($x)use($orderLimit,&$limit){if(is_int($x)){$k=array_search($x,$orderLimit,true);$limit=[$k,$orderLimit[$k]];return false;}else{return true;}});
+		$limit=$limit?" LIMIT ".implode(',',$limit):null;
+		$orderLimit?(array_walk($orderLimit,function(&$v,$k){$v=sprintf('%s %s',$k,is_string($v)?$v:($v?'ASC':'DESC'));})):null;
+		return sprintf('%s%s',$orderLimit?' ORDER BY '.implode(',',$orderLimit):null,$limit);
 	}
 
-	final private static function getCurrentTable()
+	final protected static function type($var)
 	{
-		return defined('static::table')?static::table:strtolower(get_called_class());
-	}
-
-	final private static function getCondition($where)
-	{
-		if($where)
+		$map=['boolean'=>PDO::PARAM_BOOL,'integer'=>PDO::PARAM_INT,'double'=>PDO::PARAM_STR,'string'=>PDO::PARAM_STR,'NULL'=>PDO::PARAM_NULL,'resource'=>PDO::PARAM_LOB];
+		$t=gettype($var);
+		if(isset($map[$t]))
 		{
-			if(is_array($where))
-			{
-				$k=[];
-				foreach ($where as $key => $value)
-				{
-					if(is_int($key))
-					{
-						$k[]=$value;
-					}
-					else
-					{
-						$value=self::quote($value);
-						$k[]='(`'.$key.'`='.$value.')';
-					}
-				}
-				$where=implode(" AND ",$k);
-			}
-			return " WHERE ({$where}) ";
+			return $map[$t];
 		}
-		return ' ';
+		throw new Exception("unsupport var type",10);
 	}
 
-	final public static function selectById($table,$id,$column='*')
-	{
-		$id=intval($id);
-		$sql="SELECT {$column} FROM {$table} WHERE id={$id}";
-		return self::getLine($sql);
-	}
-
-	final public static function deleteById($table,$id)
-	{
-		$id=intval($id);
-		$sql="DELETE FROM {$table} WHERE id={$id}";
-		return self::runSql($sql);
-	}
-
-	final public static function updateById($table,$id,Array $data)
-	{
-		$id=intval($id);
-		$updateStr=[];
-		foreach ($data as $key => $value)
-		{
-			$updateStr[]='`'.$key.'`='.self::quote($value);
-		}
-		$updateStr=implode(',',$updateStr);
-		$sql="UPDATE {$table} SET {$updateStr} WHERE id ={$id} ";
-		return self::runSql($sql);
-	}
-
-	final public static function insertData($table,Array $data,$replace=false)
-	{
-		$k=$v=[];
-		foreach ($data as $key => $value)
-		{
-			$k[]='`'.$key.'`';
-			$v[]=self::quote($value);
-		}
-		$strk=implode(',',$k);
-		$strv=implode(',',$v);
-		if($replace===true)
-		{
-			$sql="REPLACE INTO {$table} ({$strk}) VALUES ({$strv})";
-		}
-		else if($replace===false)
-		{
-			$sql="INSERT IGNORE INTO {$table} ({$strk}) VALUES ({$strv})";
-		}
-		else if(is_array($replace))
-		{
-			$updateStr=[];
-			foreach($replace as $key => $value)
-			{
-				$updateStr[]='`'.$key.'`='.self::quote($value);
-			}
-			$updateStr=implode(',',$updateStr);
-			$sql="INSERT INTO {$table} ({$strk}) VALUES ({$strv}) ON DUPLICATE KEY UPDATE {$updateStr}";
-		}
-		else
-		{
-			$sql="INSERT INTO {$table} ({$strk}) VALUES ({$strv})";
-		}
-		return self::runSql($sql)===false?false:self::lastId();
-	}
-
-	final public static function selectWhere($table,$where=null,$orderlimit=null,$column='*')
-	{
-		$sql="SELECT {$column} FROM {$table} ".self::getCondition($where).$orderlimit;
-		return self::getData($sql);
-	}
-
-	final public static function deleteWhere($table,$where=null)
-	{
-		$sql="DELETE FROM {$table} ".self::getCondition($where);
-		return self::runSql($sql);
-	}
-
-	final public static function updateWhere($table,$where,Array $data)
-	{
-		$strv=[];
-		foreach ($data as $key => $value)
-		{
-			$strv[]='`'.$key.'`='.self::quote($value);
-		}
-		$strv=implode(',',$strv);
-		return self::runSql("UPDATE {$table} SET {$strv} ".self::getCondition($where));
-	}
-	/***
-	 *	$data=array(
-	 *			array('name'=>'s1','pass'=>'p1','email'=>'123@qq.com'),
-	 *			array('name'=>'s2','pass'=>'p2','email'=>'456@qq.com'),
-	 *			array('name'=>'s3','pass'=>'p3','email'=>'789@qq.com')
-	 *	);
-	**/
-	final public static function multInsert($table,Array $data,Closure $callback=null)
-	{
-		try
-		{
-			self::beginTransaction();
-			$columns=array_keys(current($data));
-			$columnStr=implode(',',$columns);
-			$valueStr=implode(',:', $columns);
-			$sql="INSERT INTO {$table} ({$columnStr}) VALUES (:{$valueStr})";
-			$stmt=self::prepare($sql);
-			foreach ($columns as $k)
-			{
-				$stmt->bindParam(":{$k}",$$k);
-			}
-			foreach ($data as $item)
-			{
-				foreach ($item as $k => $v)
-				{
-					$$k=$v;
-				}
-				$stmt->execute();
-			}
-			return self::commit();
-		}
-		catch(PDOException $e)
-		{
-			self::rollback();
-			return $callback?$callback($e):false;
-		}
-	}
-	/***
-	 *	批量更新
-	 *	$data=array(
-	 *			'18'=>array('name'=>'name18','pass'=>'11'),
-	 *			'19'=>array('name'=>'name19','pass'=>'22')
-	 *	);
-	 **/
-	final public static function multUpdate($table,Array $data,Closure $callback=null)
-	{
-		try
-		{
-			self::beginTransaction();
-			$columns=array_keys(current($data));
-			$v=[];
-			foreach ($columns as $k)
-			{
-				$v[]=$k.'='.":".$k."";
-			}
-			$strv=implode(',',$v);
-			$sql="UPDATE {$table} SET {$strv} WHERE id=:id";
-			$stmt=self::prepare($sql);
-			foreach ($columns as $k)
-			{
-				$stmt->bindParam(":{$k}", $$k);
-			}
-			$stmt->bindParam(":id", $id);
-			foreach ($data as $id => $item)
-			{
-				foreach ($item as $k => $v)
-				{
-					$$k=$v;
-				}
-				$stmt->execute();
-			}
-			return self::commit();
-		}
-		catch(PDOException $e)
-		{
-			 self::rollback();
-			 return $callback?$callback($e):false;
-		}
-	}
-
-	final public static function multDelete($table,$inStr,$column='id')
-	{
-		$str=is_array($inStr)?implode(',',$inStr):$inStr;
-		$sql="DELETE FROM {$table} WHERE {$column} IN ({$str})";
-		return self::runSql($sql);
-	}
-
-	final public static function multSelect($table,$inStr,$selectcolumn='*',$column='id')
-	{
-		$str=is_array($inStr)?implode(',',$inStr):$inStr;
-		$sql="SELECT {$selectcolumn} FROM {$table} WHERE {$column} IN ({$str})";
-		return self::getData($sql);
-	}
-
-	final public static function setKey($table,$id,$column,$value=true)
-	{
-		$id=intval($id);
-		$value=$value===true?("{$column}+1"):($value===false?("{$column}-1"):"'{$value}'");
-		$sql="UPDATE {$table} SET `{$column}`={$value} WHERE id={$id} ";
-		return self::runSql($sql);
-	}
-
-	final public static function getList($table,$page=1,$where=null,$orderby=null,$pageSize=20,$selectcolumn='*')
-	{
-		$page=max(1,intval($page));
-		$offset=max(0,($page-1)*$pageSize);
-		$where=self::getCondition($where);
-		$list=self::getData("SELECT {$selectcolumn} FROM {$table} {$where} ".($orderby?"ORDER BY {$orderby}":'')." LIMIT {$offset},{$pageSize}");
-		$total=self::getVar("SELECT COUNT(1) FROM {$table} {$where}");
-		$pages=ceil($total/$pageSize);
-		return ['list'=>$list,'page'=>$pages,'total'=>$total,'current'=>$page,'prev'=>max(1,$page-1),'next'=>min($pages,$page+1)];
-	}
-
-	final public static function like($table,$column,$like,$selectcolumn='*',$num=50)
-	{
-		$sql="SELECT {$selectcolumn} FROM {$table} WHERE {$column} LIKE '%{$like}%' LIMIT {$num}";
-		return self::getData($sql);
-	}
-
-	final public static function count($table,$where=null)
-	{
-		return self::getVar("SELECT COUNT(1) FROM {$table} ".self::getCondition($where));
-	}
 }
-

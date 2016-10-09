@@ -10,7 +10,7 @@
 
 final class Store
 {
-	private static $instance=array();
+	private static $instance=[];
 	private static $currentInstanceName='store';
 
 	public static function ready($db=null)
@@ -30,7 +30,7 @@ final class Store
 	{
 		$filepath=self::getPath($key);
 		file_put_contents($filepath,serialize($value));
-		return touch($filepath,time()+intval($expire));
+		return touch($filepath,time()+$expire);
 	}
 
 	public static function get($key,$default=null)

@@ -10,9 +10,9 @@
 */
 final class Cache
 {
-	private static $config=array('memcache'=>array('memcache','127.0.0.1',11211),'memcached'=>array('memcached','127.0.0.1',11211),'redis'=>array('redis','127.0.0.1',6379));
-	private static $instance=array();
-	private static $method=array();
+	private static $config=['memcached'=>['memcached','127.0.0.1',11211],'memcache'=>['memcache','127.0.0.1',11211],'redis'=>['redis','127.0.0.1',6379]];
+	private static $instance=[];
+	private static $method=[];
 	private static $currentInstanceName;
 
 	public static function ready($name=null,$type=null,$host=null,$port=null)
@@ -21,11 +21,11 @@ final class Cache
 		$name=strtolower($name);
 		if(isset($config[$name]))
 		{
-			$config[$name]=array($type?strtolower($type):$config[$name][0],$host?$host:$config[$name][1],$port?$port:$config[$name][2]);
+			$config[$name]=[$type?strtolower($type):$config[$name][0],$host?$host:$config[$name][1],$port?$port:$config[$name][2]];
 		}
 		else
 		{
-			$config[$name]=array($type?strtolower($type):'memcache',$host?$host:'127.0.0.1',$port?$port:11211);
+			$config[$name]=[$type?strtolower($type):'memcached',$host?$host:'127.0.0.1',$port?$port:11211];
 		}
 		self::$currentInstanceName=$name?$name:key($config);
 		return $config;
@@ -100,7 +100,7 @@ final class Cache
 
 	public static function getConfig()
 	{
-		return array('config'=>self::$config,'instance'=>self::$instance,'method'=>self::$method,'currentInstanceName'=>self::$currentInstanceName);
+		return ['config'=>self::$config,'instance'=>self::$instance,'method'=>self::$method,'currentInstanceName'=>self::$currentInstanceName];
 	}
 
 	public function __call($method,$args)

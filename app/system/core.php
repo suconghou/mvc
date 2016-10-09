@@ -4,7 +4,7 @@
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.9.12
+ * @version 1.9.13
  */
 
 final class app
@@ -33,7 +33,7 @@ final class app
 		defined('STDIN')||(defined('GZIP')?ob_start("ob_gzhandler"):ob_start());
 		list($pharRun,$pharVar,$scriptName)=[substr(ROOT,0,7)=='phar://',substr(VAR_PATH,0,7)=='phar://','/'.trim($_SERVER['SCRIPT_NAME'],'./')];
 		$varPath=$pharVar?str_ireplace(['phar://',$scriptName],null,VAR_PATH):VAR_PATH;
-		define('VAR_PATH_LOG',$varPath.'log')&&define('VAR_PATH_HTML',$varPath.'html');
+		define('VAR_PATH_LOG',$varPath.'log'.DIRECTORY_SEPARATOR)&&define('VAR_PATH_HTML',$varPath.'html'.DIRECTORY_SEPARATOR);
 		return defined('STDIN')?self::cli($pharRun):self::process(self::init($scriptName));
 	}
 	private static function cli($phar=false)
@@ -192,7 +192,7 @@ final class app
 	{
 		if(is_writable(VAR_PATH_LOG)&&(DEBUG||$type=='ERROR'))
 		{
-			$path=VAR_PATH_LOG.DIRECTORY_SEPARATOR.($file?$file:date('Y-m-d')).'.log';
+			$path=VAR_PATH_LOG.($file?$file:date('Y-m-d')).'.log';
 			$msg=$type.'-'.date('Y-m-d H:i:s').' ==> '.(is_scalar($msg)?$msg:PHP_EOL.print_r($msg,true)).PHP_EOL;
 			return error_log($msg,3,$path);
 		}
@@ -239,14 +239,13 @@ final class app
 		{
 			case 'time': return round((microtime(true)-self::get('sys-start-time',0)),4);
 			case 'memory': return byteFormat(memory_get_usage()-self::get('sys-start-memory',0));
-			case 'query': return DB::$sqlCount?:0;
-			default: return ['time'=>round((microtime(true)-self::get('sys-start-time',0)),4),'memory'=>byteFormat(memory_get_usage()-self::get('sys-start-memory',0)),'query'=>DB::$sqlCount?:0];
+			case 'query': return db::$sqlCount?:0;
+			default: return ['time'=>round((microtime(true)-self::get('sys-start-time',0)),4),'memory'=>byteFormat(memory_get_usage()-self::get('sys-start-memory',0)),'query'=>db::$sqlCount?:0];
 		}
 	}
 	public static function fileCache($router=[],$delete=false)
 	{
-		$router=$router?(is_array($router)?implode('/',$router):$router):DEFAULT_CONTROLLER.'/'.DEFAULT_ACTION;
-		$cacheFile=sprintf('%s%s%u.html',VAR_PATH_HTML,DIRECTORY_SEPARATOR,crc32(ROOT.strtolower($router)));
+		$cacheFile=sprintf('%s%u.html',VAR_PATH_HTML,crc32(ROOT.strtolower(trim($router?(is_array($router)?implode('/',$router):$router):DEFAULT_CONTROLLER.'/'.DEFAULT_ACTION ,'/'))));
 		return $delete?(is_file($cacheFile)&&unlink($cacheFile)):$cacheFile;
 	}
 	public static function httpCache($min=0)
