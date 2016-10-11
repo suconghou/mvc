@@ -1,6 +1,6 @@
 <?php
 
-class Database extends DB
+class Database extends db
 {
 	protected static $initCmd=['SET NAMES UTF8'];
 	protected static $initCmdSqlite=['PRAGMA SYNCHRONOUS=OFF','PRAGMA CACHE_SIZE=8000','PRAGMA TEMP_STORE=MEMORY'];
@@ -58,14 +58,13 @@ class Database extends DB
 	final public static function exec($sql,array $bind=null,$fetch=null)
 	{
 		$stm=self::execute($sql,false);
-		var_dump($stm,$bind);die;
 	    $rs=$stm->execute($bind);
 	    return is_string($fetch)?$stm->$fetch():($fetch?$stm:$rs);
 	}
 
-	final public static function query(string $sql,array $bind,$fetch=true)
+	final public static function query(array $v)
 	{
-
+		return array_map(function($v){return call_user_func_array('self::exec',$v);},func_get_args());
 	}
 
 	final protected static function getCurrentTable()
@@ -89,21 +88,10 @@ class Database extends DB
 
 	final protected static function orderLimit(array $orderLimit,$limit=[])
 	{
-		$orderLimit=array_filter($orderLimit,function($x)use($orderLimit,&$limit){if(is_int($x)){$k=array_search($x,$orderLimit,true);$limit=[$k,$orderLimit[$k]];return false;}else{return true;}});
+		$orderLimit=array_filter($orderLimit,function($x)use($orderLimit,&$limit){if(is_int($x)){$k=array_search($x,$orderLimit,true);$limit=[$k,$x];return false;}else{return true;}});
 		$limit=$limit?" LIMIT ".implode(',',$limit):null;
 		$orderLimit?(array_walk($orderLimit,function(&$v,$k){$v=sprintf('%s %s',$k,is_string($v)?$v:($v?'ASC':'DESC'));})):null;
 		return sprintf('%s%s',$orderLimit?' ORDER BY '.implode(',',$orderLimit):null,$limit);
-	}
-
-	final protected static function type($var)
-	{
-		$map=['boolean'=>PDO::PARAM_BOOL,'integer'=>PDO::PARAM_INT,'double'=>PDO::PARAM_STR,'string'=>PDO::PARAM_STR,'NULL'=>PDO::PARAM_NULL,'resource'=>PDO::PARAM_LOB];
-		$t=gettype($var);
-		if(isset($map[$t]))
-		{
-			return $map[$t];
-		}
-		throw new Exception("unsupport var type",10);
 	}
 
 }
