@@ -354,7 +354,7 @@ final class app
 	}
 	public static function error($errno,$errstr=null,$errfile=null,$errline=null,array $errcontext=[])
 	{
-		if($errno instanceof Exception)
+		if($errno instanceof Exception or $errno instanceof Error)
 		{
 			$errstr=$errno->getMessage();
 			$errfile=$errno->getFile();

@@ -9,10 +9,12 @@
 * $cache true 检测缓存,false 不使用缓存 其他不使用缓存并且删除以前的缓存
 * 建议开启http缓存使用 C(60); 缓存1个小时
 */
-class Image 
+class Image
 {
 	const dict='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'; //产生验证码的字典
 	private static $cachePath; //缓存路径
+
+	private static $captcha;
 
 	function __construct($auto=false)
 	{
@@ -45,12 +47,11 @@ class Image
 	/**
 	* 生成验证码,不能有其他输出
 	*/
-	public function  vcode($num=4,$font=null,$gb=null)
+	public static function  captcha($num=4,$font=null,$gb=null)
 	{
 		$size=20;
 		$fontSize=20;
-		$font='./static/font/MONACO.TTF';
-		$this->vcode=self::random($num);
+		self::$captcha=self::random($num);
 		$width=$size*$num;
 		$height=($size+$fontSize)/1.2;
 		if(is_null($font))
@@ -60,20 +61,20 @@ class Image
 		$im = imagecreate($width,$height); // 画一张指定宽高的图片
 		$bg = ImageColorAllocate($im, isset($gb[0])?$gb[0]:rand(220,255),isset($gb[1])?$gb[1]:rand(220,255),isset($gb[2])?$gb[2]:rand(220,255)); // 定义背景颜色
 		for ($i=0; $i <$num ; $i++)
-		{ 
+		{
 			$a=rand(1,255);
 			$randcolor = ImageColorAllocate($im,$a,255-$a,rand(1,255)); // 生成随机颜色
 			$offset=$i==0?(mt_rand(1,$size/2)):($i*$size);
 			if(is_numeric($font))
 			{
-				imagestring($im,$font,$offset,mt_rand(1,$size), $this->vcode[$i], $randcolor);
+				imagestring($im,$font,$offset,mt_rand(1,$size), self::$captcha[$i], $randcolor);
 			}
 			else
 			{
-				imagettftext($im,$fontSize,mt_rand(-$size/2,$size/2),$offset,mt_rand(min($height,$fontSize),max($height,$fontSize)),$randcolor,$font,$this->vcode[$i]);  
+				imagettftext($im,$fontSize,mt_rand(-$size/2,$size/2),$offset,mt_rand(min($height,$fontSize),max($height,$fontSize)),$randcolor,$font,self::$captcha[$i]);
 			}
 		}
-		//draw some other 
+		//draw some other
 		for($i=0,$len=$height+$width; $i <$len ; $i++)
 		{
 			$randcolor = ImageColorAllocate($im,rand(50,255),rand(50,255),rand(50,255));
@@ -93,11 +94,11 @@ class Image
 		Header("Content-type: image/gif");
 		ImageGif($im);
 		ImageDestroy($im);
-		return  $this->getVcode();
+		return  self::getCaptcha();
 	}
-	public function getVcode()
+	public static function getCaptcha()
 	{
-		return isset($this->vcode)?$this->vcode:null;
+		return self::$captcha;
 	}
 	/**
 	* 生成图片占位符,需提供宽高,背景颜色
@@ -121,7 +122,7 @@ class Image
 		ImagePNG($im);
 		ImageDestroy($im);
 
-	} 
+	}
 	/**
 	* 图片采集与缩放
 	* @param  $path 本地或远程地址
@@ -142,7 +143,7 @@ class Image
 		{
 			$origin=self::$cachePath.'/'.md5($path).'.origin';
 			error_reporting(0);
-			is_file($origin)?null:file_put_contents($origin,file_get_contents($path));    
+			is_file($origin)?null:file_put_contents($origin,file_get_contents($path));
 			$path=$origin;
 		}
 		$arr=getimagesize($path); //原始图像大小 $type 1gif 2jpg 3png
