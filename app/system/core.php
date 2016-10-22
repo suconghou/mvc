@@ -616,7 +616,7 @@ class request
 		}
 		return validate::verify($rule,$data,$callback);
 	}
-	private static function getVar($origin,$var,$default=null,$clean=false)
+	public static function getVar(&$origin,$var,$default=null,$clean=false)
 	{
 		if($var)
 		{
@@ -870,15 +870,7 @@ function session($key,$val=null,$delete=false)
 	isset($_SESSION)||session_start();
 	if(is_null($val))
 	{
-		if($delete)
-		{
-			foreach(is_array($key)?$key:[$key] as $k)
-			{
-				unset($_SESSION[$k]);
-			}
-			return $_SESSION;
-		}
-		return Request::session($key,null,false);
+		return $delete?(bool)array_map(function($k){unset($_SESSION[$k]);},is_array($key)?$key:[$key]):request::session($key,null,false);
 	}
 	return $_SESSION[$key]=$val;
 }
@@ -886,7 +878,7 @@ function cookie($key,$val=null,$expire=0)
 {
 	if(is_null($val))
 	{
-		return Request::cookie($key,null,false);
+		return request::cookie($key,null,false);
 	}
 	return call_user_func_array('setcookie',func_get_args());
 }
