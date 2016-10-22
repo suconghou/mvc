@@ -707,6 +707,7 @@ class validate
 				case 'maxlength': return strlen($item)<=$val;
 				case 'length': return strlen($item)==$val;
 				case 'eq': return $item==$val;
+				case '!eq': return strtolower($item)==strtolower($val);
 				default: return self::this($type,$item);
 			}
 		}
