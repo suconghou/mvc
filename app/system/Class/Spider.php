@@ -8,6 +8,7 @@
 
 //取得所有img标签,参数一取属性,参数二格式默认返回DOMElement,参数true返回Array,整形参数返回数组对应下标元素
 Spider::query($url)->find('img')->result('src');
+Spider::query($url)->find('img')->result(null,true);
 
 */
 class Spider
@@ -147,20 +148,33 @@ class Jquery
 			{
 				$xpath=new DOMXpath($html);
 			}
-			else
+			else if($html instanceof DOMElement)
 			{
-				$dom=new DOMDocument();
-				$dom->preserveWhiteSpace=false;
-				$dom->strictErrorChecking=false;
+				$doc = new DOMDocument();
+				$doc->preserveWhiteSpace=false;
+				$doc->strictErrorChecking=false;
 				if(libxml_use_internal_errors(true)===true)
 				{
 					libxml_clear_errors();
 				}
-				$ret=$dom->loadHTML($html);
+				$doc->appendChild($doc->importNode($html,true));
+				$xpath=new DOMXpath($doc);
+				unset($doc,$html);
+			}
+			else if(is_string($html))
+			{
+				$doc=new DOMDocument();
+				$doc->preserveWhiteSpace=false;
+				$doc->strictErrorChecking=false;
+				if(libxml_use_internal_errors(true)===true)
+				{
+					libxml_clear_errors();
+				}
+				$ret=$doc->loadHTML($html);
 				if($ret)
 				{
-					$xpath=new DOMXpath($dom);
-					unset($ret,$dom,$html);
+					$xpath=new DOMXpath($doc);
+					unset($ret,$doc,$html);
 				}
 				else
 				{
@@ -168,6 +182,10 @@ class Jquery
 					libxml_clear_errors();
 					return $errors;
 				}
+			}
+			else
+			{
+				throw new Exception("html not error", 1);
 			}
 			return new self($xpath);
 		}
@@ -348,6 +366,10 @@ class Jquery
 		{
 			return is_callable($callback)?($callback($oAttr->nodeValue)):$oAttr->nodeValue;
 		}
+		else if($a=$node->getAttribute($attr))
+		{
+			return $a;
+		}
 		else if(isset($node->$attr))
 		{
 			return is_callable($callback)?($callback($node->$attr)):$node->$attr;
@@ -377,6 +399,7 @@ class Jquery
 					return is_callable($callback)?($callback($node->tagName)):$node->tagName;
 				case 'attrs':
 					$attributes=[];
+					var_dump($node);die;
 					if($node->attributes->length)
 					{
 						foreach($node->attributes as $key => $attr)

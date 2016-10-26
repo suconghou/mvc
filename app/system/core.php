@@ -478,14 +478,14 @@ function with($class)
 		{
 			return $GLOBALS['app']['lib'][$m];
 		}
-		if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.class.php")||is_file($file=LIB_PATH."{$class}.class.php"))
+		else if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.php"))
 		{
 			((require_once $file)&&class_exists($m))||app::error(500,"{$file} Does Not Contain Class {$m}");
 			$class=new ReflectionClass($m);
 			$GLOBALS['app']['lib'][$m]=$class->newInstanceArgs($arguments);
 			return $GLOBALS['app']['lib'][$m];
 		}
-		if(is_file($file=LIB_PATH."{$class}.php")||is_file($file=LIB_PATH."{$class}.phar"))
+		else if(is_file($file=LIB_PATH."{$class}.php")||is_file($file=LIB_PATH."{$class}.phar"))
 		{
 			unset($GLOBALS['app']['lib'][$m]);
 			return require_once $file;
@@ -706,8 +706,8 @@ class validate
 				case 'minlength': return strlen($item)>=$val;
 				case 'maxlength': return strlen($item)<=$val;
 				case 'length': return strlen($item)==$val;
-				case 'eq': return $item==$val;
-				case '!eq': return strtolower($item)==strtolower($val);
+				case 'eq': return trim($item)==trim($val);
+				case '!eq': return strtolower(trim($item))==strtolower(trim($val));
 				default: return self::this($type,$item);
 			}
 		}
@@ -858,7 +858,7 @@ class db
 
 function __autoload($class)
 {
-	if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.class.php")||is_file($file=LIB_PATH."{$class}.class.php"))
+	if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.php")||is_file($file=LIB_PATH."{$class}.php"))
 	{
 		require_once $file;
 		return class_exists($class)||app::error(500,"File {$file} Does Not Contain Class {$class}");
