@@ -39,27 +39,18 @@ class base
 		header('HTTP/1.1 403 Forbidden',true,403)||exit($msg);
 	}
 
-	final private static function cors($allow=[])
+	final private static function cors($host=null)
 	{
-		$allow=is_array($allow)?$allow:[$allow];
-		if(!empty($allow))
-		{
-			header('Access-Control-Allow-Origin: '.implode(',',$allow));
-		}
-		else
+		if(empty($host))
 		{
 			$host='*';
-			if(isset($_SERVER['HTTP_REFERER']) || isset($_SERVER['HTTP_ORIGIN']))
+			if(isset($_SERVER['HTTP_REFERER'])||isset($_SERVER['HTTP_ORIGIN']))
 			{
-				$parts=parse_url(isset($_SERVER['HTTP_REFERER'])?$_SERVER['HTTP_REFERER']:$_SERVER['HTTP_ORIGIN']);
-				$host=$parts['scheme'].'://'.$parts['host'];
-				if(isset($parts['port']))
-				{
-					$host=$host.':'.$parts['port'];
-				}
+				$parts=parse_url($_SERVER['HTTP_REFERER']?:$_SERVER['HTTP_ORIGIN']);
+				$host=sprintf('%s://%s%s',$parts['scheme'],$parts['host'],isset($parts['port'])?":{$parts['port']}":null);
 			}
-			header("Access-Control-Allow-Origin: {$host}");
 		}
+		header('Access-Control-Allow-Origin: '.$host);
 		header('Access-Control-Allow-Credentials:true');
 		header('Access-Control-Allow-Methods:GET, POST, PUT, DELETE, OPTIONS');
 		header('Access-Control-Allow-Headers:Origin, X-Requested-With, Content-Type, Accept');
