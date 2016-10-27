@@ -43,7 +43,7 @@ class Database extends db
 		$page=$page<1?1:intval($page);
 		$total=intval(self::findVar($where,$table));
 		$pages=ceil($total/$limit);
-		$list=self::find($where,$table,$col,[($page-1)*$limit=>$limit]+$order);
+		$list=self::find($where,$table,$col,[($page-1)*$limit=>intval($limit)]+$order);
 		return ['list'=>$list,'pages'=>$pages,'total'=>$total,'current'=>$page,'prev'=>min($pages,max(1,$page-1)),'next'=>min($pages,$page+1)];
 	}
 
