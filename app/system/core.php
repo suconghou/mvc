@@ -478,17 +478,17 @@ function with($class)
 		{
 			return $GLOBALS['app']['lib'][$m];
 		}
-		else if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.php"))
+		if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.php")||is_file($file=LIB_PATH."{$class}.php")||is_file($file=LIB_PATH."{$class}.phar"))
 		{
-			((require_once $file)&&class_exists($m))||app::error(500,"{$file} Does Not Contain Class {$m}");
-			$class=new ReflectionClass($m);
-			$GLOBALS['app']['lib'][$m]=$class->newInstanceArgs($arguments);
-			return $GLOBALS['app']['lib'][$m];
-		}
-		else if(is_file($file=LIB_PATH."{$class}.php")||is_file($file=LIB_PATH."{$class}.phar"))
-		{
+			$ret=require_once $file;
+			if(class_exists($m))
+			{
+				$class=new ReflectionClass($m);
+				$GLOBALS['app']['lib'][$m]=$class->newInstanceArgs($arguments);
+				return $GLOBALS['app']['lib'][$m];
+			}
 			unset($GLOBALS['app']['lib'][$m]);
-			return require_once $file;
+			return $ret;
 		}
 		return app::error(404,"Can not load {$class}");
 	}
