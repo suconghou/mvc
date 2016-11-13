@@ -29,7 +29,7 @@ final class M extends db
 	{
 		$stm=self::prepare('SELECT v FROM '.self::tCache.' WHERE k=:k AND t > UNIX_TIMESTAMP()');
 		$rs=$stm->execute([':k'=>$key]);
-		return $rs===false?$default:json_decode($stm->fetchColumn(),true);
+		return ($rs&&$ret=$stm->fetchColumn())?json_decode($ret,true):$default;
 	}
 
 	final public static function mget(array $keys=null)
