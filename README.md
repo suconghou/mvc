@@ -47,10 +47,10 @@ RewriteRule ^(.*)$ index.php [QSA,L]
 ##开始使用
 
 - `with()` 即可加载`app/system` 路径下的文件,或者下一级目录的文件 ,可加载普通php文件,也可加载.class.php文件,后者必须存在以文件名命名的类
-- 
-- 
-- 
-- 
+-
+-
+-
+-
 
 
 ```
@@ -65,6 +65,7 @@ RewriteRule ^(.*)$ index.php [QSA,L]
 ## 其他
 
 
+`debug=2  php index.php em lists2016`
 
 ```
 
@@ -373,7 +374,7 @@ $data=
 ```
 array_map(function($v)use(&$values){array_push($values,...array_values($v));},$data);
 $holders=substr(str_repeat('(?'.str_repeat(',?',count(reset($data))-1).'),',count($data)),0,-1);
-$sql=sprintf('INSERT INTO%s %s',sprintf(' `%s` (%s) VALUES',self::table,implode(',',array_map(function($k){return "`{$k}`";},array_keys(reset($data))))),substr(str_repeat('(?'.str_repeat(',?',count(reset($data))-1).'),',count($data)),0,-1));	
+$sql=sprintf('INSERT INTO%s %s',sprintf(' `%s` (%s) VALUES',self::table,implode(',',array_map(function($k){return "`{$k}`";},array_keys(reset($data))))),substr(str_repeat('(?'.str_repeat(',?',count(reset($data))-1).'),',count($data)),0,-1));
 ```
 
 如果你的PHP版本小于PHP5.6

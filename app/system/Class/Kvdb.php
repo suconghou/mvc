@@ -24,7 +24,7 @@ final class Kvdb
 
 	final public static function set($key,$value,$expired=86400)
 	{
-		$t=$expired>864000?$expired:time()+$expired;
+		$t=$expired>2592000?$expired:time()+$expired;
 		$stm=self::ready()->prepare('REPLACE INTO '.self::tCache." (k,v,t) VALUES ('$key',:v,$t)");
 		$stm->bindValue(':v',json_encode($value,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
 		return (bool)$stm->execute();
@@ -33,7 +33,7 @@ final class Kvdb
 
 	final public static function mset(array $set,$expired=86400,$i=0)
 	{
-		$t=$expired>864000?$expired:time()+$expired;
+		$t=$expired>2592000?$expired:time()+$expired;
 		$holders=array_map(function($k)use($t){return "('{$k}',?,{$t})";},array_keys($set));
 		$stm=self::ready()->prepare('REPLACE INTO '.self::tCache.' (k,v,t) VALUES '.implode(',',$holders));
 		array_walk($set,function($v)use(&$stm,&$i){$stm->bindValue(++$i,json_encode($v,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));});
@@ -78,7 +78,7 @@ final class Kvdb
 
 	final public static function ex($key,$expired=86400)
 	{
-		$t=$expired>864000?$expired:time()+$expired;
+		$t=$expired>2592000?$expired:time()+$expired;
 		$stm=self::ready()->prepare('UPDATE '.self::tCache." SET t={$t} WHERE k=:k");
 		$stm->bindValue(':k',$key);
 		return (bool)$stm->execute();

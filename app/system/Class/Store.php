@@ -26,11 +26,11 @@ final class Store
 		return $instance[$db];
 	}
 
-	public static function set($key,$value,$expire=86400)
+	public static function set($key,$value,$expired=86400)
 	{
 		$filepath=self::getPath($key);
 		file_put_contents($filepath,serialize($value));
-		return touch($filepath,time()+$expire);
+		return touch($filepath,$expired>2592000?$expired:time()+$expired);
 	}
 
 	public static function get($key,$default=null)

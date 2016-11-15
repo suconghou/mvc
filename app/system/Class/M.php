@@ -15,12 +15,12 @@ final class M extends db
 
 	final public static function set($key,$value,$expired=86400)
 	{
-		return self::prepare('INSERT INTO '.self::tCache.' (k,v,t) VALUES (:k,:v,:t) ON DUPLICATE KEY UPDATE v=:v,t=:t')->execute([':k'=>$key,':v'=>json_encode($value,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),':t'=>$expired>864000?$expired:time()+$expired]);
+		return self::prepare('INSERT INTO '.self::tCache.' (k,v,t) VALUES (:k,:v,:t) ON DUPLICATE KEY UPDATE v=:v,t=:t')->execute([':k'=>$key,':v'=>json_encode($value,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),':t'=>$expired>2592000?$expired:time()+$expired]);
 	}
 
 	final public static function mset(array $set,$expired=86400)
 	{
-		$t=$expired>864000?$expired:time()+$expired;
+		$t=$expired>2592000?$expired:time()+$expired;
 		$holders=implode(',',array_map(function($k)use($t){return "('{$k}',?,{$t})";},array_keys($set)));
 		return self::prepare('INSERT INTO '.self::tCache.' (k,v,t) VALUES '.$holders.' ON DUPLICATE KEY UPDATE v=VALUES(v),t=VALUES(t)')->execute(array_map(function($v){return json_encode($v,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);},array_values($set)));
 	}
@@ -64,7 +64,7 @@ final class M extends db
 
 	final public static function ex($key,$expired=86400)
 	{
-		return self::prepare('UPDATE '.self::tCache.' SET t=:t WHERE k=:k ')->execute([':k'=>$key,':t'=>$expired>864000?$expired:time()+$expired]);
+		return self::prepare('UPDATE '.self::tCache.' SET t=:t WHERE k=:k ')->execute([':k'=>$key,':t'=>$expired>2592000?$expired:time()+$expired]);
 	}
 
 	final public static function clear($key=[])
