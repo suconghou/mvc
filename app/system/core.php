@@ -190,7 +190,7 @@ final class app
 	}
 	public static function log($msg,$type='DEBUG',$file=null)
 	{
-		if(is_writable(VAR_PATH_LOG)&&(DEBUG||$type=='ERROR'))
+		if(is_writable(VAR_PATH_LOG)&&((($type=strtoupper($type))=='ERROR')||DEBUG))
 		{
 			$path=VAR_PATH_LOG.($file?$file:date('Y-m-d')).'.log';
 			$msg=$type.'-'.date('Y-m-d H:i:s').' ==> '.(is_scalar($msg)?$msg:PHP_EOL.print_r($msg,true)).PHP_EOL;

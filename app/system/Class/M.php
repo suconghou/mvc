@@ -5,7 +5,7 @@
 MySQL 缓存中心
 
 CREATE TABLE IF NOT EXISTS `cache` (`k` varchar(200) NOT NULL, `v` varchar(21600) NOT NULL, `t` int(11) NOT NULL, PRIMARY KEY (`k`) ) ENGINE=MEMORY DEFAULT CHARSET=utf8;
-
+CREATE TABLE IF NOT EXISTS `config` (`k` varchar(200) NOT NULL, `v` text NOT NULL, `t` int(11) NOT NULL, PRIMARY KEY (`k`) ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 */
 
 final class M extends db
