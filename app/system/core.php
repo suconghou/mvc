@@ -1050,7 +1050,7 @@ function sendMail($mailTo,$mailSubject,$mailMessage=null)
 	catch(Exception $e)
 	{
 		app::log($e->getMessage(),'ERROR');
-		return false;
+		throw $e;
 	}
 }
 
