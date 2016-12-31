@@ -411,7 +411,7 @@ final class app
 						$GLOBALS['app']['ctl'][$errorController]=new $errorController($errorRouter);
 					}
 				}
-				$errorPage=is_callable([$GLOBALS['app']['ctl'][$errorController],$errorRouter[1]])?call_user_func_array([$GLOBALS['app']['ctl'][$errorController],$errorRouter[1]],[$errormsg]):$errorPage;
+				$errorPage=is_callable([$GLOBALS['app']['ctl'][$errorController],$errorRouter[1]])?call_user_func([$GLOBALS['app']['ctl'][$errorController],$errorRouter[1]],$errormsg):$errorPage;
 			}
 			exit($errorPage);
 		}
