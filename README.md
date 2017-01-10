@@ -65,7 +65,11 @@ RewriteRule ^(.*)$ index.php [QSA,L]
 ## 其他
 
 
-`debug=2  php index.php em lists2016`
+修改为测试模式 `debug=2  php index.php em lists2016`
+
+
+打包项目 `php -d phar.readonly=0 index.php`
+
 
 ```
 
@@ -261,6 +265,7 @@ orm::values(array &$data,$set=false,$table=null)
 ```
 orm::orderLimit(array $orderLimit,$limit=[])
 ```
+只需一个参数,`$limit`参数无需设置
 
 `$orderLimit`使用关联数组,键为数据库字段,键值为排序规则,`ASC`或`DESC`,也可以使用布尔值代替,`true`为`ASC`,`false`为`DESC`
 
@@ -272,7 +277,7 @@ orm::orderLimit(array $orderLimit,$limit=[])
 
 代表`LIMIT 35,20`
 
-直接使用`$orderLimit=['id'=>'DESC','name'=>'ASC',35=>20]`
+直接使用`$orderLimit=['id'=>'DESC','name'=>'ASC',5]`
 
 代表`LIMIT 0,5`
 

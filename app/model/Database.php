@@ -88,7 +88,7 @@ class Database extends db
 
 	final protected static function orderLimit(array $orderLimit,$limit=[])
 	{
-		$orderLimit=array_filter($orderLimit,function($x)use($orderLimit,&$limit){if(is_int($x)){$k=array_search($x,$orderLimit,true);$limit=[$k,$x];return false;}else{return true;}});
+		$orderLimit=array_filter($orderLimit,function($x)use($orderLimit,&$limit){if(preg_match('/^\d+$/',$x)){$k=array_search($x,$orderLimit,true);$limit=[$k,$x];return false;}else{return true;}});
 		$limit=$limit?" LIMIT ".implode(',',$limit):null;
 		$orderLimit?(array_walk($orderLimit,function(&$v,$k){$v=sprintf('%s %s',$k,is_string($v)?$v:($v?'ASC':'DESC'));})):null;
 		return sprintf('%s%s',$orderLimit?' ORDER BY '.implode(',',$orderLimit):null,$limit);
