@@ -799,6 +799,10 @@ class db
 		}
 		return self::$pdo;
 	}
+	final public static function close()
+	{
+		return self::$pdo=null;
+	}
 	final public static function runSql($sql)
 	{
 		return self::execute($sql);
