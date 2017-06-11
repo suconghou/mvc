@@ -4,16 +4,17 @@
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.9.13
+ * @version 1.9.15
  */
 
 final class app
 {
 	private static $global;
-	public static function start()
+	public static function start(array &$config)
 	{
-		self::set('sys-start-time',microtime(true));
-		self::set('sys-start-memory',memory_get_usage());
+		self::$global=&$config;
+		self::$global['sys-start-time']=microtime(true);
+		self::$global['sys-start-memory']=memory_get_usage();
 		error_reporting(DEBUG?E_ALL:0);
 		set_include_path(LIB_PATH);
 		set_error_handler('app::error');
@@ -27,10 +28,10 @@ final class app
 				return app::log($errormsg,'ERROR');
 			}
 		});
-		date_default_timezone_set(defined('TIMEZONE')?TIMEZONE:'PRC');
+		date_default_timezone_set(empty($config['timezone'])?'prc':$config['timezone']);
 		defined('DEFAULT_ACTION')||define('DEFAULT_ACTION','index');
 		defined('DEFAULT_CONTROLLER')||define('DEFAULT_CONTROLLER','home');
-		defined('STDIN')||(defined('GZIP')?ob_start("ob_gzhandler"):ob_start());
+		defined('STDIN')||(empty($config['gzip'])?ob_start():ob_start("ob_gzhandler"));
 		list($pharRun,$pharVar,$scriptName)=[substr(ROOT,0,7)=='phar://',substr(VAR_PATH,0,7)=='phar://','/'.trim($_SERVER['SCRIPT_NAME'],'./')];
 		$varPath=$pharVar?str_ireplace(['phar://',$scriptName],null,VAR_PATH):VAR_PATH;
 		define('VAR_PATH_LOG',$varPath.'log'.DIRECTORY_SEPARATOR)&&define('VAR_PATH_HTML',$varPath.'html'.DIRECTORY_SEPARATOR);
@@ -42,7 +43,6 @@ final class app
 		$script=basename(array_shift($router));
 		if($GLOBALS['argc']>1)
 		{
-			$_SERVER['REQUEST_URI']=null;
 			$phar||chdir(ROOT);
 			$ret=self::regexRouter('/'.implode('/',$router));
 			return is_object($ret)?$ret:(($GLOBALS['app']['router']=$ret?$ret:$router)&&self::run($GLOBALS['app']['router']));
@@ -100,18 +100,18 @@ final class app
 				}
 				else
 				{
-					return self::error(404,"Request Controller {$router[0]} Error");
+					return self::error(404,"request controller {$router[0]} error");
 				}
 			}
 			else
 			{
 				if(!preg_match('/^[a-z]\w{0,20}$/i',$router[0]))
 				{
-					return self::error(404,"Request Controller {$router[0]} Error");
+					return self::error(404,"request controller {$router[0]} error");
 				}
 				if(!preg_match('/^[a-z]\w{0,20}$/i',$router[1]))
 				{
-					return self::error(404,"Request Action {$router[0]}:{$router[1]} Error");
+					return self::error(404,"request action {$router[0]}:{$router[1]} error");
 				}
 			}
 			return $router;
@@ -161,11 +161,11 @@ final class app
 		}
 		else
 		{
-			return self::error(404,"Request Controller {$router[0]} Not Found");
+			return self::error(404,"request controller {$router[0]} not found");
 		}
 		require_once $path;
-		class_exists($controllerName)||self::error(404,"Request Controller Class {$controllerName} Not Found");
-		method_exists($controllerName,$action)||self::error(404,"Request Controller Class {$controllerName} Does Not Contain Method {$action}");
+		class_exists($controllerName)||self::error(404,"request controller class {$controllerName} not found");
+		method_exists($controllerName,$action)||self::error(404,"request controller class {$controllerName} has no method {$action}");
 		$GLOBALS['app']['ctl'][$controllerName]=isset($GLOBALS['app']['ctl'][$controllerName])?$GLOBALS['app']['ctl'][$controllerName]:$controllerName;
 		if((!$GLOBALS['app']['ctl'][$controllerName] instanceof $controllerName)&&($class=new ReflectionClass($controllerName))&&($class->isInstantiable()))
 		{
@@ -190,7 +190,7 @@ final class app
 	}
 	public static function log($msg,$type='DEBUG',$file=null)
 	{
-		if(is_writable(VAR_PATH_LOG)&&((($type=strtoupper($type))=='ERROR')||DEBUG))
+		if(is_writable(VAR_PATH_LOG)&&(DEBUG||(($type=strtoupper($type))=='ERROR')))
 		{
 			$path=VAR_PATH_LOG.($file?$file:date('Y-m-d')).'.log';
 			$msg=$type.'-'.date('Y-m-d H:i:s').' ==> '.(is_scalar($msg)?$msg:PHP_EOL.print_r($msg,true)).PHP_EOL;
@@ -227,20 +227,15 @@ final class app
 		}
 		return [];
 	}
-	public static function async($router=null,closure $callback=null)
-	{
-		function_exists('fastcgi_finish_request')&&fastcgi_finish_request();
-		$data=($router instanceof closure)?$router():self::run($router);
-		return $callback?$callback($data):$data;
-	}
+
 	public static function cost($type=null)
 	{
 		switch ($type)
 		{
-			case 'time': return round((microtime(true)-self::get('sys-start-time',0)),4);
-			case 'memory': return byteFormat(memory_get_usage()-self::get('sys-start-memory',0));
+			case 'time': return round((microtime(true)-self::$global['sys-start-time']),4);
+			case 'memory': return memory_get_usage()-self::$global['sys-start-memory'];
 			case 'query': return db::$sqlCount?:0;
-			default: return ['time'=>round((microtime(true)-self::get('sys-start-time',0)),4),'memory'=>byteFormat(memory_get_usage()-self::get('sys-start-memory',0)),'query'=>db::$sqlCount?:0];
+			default: return ['time'=>round((microtime(true)-self::$global['sys-start-time']),4),'memory'=>memory_get_usage()-self::$global['sys-start-memory'],'query'=>db::$sqlCount?:0];
 		}
 	}
 	public static function fileCache($router=[],$delete=false)
@@ -277,46 +272,10 @@ final class app
 		self::$global[$key]=$value;
 		return self::$global;
 	}
-	public static function setItem($key,$value)
-	{
-		$file=sprintf('%s%s%u.db',sys_get_temp_dir(),DIRECTORY_SEPARATOR,crc32(ROOT));
-		if(is_file($file)&&is_array($data=unserialize(file_get_contents($file))))
-		{
-			$data[$key]=$value;
-		}
-		else
-		{
-			$data=[$key=>$value];
-		}
-		return file_put_contents($file,serialize($data));
-	}
-	public static function getItem($key,$default=null)
-	{
-		$file=sprintf('%s%s%u.db',sys_get_temp_dir(),DIRECTORY_SEPARATOR,crc32(ROOT));
-		if(is_file($file)&&is_array($data=unserialize(file_get_contents($file))))
-		{
-			return isset($data[$key])?$data[$key]:$default;
-		}
-		return $default;
-	}
-	public static function clearItem($key=null,&$file=null)
-	{
-		$file=sprintf('%s%s%u.db',sys_get_temp_dir(),DIRECTORY_SEPARATOR,crc32(ROOT));
-		if(is_null($key))
-		{
-			return is_file($file)&&unlink($file);
-		}
-		if(is_file($file)&&is_array($data=unserialize(file_get_contents($file)))&&isset($data[$key]))
-		{
-			unset($data[$key]);
-			return file_put_contents($file,serialize($data));
-		}
-		return true;
-	}
 	public static function config($key=null,$default=null,$cfgfile='config.php')
 	{
 		$config=is_array($cfgfile)?$cfgfile:(isset(self::$global[$cfgfile])?self::$global[$cfgfile]:(self::$global[$cfgfile]=include $cfgfile));
-		if($key=array_filter(explode('.',$key),function($item){return $item;}))
+		if($key=array_filter(explode('.',$key)))
 		{
 			foreach ($key as $item)
 			{
@@ -332,9 +291,9 @@ final class app
 		}
 		return $config;
 	}
-	public static function on($event,$function)
+	public static function on($event,closure $task)
 	{
-		return self::$global['event'][$event]=$function;
+		return self::$global['event'][$event]=$task;
 	}
 	public static function off($event)
 	{
@@ -344,13 +303,13 @@ final class app
 	{
 		return empty(self::$global['event'][$event])?:call_user_func_array(self::$global['event'][$event],is_array($arguments)?$arguments:[$arguments]);
 	}
-	public static function method($method,closure $function)
+	public static function method($fn,closure $task)
 	{
-		return self::$global['method'][$method]=$function;
+		return self::$global['method'][$fn]=$task;
 	}
-	public static function __callStatic($method,$args=null)
+	public static function __callStatic($fn,$args=null)
 	{
-		return isset(self::$global['method'][$method])?call_user_func_array(self::$global['method'][$method],$args):self::error(500,"Call Error Static Method {$method} In Class ".get_called_class());
+		return isset(self::$global['method'][$fn])?call_user_func_array(self::$global['method'][$fn],$args):self::error(500,"call error static method {$fn} in class ".get_called_class());
 	}
 	public static function error($errno,$errstr=null,$errfile=null,$errline=null,array $errcontext=[])
 	{
@@ -374,7 +333,7 @@ final class app
 		$errormsg=sprintf('ERROR(%d) %s%s%s',$errno,$errstr,$errfile?" in {$errfile}":null,$errline?" on line {$errline}":null);
 		$code=in_array($errno,[400,403,404,414,500,502,503,504])?$errno:500;
 		$errno==404?app::log($errormsg,'DEBUG',$errno):app::log($errormsg,'ERROR');
-		defined('STDIN')||(app::get('sys-error')&&exit("Error Found In Error Handler:{$errormsg}"))||(header('Error-At:'.preg_replace('/\s+/',' ',$errstr),true,$code)||app::set('sys-error',true));
+		defined('STDIN')||(app::get('sys-error')&&exit("error found in error handler:{$errormsg}"))||(header('Error-At:'.preg_replace('/\s+/',' ',$errstr),true,$code)||app::set('sys-error',true));
 		if(DEBUG||getenv('EXE'))
 		{
 			$li=[];
@@ -490,7 +449,7 @@ function with($class)
 			unset($GLOBALS['app']['lib'][$m]);
 			return $ret;
 		}
-		return app::error(404,"Can not load {$class}");
+		return app::error(404,"can not load {$class}");
 	}
 	return new response($class);
 }
@@ -508,7 +467,7 @@ function template($v,array $_data_=null,$callback=null)
 		}
 		return include $_v_;
 	}
-	return app::error(404,"File {$_v_} Not Found");
+	return app::error(404,"file {$_v_} not found");
 }
 
 class request
@@ -534,10 +493,6 @@ class request
 		isset($_SESSION)||session_start();
 		return self::getVar($_SESSION,$key,$default,$clean);
 	}
-	public static function server($key=null,$default=null,$clean=flase)
-	{
-		return self::getVar($_SERVER,$key,$default,$clean);
-	}
 	public static function input($key=null,$default=null,$json=true)
 	{
 		$str=file_get_contents('php://input');
@@ -546,8 +501,7 @@ class request
 	}
 	public static function ip($default=null)
 	{
-		$ip=getenv('REMOTE_ADDR');
-		return $ip?$ip:(isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:$default);
+		return isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:$default;
 	}
 	public static function info($key=null,$default=null)
 	{
@@ -645,10 +599,6 @@ class request
 			case 'en': return preg_replace('/[\x80-\xff]/','',$val);
 			default: return $type?sprintf($type,$val):trim($val);
 		}
-	}
-	public static function __callStatic($method,$args)
-	{
-		return app::error(500,"Call Error Static Method {$method} In Class ".get_called_class());
 	}
 }
 
@@ -766,38 +716,36 @@ class validate
 
 class db
 {
-	private static $pdo;
+	private static $pdos=[];
+	private static $current;
+
 	public static $lastSql;
 	public static $sqlCount;
+
+	private function __construct($instance)
+	{
+		$this->current=$instance;
+	}
+
 	final private static function init($dbDsn,$dbUser,$dbPass)
 	{
-		if(!self::$pdo)
+		$options=[PDO::ATTR_PERSISTENT=>true,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>3];
+		try
 		{
-			$options=[PDO::ATTR_PERSISTENT=>true,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>3];
+			$pdo=new PDO($dbDsn,$dbUser,$dbPass,$options);
+		}
+		catch (PDOException $e)
+		{
 			try
 			{
-				self::$pdo=new PDO($dbDsn,$dbUser,$dbPass,$options);
+				$pdo=new PDO($dbDsn,$dbUser,$dbPass,$options);
 			}
-			catch (PDOException $e)
+			catch(PDOException $e)
 			{
-				try
-				{
-					self::$pdo=new PDO($dbDsn,$dbUser,$dbPass,$options);
-				}
-				catch(PDOException $e)
-				{
-					return app::error(500,$e->getMessage());
-				}
-			}
-			if(!empty(static::$initCmd)&&is_array(static::$initCmd))
-			{
-				foreach (static::$initCmd as $cmd)
-				{
-					self::$pdo->exec($cmd);
-				}
+				return app::error($e->getCode(),$e->getMessage());
 			}
 		}
-		return self::$pdo;
+		return $pdo;
 	}
 	final public static function close()
 	{
@@ -838,14 +786,121 @@ class db
 	{
 		return self::ready()->lastInsertId();
 	}
-	final public static function getInstance()
+	final public static function getInstance(array $cfg=null)
 	{
-		return self::ready();
+		if(!$cfg)
+		{
+			$cfg=app::get('db');
+			$id='master';
+		}
+		$pass=isset($cfg['pass'])?$cfg['pass']:null;
+		$user=isset($cfg['user'])?$cfg['user']:null;
+		$id=isset($id)?$id:sprintf('%u',crc32($cfg['dsn'].$user.$pass));
+		if(empty(self::$pdo[$id]))
+		{
+			self::$pdo[$id]=new self(self::init($cfg['dsn'],$user,$pass));
+		}
+		return self::$pdo[$id];
 	}
+
 	final private static  function ready()
 	{
-		return self::$pdo?self::$pdo:self::init(DB_DSN,defined('DB_USER')?DB_USER:null,defined('DB_PASS')?DB_PASS:null);
+		$db=app::get('db');
+		// if(self::$current)
+		// {
+		// }
+		return self::$pdo?self::$pdo:self::init(isset($db['dsn'])?$db['dsn']:null,isset($db['user'])?$db['user']:null,isset($db['pass'])?$db['pass']:null);
 	}
+
+	final public static function insert(array $data,$table=null,$ignore=false,$replace=false)
+	{
+		$sql=sprintf('%s %sINTO `%s` %s',$replace?'REPLACE':'INSERT',$ignore&&!$replace?'IGNORE ':null,$table?:self::getCurrentTable(),self::values($data));
+		return self::exec($sql,$data);
+	}
+
+	final public static function replace(array $data,$table=null)
+	{
+		return self::insert($data,$table,false,true);
+	}
+
+	final public static function delete(array $where=[],$table=null)
+	{
+		$sql=sprintf('DELETE FROM `%s`%s',$table?:self::getCurrentTable(),self::condition($where));
+		return self::exec($sql,$where);
+	}
+
+	final public static function find(array $where=[],$table=null,$col='*',array $orderLimit=null,$fetch='fetchAll')
+	{
+		$sql=sprintf('SELECT %s FROM `%s`%s%s',$col,$table?:self::getCurrentTable(),self::condition($where),$orderLimit?self::orderLimit($orderLimit):null);
+		return self::exec($sql,$where,$fetch);
+	}
+
+	final public static function findOne(array $where=[],$table=null,$col='*',array $orderLimit=[1],$fetch='fetch')
+	{
+		return self::find($where,$table,$col,$orderLimit,$fetch);
+	}
+
+	final public static function findVar(array $where=[],$table=null,$method='COUNT(1)',array $orderLimit=[1])
+	{
+		return self::find($where,$table,$method,$orderLimit,'fetchColumn');
+	}
+
+	final public static function findPage(array $where=[],$table=null,$col='*',$page=1,$limit=20,array $order=[])
+	{
+		$page=$page<1?1:intval($page);
+		$total=intval(self::findVar($where,$table));
+		$pages=ceil($total/$limit);
+		$list=self::find($where,$table,$col,[($page-1)*$limit=>intval($limit)]+$order);
+		return ['list'=>$list,'pages'=>$pages,'total'=>$total,'current'=>$page,'prev'=>min($pages,max(1,$page-1)),'next'=>min($pages,$page+1)];
+	}
+
+	final public static function update(array $where,array $data,$table=null)
+	{
+		$sql=sprintf('UPDATE `%s` SET %s%s',$table?:self::getCurrentTable(),self::values($data,true),self::condition($where));
+		$intersect=array_keys(array_intersect_key($data,$where));
+		$sql=$intersect?preg_replace(array_map(function($x)use(&$data){$data["{$x}_"]=$data[$x];unset($data[$x]);return sprintf('/:%s/',$x);},$intersect),'\0_',$sql,1):$sql;
+		return self::exec($sql,$data+$where);
+	}
+
+	final public static function exec($sql,array $bind=null,$fetch=null)
+	{
+		$stm=self::execute($sql,false);
+	    $rs=$stm->execute($bind);
+	    return is_string($fetch)?$stm->$fetch():($fetch?$stm:$rs);
+	}
+
+	final public static function query(array $v)
+	{
+		return array_map(function($v){return call_user_func_array('self::exec',$v);},func_get_args());
+	}
+
+	final protected static function getCurrentTable()
+	{
+		return defined('static::table')?static::table:get_called_class();
+	}
+
+	final protected static function condition(array &$where,$prefix='WHERE')
+	{
+		$keys=array_keys($where);
+		$condition=$keys?implode(sprintf(' %s ',isset($where[0])?$where[0]:'AND'),array_map(function($v)use(&$where){$x=array_values(array_filter(explode(' ',$v)));$n=null;$k=trim(ltrim($x[0],'!'));if(is_array($where[$v])){$marks=[];$i=0;array_map(function($t)use(&$marks,&$where,&$i){$q='_'.$i++;$marks[]=":{$q}";$where[$q]=$t;},$where[$v]);}else{if($k!=$x[0]){$n=$where[$v];}elseif($x[0]!=$v){$where[$x[0]]=$where[$v];}}$str=sprintf('`%s` %s %s',$k,isset($x[1])?(isset($x[2])?"{$x[1]} {$x[2]}":$x[1]):(is_array($where[$v])?'IN':'='),is_array($where[$v])?sprintf('(%s)',implode(',',$marks)):($n?$n:":{$k}"));if(is_array($where[$v])||$n||$x[0]!=$v){unset($where[$v]);}return $str;},array_filter($keys))):null;
+		unset($where[0],$keys);
+		return $condition?sprintf('%s(%s)',$prefix?" {$prefix} ":null,$condition):null;
+	}
+
+	final protected static function values(array &$data,$set=false,$table=null)
+	{
+		$keys=array_keys($data);
+		return $set?implode(',',array_map(function($x)use(&$data){$k=trim($x);if($k!=$x){$data[$k]=$data[$x];unset($data[$x]);}$n=ltrim($k,'!');if($n!=$k){$n=$data[$k];unset($data[$k]);}return sprintf('`%s` = %s',trim(ltrim($k,'!')),$n==$k?":{$k}":$n);},$keys)):sprintf('%s(%s) VALUES (%s)',$table?" `{$table}` ":null,implode(',',array_map(function($x){return sprintf('`%s`',trim(ltrim(trim($x),'!')));},$keys)),implode(',',array_map(function($x)use(&$data){$k=trim($x);$n=trim(ltrim($k,'!'));if($n!=$k){$n=$data[$x];unset($data[$x]);}elseif($k!=$x){$data[$k]=$data[$x];unset($data[$x]);}return $n==$k?":{$k}":$n;},$keys)));
+	}
+
+	final protected static function orderLimit(array $orderLimit,$limit=[])
+	{
+		$orderLimit=array_filter($orderLimit,function($x)use($orderLimit,&$limit){if(preg_match('/^\d+$/',$x)){$k=array_search($x,$orderLimit,true);$limit=[$k,$x];return false;}else{return true;}});
+		$limit=$limit?" LIMIT ".implode(',',$limit):null;
+		$orderLimit?(array_walk($orderLimit,function(&$v,$k){$v=sprintf('%s %s',$k,is_string($v)?$v:($v?'ASC':'DESC'));})):null;
+		return sprintf('%s%s',$orderLimit?' ORDER BY '.implode(',',$orderLimit):null,$limit);
+	}
+
 	final public function __call($method,$args=null)
 	{
 		return self::__callStatic($method,$args);
@@ -856,7 +911,7 @@ class db
 		{
 			return call_user_func_array([self::$pdo,$method],$args);
 		}
-		return app::error(500,"Call Error Method {$method} In Class ".get_called_class());
+		return app::error(500,"call error static method {$method} in class ".get_called_class());
 	}
 }
 
@@ -865,7 +920,7 @@ function __autoload($class)
 	if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.php")||is_file($file=LIB_PATH."{$class}.php"))
 	{
 		require_once $file;
-		return class_exists($class)||app::error(500,"File {$file} Does Not Contain Class {$class}");
+		return class_exists($class)||app::error(500,"{$file} has no class {$class}");
 	}
 	return false;
 }
@@ -894,12 +949,6 @@ function json(array $data,$callback=null)
 	header('Content-Type: text/'.($callback?'javascript':'json').';charset=utf-8',true,200);
 	exit($data);
 }
-function byteFormat($size,$dec=2)
-{
-	$size=max($size,0);
-	$unit=['B','KB','MB','GB','TB','PB','EB','ZB','YB'];
-	return $size>=1024?round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i]:$size.' B';
-}
 function redirect($url,$timeout=0)
 {
 	$timeout=intval($timeout);
@@ -925,19 +974,6 @@ function baseUrl($path=null)
 	$path=is_null($path)?null:(is_bool($path)?($path?$_SERVER['REQUEST_URI']:'/'.implode('/',$GLOBALS['app']['router'])):'/'.ltrim($path,'/'));
 	return "{$protocol}://{$host}{$path}";
 }
-function encrypt($input,$key=null)
-{
-	return str_replace(['+','/','='],['-','_',''],base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_128,md5($key),$input,MCRYPT_MODE_ECB,mcrypt_create_iv(mcrypt_get_iv_size(MCRYPT_BLOWFISH,MCRYPT_MODE_ECB),MCRYPT_DEV_URANDOM))));
-}
-function decrypt($input,$key=null)
-{
-	$input=str_replace(['-','_'],['+','/'],$input);
-	if($mod=strlen($input)%4)
-	{
-		$input.=substr('====', $mod);
-	}
-	return trim(mcrypt_decrypt(MCRYPT_RIJNDAEL_128,md5($key),base64_decode($input),MCRYPT_MODE_ECB,mcrypt_create_iv(mcrypt_get_iv_size(MCRYPT_BLOWFISH,MCRYPT_MODE_ECB),MCRYPT_DEV_URANDOM)));
-}
 function csrf_token($check=false,$name='_token',closure $callback=null)
 {
 	isset($_SESSION)||session_start();
@@ -946,7 +982,7 @@ function csrf_token($check=false,$name='_token',closure $callback=null)
 	{
 		if(!(isset($_REQUEST[$name])&&$_REQUEST[$name]===$token))
 		{
-			return $callback?$callback($token):app::error(403,'Csrf Token Not Match');
+			return $callback?$callback($token):app::error(403,'csrf token not match');
 		}
 		return true;
 	}
@@ -962,7 +998,8 @@ function sendMail($mailTo,$mailSubject,$mailMessage=null)
 {
 	try
 	{
-		if(!$fp=fsockopen(MAIL_SERVER,defined('MAIL_PORT')?MAIL_PORT:25,$errno,$errstr,3))
+		$mail=app::get('mail',[]);
+		if(!$fp=fsockopen($mail['server'],empty($mail['port'])?25:$mail['port'],$errno,$errstr,3))
 		{
 			throw new Exception($errstr,$errno);
 		}
@@ -985,7 +1022,7 @@ function sendMail($mailTo,$mailSubject,$mailMessage=null)
 			}
 			$lastmessage=fgets($fp,128);
 		}
-		if(!defined('MAIL_AUTH')||defined('MAIL_AUTH')&&MAIL_AUTH)
+		if(!empty($mail['auth'])&&$mail['auth'])
 		{
 			fputs($fp,"AUTH LOGIN\r\n");
 			$lastmessage=fgets($fp,128);
@@ -993,24 +1030,24 @@ function sendMail($mailTo,$mailSubject,$mailMessage=null)
 			{
 				throw new Exception("AUTH LOGIN - {$lastmessage}",4);
 			}
-			fputs($fp,base64_encode(MAIL_USERNAME)."\r\n");
+			fputs($fp,base64_encode($mail['user'])."\r\n");
 			$lastmessage=fgets($fp,128);
 			if(substr($lastmessage,0,3)!=334)
 			{
 				throw new Exception("AUTH LOGIN - {$lastmessage}",5);
 			}
-			fputs($fp,base64_encode(MAIL_PASSWORD)."\r\n");
+			fputs($fp,base64_encode($mail['pass'])."\r\n");
 			$lastmessage=fgets($fp,128);
 			if(substr($lastmessage,0,3)!=235)
 			{
 				throw new Exception("AUTH LOGIN - {$lastmessage}",6);
 			}
 		}
-		fputs($fp,"MAIL FROM: <".MAIL_USERNAME.">\r\n");
+		fputs($fp,"MAIL FROM: <{$mail['user']}>\r\n");
 		$lastmessage=fgets($fp,128);
 		if(substr($lastmessage,0,3)!=250)
 		{
-			fputs($fp,"MAIL FROM: <".MAIL_USERNAME.">\r\n");
+			fputs($fp,"MAIL FROM: <{$mail['user']}>\r\n");
 			$lastmessage=fgets($fp,128);
 			if(substr($lastmessage,0,3)!=250)
 			{
@@ -1035,7 +1072,7 @@ function sendMail($mailTo,$mailSubject,$mailMessage=null)
 		{
 			throw new Exception("DATA - {$lastmessage}",9);
 		}
-		$headers="MIME-Version:1.0\r\nContent-type:text/html\r\nContent-Transfer-Encoding: base64\r\nFrom: ".MAIL_NAME."<".MAIL_USERNAME.">\r\nDate: ".date("r")."\r\nMessage-ID: <".uniqid(rand(1,999)).">\r\n";
+		$headers="MIME-Version:1.0\r\nContent-type:text/html\r\nContent-Transfer-Encoding: base64\r\nFrom: {$mail['name']}<{$mail['user']}>\r\nDate: ".date("r")."\r\nMessage-ID: <".uniqid(rand(1,999)).">\r\n";
 		$mailSubject='=?utf-8?B?'.base64_encode($mailSubject).'?=';
 		$mailMessage=chunk_split(base64_encode(preg_replace("/(^|(\r\n))(\.)/","\1.\3",$mailMessage)));
 		fputs($fp,$headers);
