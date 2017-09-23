@@ -44,7 +44,7 @@ final class app
 		if($GLOBALS['argc']>1)
 		{
 			$phar||chdir(ROOT);
-			$ret=self::regexRouter('/'.implode('/',$router));
+			$ret=self::regex('/'.implode('/',$router));
 			return is_object($ret)?$ret:(($GLOBALS['app']['router']=$ret?$ret:$router)&&self::run($GLOBALS['app']['router']));
 		}
 		if($phar)
@@ -77,16 +77,16 @@ final class app
 	{
 		if(!self::httpCache())
 		{
-			list($uri)=explode('?',$_SERVER['REQUEST_URI']);
+			list($uri)=explode('?',$_SERVER['REQUEST_URI'],2);
 			$uri=strpos($uri,$script)===false?$uri:str_ireplace($script,null,$uri);
-			$router=self::regexRouter($uri);
+			$router=self::regex($uri);
 			if($router)
 			{
 				return $router;
 			}
 			else
 			{
-				$router=array_values(array_filter(explode('/',$uri)));
+				$router=array_values(array_filter(explode('/',$uri,9)));
 			}
 			if(empty($router[0]))
 			{
@@ -186,7 +186,7 @@ final class app
 	}
 	public static function route($regex,$arr)
 	{
-		$GLOBALS['app']['regexRouter'][$regex]=$arr;
+		$GLOBALS['app']['reg'][$regex]=$arr;
 	}
 	public static function log($msg,$type='DEBUG',$file=null)
 	{
@@ -197,16 +197,16 @@ final class app
 			return error_log($msg,3,$path);
 		}
 	}
-	private static function regexRouter($uri)
+	private static function regex($uri)
 	{
-		if(!empty($GLOBALS['app']['regexRouter']))
+		if(!empty($GLOBALS['app']['reg']))
 		{
-			foreach ($GLOBALS['app']['regexRouter'] as $regex=>$item)
+			foreach ($GLOBALS['app']['reg'] as $regex=>$item)
 			{
 				if(preg_match("/^{$regex}$/",$uri,$matches))
 				{
 					$url=$matches[0];
-					unset($matches[0],$GLOBALS['app']['regexRouter']);
+					unset($matches[0],$GLOBALS['app']['reg']);
 					if(is_array($item))
 					{
 						return array_merge($item,$matches);
@@ -223,7 +223,7 @@ final class app
 					}
 				}
 			}
-			unset($GLOBALS['app']['regexRouter']);
+			unset($GLOBALS['app']['reg']);
 		}
 		return [];
 	}
@@ -275,7 +275,7 @@ final class app
 	public static function config($key=null,$default=null,$cfgfile='config.php')
 	{
 		$config=is_array($cfgfile)?$cfgfile:(isset(self::$global[$cfgfile])?self::$global[$cfgfile]:(self::$global[$cfgfile]=include $cfgfile));
-		if($key=array_filter(explode('.',$key)))
+		if($key=array_filter(explode('.',$key,9)))
 		{
 			foreach ($key as $item)
 			{
@@ -430,7 +430,7 @@ function with($class)
 	if(is_string($class))
 	{
 		$arguments=func_get_args();
-		$arr=explode('/',array_shift($arguments));
+		$arr=explode('/',array_shift($arguments),3);
 		$m=end($arr);
 		$GLOBALS['app']['lib'][$m]=isset($GLOBALS['app']['lib'][$m])?$GLOBALS['app']['lib'][$m]:$m;
 		if($GLOBALS['app']['lib'][$m] instanceof $m)
@@ -649,7 +649,7 @@ class validate
 	}
 	private static function check($item,$type)
 	{
-		if(strpos($type,'=')&&(list($key,$val)=explode('=',$type)))
+		if(strpos($type,'=')&&(list($key,$val)=explode('=',$type,2)))
 		{
 			switch ($key)
 			{
