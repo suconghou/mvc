@@ -18,14 +18,12 @@
 class Curl
 {
 	private $mh;
-	private $ch=array();
+	private $ch=[];
 
-	private static $headers=array(
-								'Referer'=>'http://www.baidu.com',
-								'User-Agent'=>'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36',
-								'Accept'=>'*/*'
-							);
-
+	private static $headers=[
+								'Referer : http://www.baidu.com',
+								'User-Agent : Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36',
+							];
 
 	public static function get($url,$timeout=3)
 	{
@@ -39,7 +37,7 @@ class Curl
 		return self::http_get_contents($url,$timeout);
 	}
 
-	public static function post($url,$data=array(),$timeout=10)
+	public static function post($url,$data=[],$timeout=10)
 	{
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
@@ -52,7 +50,7 @@ class Curl
 		return self::http_post_contents($url,$data,$timeout);
 	}
 
-	public static function put($url,$data=array(),$timeout=10)
+	public static function put($url,$data=[],$timeout=10)
 	{
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
@@ -66,7 +64,7 @@ class Curl
 
 	}
 
-	public static function delete($url,$data=array(),$timeout=10)
+	public static function delete($url,$data=[],$timeout=10)
 	{
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
@@ -157,7 +155,7 @@ class Curl
 		return $result;
 	}
 
-	public static function http_post_contents($url,$data=array(),$timeout=10)
+	public static function http_post_contents($url,$data=[],$timeout=10)
 	{
 		$header='';
 		foreach(self::$headers as $key=>$val)
@@ -280,7 +278,7 @@ class Curl
 		curl_multi_close($this->mh);
 		$result=implode('',$this->ch);
 		$this->mh=null;
-		$this->ch=array();
+		$this->ch=[];
 		return $result;
 	}
 
@@ -334,7 +332,7 @@ class Curl
 			}
 			return $matches;
 		}
-		return array();
+		return [];
 
 	}
 }
