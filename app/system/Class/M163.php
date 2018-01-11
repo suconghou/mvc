@@ -9,7 +9,7 @@
 class M163
 {
     const api='http://music.163.com';
-    private static  $headers=array('User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.85 Safari/537.36','Accept'=>'*/*');
+    private static  $headers=['User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.85 Safari/537.36'];
     private static $playlist;
     private static $played;
 
@@ -72,7 +72,7 @@ class M163
                 throw new Exception(json_last_error_msg(),$errno);
             }
         }
-        $items=array();
+        $items=[];
         foreach ($datas as $data)
         {
             if($data['code']==200)
@@ -207,9 +207,9 @@ class M163
     }
 
 
-    private static function get($url,$data=null,$timeout=8)
+    public static function get($url,$data=null,$timeout=8)
     {
-        self::$headers=array_merge(self::$headers,array('Cookie'=>'appver=1.5.0.75771','Referer'=>'http://music.163.com/'));
+        self::$headers=array_merge(self::$headers,['Cookie:appver=1.5.0.75771','Referer:http://music.163.com/']);
         return self::http($url,$timeout,$data);
     }
 

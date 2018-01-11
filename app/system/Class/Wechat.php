@@ -401,7 +401,7 @@ class Wechat
 			$url=$url.(stripos($url,'?')?'&':'?').(is_array($data)?http_build_query($data):$data);
 		}
 		$ch=curl_init($url);
-		$headers=array('Referer'=>'http://www.baidu.com','User-Agent'=>'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36','Accept'=>'*/*');
+		$headers=['Referer:http://www.baidu.com','User-Agent:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36'];
 		$timeout=8;
 		curl_setopt_array($ch,array(CURLOPT_HTTPHEADER=>$headers,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
 		if($post)

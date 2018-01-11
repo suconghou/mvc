@@ -55,7 +55,7 @@ class Curl
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
 		{
-			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data,CURLOPT_CUSTOMREQUEST=>'put'));
+			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data,CURLOPT_CUSTOMREQUEST=>'PUT'));
 			$result=curl_exec($ch);
 			curl_close($ch);
 			return $result;
@@ -69,7 +69,7 @@ class Curl
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
 		{
-			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data,CURLOPT_CUSTOMREQUEST=>'delete'));
+			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data,CURLOPT_CUSTOMREQUEST=>'DELETE'));
 			$result=curl_exec($ch);
 			curl_close($ch);
 			return $result;
@@ -82,7 +82,7 @@ class Curl
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
 		{
-			curl_setopt_array($ch,array(CURLOPT_NOBODY=>true,CURLOPT_CUSTOMREQUEST=>'head'));
+			curl_setopt_array($ch,array(CURLOPT_NOBODY=>true,CURLOPT_CUSTOMREQUEST=>'HEAD'));
 			$result=curl_exec($ch);
 			curl_close($ch);
 			return $result;
