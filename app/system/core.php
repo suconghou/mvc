@@ -728,17 +728,16 @@ class validate
 
 class db
 {
-	private static $pdos=[];
-	private static $current;
+	private static $instances=[];
+	private static $dbIndex='db';
 
 	public static $lastSql;
 	public static $sqlCount;
 
-	private function __construct($instance)
+	final private static function store($k,$v=null)
 	{
-		$this->current=$instance;
+		return $v?app::set($k,$v):app::get($k);
 	}
-
 	final private static function init($dbDsn,$dbUser,$dbPass)
 	{
 		$options=[PDO::ATTR_PERSISTENT=>true,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>3];
@@ -759,23 +758,19 @@ class db
 		}
 		return $pdo;
 	}
-	final public static function close()
-	{
-		return self::$pdo=null;
-	}
 	final public static function runSql($sql)
 	{
 		return self::execute($sql);
 	}
-	final public static function getData($sql)
+	final public static function getData($sql,$type=PDO::FETCH_ASSOC)
 	{
 		$rs=self::execute($sql,true);
-		return $rs===false?:$rs->fetchAll(PDO::FETCH_ASSOC);
+		return $rs===false?:$rs->fetchAll($type);
 	}
-	final public static function getLine($sql)
+	final public static function getLine($sql,$type=PDO::FETCH_ASSOC)
 	{
 		$rs=self::execute($sql,true);
-		return $rs===false?:$rs->fetch(PDO::FETCH_ASSOC);
+		return $rs===false?:$rs->fetch($type);
 	}
 	final public static function getVar($sql)
 	{
@@ -798,30 +793,31 @@ class db
 	{
 		return self::ready()->lastInsertId();
 	}
-	final public static function getInstance(array $cfg=null)
+	final public static function getInstance($dbIndex=null,array $dbCfg=null)
 	{
-		if(!$cfg)
+		if($dbIndex)
 		{
-			$cfg=app::get('db');
-			$id='master';
+			self::store($dbIndex)||self::store($dbIndex,$dbCfg);
 		}
-		$pass=isset($cfg['pass'])?$cfg['pass']:null;
-		$user=isset($cfg['user'])?$cfg['user']:null;
-		$id=isset($id)?$id:sprintf('%u',crc32($cfg['dsn'].$user.$pass));
-		if(empty(self::$pdo[$id]))
-		{
-			self::$pdo[$id]=new self(self::init($cfg['dsn'],$user,$pass));
-		}
-		return self::$pdo[$id];
+		return self::ready($dbIndex);
 	}
 
-	final private static  function ready()
+	final private static  function ready($dbIndex=null)
 	{
-		$db=app::get('db');
-		// if(self::$current)
-		// {
-		// }
-		return self::$pdo?self::$pdo:self::init(isset($db['dsn'])?$db['dsn']:null,isset($db['user'])?$db['user']:null,isset($db['pass'])?$db['pass']:null);
+		if($dbIndex)
+		{
+			self::$dbIndex=$dbIndex;
+		}
+		else
+		{
+			$dbIndex=self::$dbIndex;
+		}
+		if(empty(self::$instances[$dbIndex]))
+		{
+			$db=self::store($dbIndex);
+			self::$instances[$dbIndex]=self::init(isset($db['dsn'])?$db['dsn']:null,isset($db['user'])?$db['user']:null,isset($db['pass'])?$db['pass']:null);
+		}
+		return self::$instances[$dbIndex];
 	}
 
 	final public static function insert(array $data,$table=null,$ignore=false,$replace=false)
