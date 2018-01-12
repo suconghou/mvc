@@ -549,7 +549,7 @@ class request
 	{
 		return isset($_SERVER['HTTP_REFERER'])?$_SERVER['HTTP_REFERER']:$default;
 	}
-	public static function verify(array $rule,$callback=true,$post=true)
+	public static function verify(array $rule,$callback=false,$post=true)
 	{
 		$keys=[];
 		$data=$post===true?$_POST:(is_array($post)?$post:$_REQUEST);
@@ -604,20 +604,27 @@ class request
 
 class validate
 {
-	public static function verify($rule,$data,$callback=true)
+	public static function verify($rule,$data,$callback=false)
 	{
 		try
 		{
 			$switch=[];
 			foreach($rule as $k=>&$item)
 			{
-				if(isset($data[$k])&&$data[$k])//存在要验证的数据
+				if(isset($data[$k]))//存在要验证的数据
 				{
 					foreach($item as $type=>$msg)
 					{
 						if($msg instanceof closure)
 						{
 							$data[$k]=$msg($data[$k],$k);
+						}
+						else if(is_array($msg))
+						{
+							if(!in_array($data[$k],$msg))
+							{
+								throw new Exception($type, 1);
+							}
 						}
 						else if(is_int($type))
 						{
@@ -637,6 +644,10 @@ class validate
 		}
 		catch(Exception $e)
 		{
+			if($callback===false)
+			{
+				throw $e;
+			}
 			$data=['code'=>$e->getCode(),'msg'=>$e->getMessage()];
 			return $callback?(($callback instanceof closure)?$callback($data,$e):json($data)):false;
 		}
@@ -665,7 +676,8 @@ class validate
 		{
 			switch ($type)
 			{
-				case 'require': return $item;
+				case 'need': return $item;
+				case 'require': return $item==0 || $item;
 				case 'email': return self::email($item);
 				case 'username': return self::username($item);
 				case 'password': return self::password($item);
