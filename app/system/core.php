@@ -960,7 +960,7 @@ function json(array $data,$callback=null)
 function redirect($url,$timeout=0)
 {
 	$timeout=intval($timeout);
-	if(in_array($timeout,[0,301,302,303,307]))
+	if(in_array($timeout,[0,301,302,303,307,308]))
 	{
 		header("Location:{$url}",true,$timeout);
 	}
