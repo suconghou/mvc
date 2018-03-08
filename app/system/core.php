@@ -736,7 +736,7 @@ class db
 
 	final private static function store($k,$v=null)
 	{
-		return $v?app::set($k,$v):app::get($k);
+		return is_null($v)?app::get($k):app::set($k,$v);
 	}
 	final private static function init($dbDsn,$dbUser,$dbPass)
 	{
@@ -765,17 +765,17 @@ class db
 	final public static function getData($sql,$type=PDO::FETCH_ASSOC)
 	{
 		$rs=self::execute($sql,true);
-		return $rs===false?:$rs->fetchAll($type);
+		return $rs===false?false:$rs->fetchAll($type);
 	}
 	final public static function getLine($sql,$type=PDO::FETCH_ASSOC)
 	{
 		$rs=self::execute($sql,true);
-		return $rs===false?:$rs->fetch($type);
+		return $rs===false?false:$rs->fetch($type);
 	}
 	final public static function getVar($sql)
 	{
 		$rs=self::execute($sql,true);
-		return $rs===false?:$rs->fetchColumn();
+		return $rs===false?false:$rs->fetchColumn();
 	}
 	final public static function execute($sql,$isQuery=null)
 	{
@@ -801,8 +801,7 @@ class db
 		}
 		return self::ready($dbIndex);
 	}
-
-	final private static  function ready($dbIndex=null)
+	final private static function ready($dbIndex=null)
 	{
 		if($dbIndex)
 		{
