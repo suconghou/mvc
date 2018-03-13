@@ -127,6 +127,74 @@ final class Util
 		}
 	}
 
+	public static function encrypt($input,$key=null)
+	{
+		return str_replace(['+','/','='],['-','_',''],base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_128,md5($key),$input,MCRYPT_MODE_ECB,mcrypt_create_iv(mcrypt_get_iv_size(MCRYPT_BLOWFISH,MCRYPT_MODE_ECB),MCRYPT_DEV_URANDOM))));
+	}
+
+	public static function decrypt($input,$key=null)
+	{
+		$input=str_replace(['-','_'],['+','/'],$input);
+		if($mod=strlen($input)%4)
+		{
+			$input.=substr('====', $mod);
+		}
+		return trim(mcrypt_decrypt(MCRYPT_RIJNDAEL_128,md5($key),base64_decode($input),MCRYPT_MODE_ECB,mcrypt_create_iv(mcrypt_get_iv_size(MCRYPT_BLOWFISH,MCRYPT_MODE_ECB),MCRYPT_DEV_URANDOM)));
+	}
+
+	public static function async(closure $task=null,closure $callback=null)
+	{
+		function_exists('fastcgi_finish_request')&&fastcgi_finish_request();
+		$data=$task();
+		return $callback?$callback($data):$data;
+	}
+
+	public static function setItem($key,$value)
+	{
+		$file=sprintf('%s%s%u.db',sys_get_temp_dir(),DIRECTORY_SEPARATOR,crc32(ROOT));
+		if(is_file($file)&&is_array($data=unserialize(file_get_contents($file))))
+		{
+			$data[$key]=$value;
+		}
+		else
+		{
+			$data=[$key=>$value];
+		}
+		return file_put_contents($file,serialize($data));
+	}
+	public static function getItem($key,$default=null)
+	{
+		$file=sprintf('%s%s%u.db',sys_get_temp_dir(),DIRECTORY_SEPARATOR,crc32(ROOT));
+		if(is_file($file)&&is_array($data=unserialize(file_get_contents($file))))
+		{
+			return isset($data[$key])?$data[$key]:$default;
+		}
+		return $default;
+	}
+	public static function clearItem($key=null,&$file=null)
+	{
+		$file=sprintf('%s%s%u.db',sys_get_temp_dir(),DIRECTORY_SEPARATOR,crc32(ROOT));
+		if(is_null($key))
+		{
+			return is_file($file)&&unlink($file);
+		}
+		if(is_file($file)&&is_array($data=unserialize(file_get_contents($file)))&&isset($data[$key]))
+		{
+			unset($data[$key]);
+			return file_put_contents($file,serialize($data));
+		}
+		return true;
+	}
+
+	public static function byteFormat($size,$dec=2)
+	{
+		$size=max($size,0);
+		$unit=['B','KB','MB','GB','TB','PB','EB','ZB','YB'];
+		return $size>=1024?round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i]:$size.' B';
+	}
+
+
+
 }
 
 

@@ -484,6 +484,10 @@ class request
 	{
 		return self::getVar($_REQUEST,$key,$default,$clean);
 	}
+	public static function server($key=null,$default=null,$clean=flase)
+	{
+		return self::getVar($_SERVER,$key,$default,$clean);
+	}
 	public static function cookie($key=null,$default=null,$clean=false)
 	{
 		return self::getVar($_COOKIE,$key,$default,$clean);

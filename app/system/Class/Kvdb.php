@@ -4,12 +4,12 @@
  * Kvdb 小数据持久化存储
  */
 
-final class Kvdb
+class Kvdb
 {
 	const tCache='`kvdb`';
 	private static $instance;
 
-	final public static function ready($file='kvdb.db')
+	public static function ready($file='kvdb.db')
 	{
 		if(!self::$instance)
 		{
@@ -22,7 +22,7 @@ final class Kvdb
 		return self::$instance;
 	}
 
-	final public static function set($key,$value,$expired=86400)
+	public static function set($key,$value,$expired=86400)
 	{
 		$t=$expired>2592000?$expired:time()+$expired;
 		$stm=self::ready()->prepare('REPLACE INTO '.self::tCache." (k,v,t) VALUES ('$key',:v,$t)");
@@ -31,7 +31,7 @@ final class Kvdb
 	}
 
 
-	final public static function mset(array $set,$expired=86400,$i=0)
+	public static function mset(array $set,$expired=86400,$i=0)
 	{
 		$t=$expired>2592000?$expired:time()+$expired;
 		$holders=array_map(function($k)use($t){return "('{$k}',?,{$t})";},array_keys($set));
@@ -40,13 +40,13 @@ final class Kvdb
 		return (bool)$stm->execute();
 	}
 
-	final public static function get($key,$default=null)
+	public static function get($key,$default=null)
 	{
 		$value=self::ready()->querySingle('SELECT v FROM '.self::tCache." WHERE k='{$key}' and t > (SELECT strftime('%s', 'now')) ");
 		return $value?json_decode($value,true):$default;
 	}
 
-	final public static function mget(array $keys=null,$i=0)
+	public static function mget(array $keys=null,$i=0)
 	{
 		if($keys)
 		{
@@ -76,7 +76,7 @@ final class Kvdb
 		}
 	}
 
-	final public static function ex($key,$expired=86400)
+	public static function ex($key,$expired=86400)
 	{
 		$t=$expired>2592000?$expired:time()+$expired;
 		$stm=self::ready()->prepare('UPDATE '.self::tCache." SET t={$t} WHERE k=:k");
@@ -84,7 +84,7 @@ final class Kvdb
 		return (bool)$stm->execute();
 	}
 
-	final public static function clear($key=[],$i=0)
+	public static function clear($key=[],$i=0)
 	{
 		if($key)
 		{
