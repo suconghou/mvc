@@ -15,7 +15,7 @@ final class app
 		self::$global=&$config;
 		self::$global['sys-start-time']=microtime(true);
 		self::$global['sys-start-memory']=memory_get_usage();
-		error_reporting(DEBUG?E_ALL:0);
+		error_reporting(DEBUG?E_ALL:E_ALL&~E_NOTICE);
 		set_include_path(LIB_PATH);
 		set_error_handler('app::error');
 		set_exception_handler('app::error');
@@ -27,6 +27,15 @@ final class app
 				headers_sent()||header('Error-At:'.preg_replace('/\s+/',' ',DEBUG?"{$error['file']}:{$error['line']}=>{$error['message']}":(basename($error['file']).":{$error['line']}")),true,500);
 				return app::log($errormsg,'ERROR');
 			}
+		});
+		spl_autoload_register(function($class)
+		{
+			if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.php")||is_file($file=LIB_PATH."{$class}.php"))
+			{
+				require_once $file;
+				return class_exists($class)||app::error(500,"{$file} has no class {$class}");
+			}
+			return false;
 		});
 		date_default_timezone_set(empty($config['timezone'])?'prc':$config['timezone']);
 		defined('DEFAULT_ACTION')||define('DEFAULT_ACTION','index');
@@ -165,7 +174,7 @@ final class app
 		}
 		require_once $path;
 		class_exists($controllerName)||self::error(404,"request controller class {$controllerName} not found");
-		method_exists($controllerName,$action)||self::error(404,"request controller class {$controllerName} has no method {$action}");
+		method_exists($controllerName,$action)||self::error(404,"request controller {$controllerName} has no method {$action}");
 		$GLOBALS['app']['ctl'][$controllerName]=isset($GLOBALS['app']['ctl'][$controllerName])?$GLOBALS['app']['ctl'][$controllerName]:$controllerName;
 		if((!$GLOBALS['app']['ctl'][$controllerName] instanceof $controllerName)&&($class=new ReflectionClass($controllerName))&&($class->isInstantiable()))
 		{
@@ -227,7 +236,6 @@ final class app
 		}
 		return [];
 	}
-
 	public static function cost($type=null)
 	{
 		switch ($type)
@@ -238,10 +246,10 @@ final class app
 			default: return ['time'=>round((microtime(true)-self::$global['sys-start-time']),4),'memory'=>memory_get_usage()-self::$global['sys-start-memory'],'query'=>db::$sqlCount?:0];
 		}
 	}
-	public static function fileCache($router=[],$delete=false)
+	public static function fileCache($router=null,$delete=false)
 	{
-		$cacheFile=sprintf('%s%u.html',VAR_PATH_HTML,crc32(ROOT.strtolower(trim($router?(is_array($router)?implode('/',$router):$router):DEFAULT_CONTROLLER.'/'.DEFAULT_ACTION ,'/'))));
-		return $delete?(is_file($cacheFile)&&unlink($cacheFile)):$cacheFile;
+		$file=sprintf('%s%u.html',VAR_PATH_HTML,crc32(ROOT.strtolower(trim($router?(is_array($router)?implode('/',$router):$router):DEFAULT_CONTROLLER.'/'.DEFAULT_ACTION ,'/'))));
+		return $delete?(is_file($file)&&unlink($file)):$file;
 	}
 	public static function httpCache($min=0)
 	{
@@ -299,19 +307,15 @@ final class app
 	{
 		unset(self::$global['event'][$event]);
 	}
-	public static function emit($event,$arguments=[])
+	public static function emit($event,$args=[])
 	{
-		return empty(self::$global['event'][$event])?:call_user_func_array(self::$global['event'][$event],is_array($arguments)?$arguments:[$arguments]);
+		return empty(self::$global['event'][$event])?:call_user_func_array(self::$global['event'][$event],is_array($args)?$args:[$args]);
 	}
-	public static function method($fn,closure $task)
+	public static function __callStatic($fn,$args=[])
 	{
-		return self::$global['method'][$fn]=$task;
+		return isset(self::$global['event'][$fn])?call_user_func_array(self::$global['event'][$fn],$args):self::error(500,"call error static method {$fn} in class ".get_called_class());
 	}
-	public static function __callStatic($fn,$args=null)
-	{
-		return isset(self::$global['method'][$fn])?call_user_func_array(self::$global['method'][$fn],$args):self::error(500,"call error static method {$fn} in class ".get_called_class());
-	}
-	public static function error($errno,$errstr=null,$errfile=null,$errline=null,array $errcontext=[])
+	public static function error($errno,$errstr=null,$errfile=null,$errline=null)
 	{
 		if($errno instanceof Exception or $errno instanceof Error)
 		{
@@ -331,23 +335,23 @@ final class app
 		}
 		$errstr=substr($errstr,0,999);
 		$errormsg=sprintf('ERROR(%d) %s%s%s',$errno,$errstr,$errfile?" in {$errfile}":null,$errline?" on line {$errline}":null);
-		$code=in_array($errno,[400,403,404,414,500,502,503,504])?$errno:500;
-		$errno==404?app::log($errormsg,'DEBUG',$errno):app::log($errormsg,'ERROR');
+		$code=($errno>=100&&$errno<=511)?$errno:500;
+		$errno===404?app::log($errormsg,'DEBUG',$errno):app::log($errormsg,'ERROR');
 		defined('STDIN')||(app::get('sys-error')&&exit("error found in error handler:{$errormsg}"))||(header('Error-At:'.preg_replace('/\s+/',' ',$errstr),true,$code)||app::set('sys-error',true));
-		if(DEBUG||getenv('EXE'))
+		if(DEBUG||getenv('EXE')) // DEBUG和打包时（指定了EXE环境变量）显示错误详情而不是用户自定义的错误处理器
 		{
 			$li=[];
 			foreach($backtrace as $trace)
 			{
 				if(isset($trace['file']))
 				{
-					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".((empty($trace['args'])||(!defined('STDIN')&&DEBUG<2))?null:(implode(array_map(function($item){return strlen(print_r($item,true))>90?'...':(is_null($item)?'null':preg_replace('/\s+/',null,print_r($item,true)));},$trace['args']),','))).")";
+					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".((empty($trace['args'])||(!defined('STDIN')&&DEBUG<2))?null:(implode(array_map(function($item){return strlen(print_r($item,true))>90?'...':(is_null($item)?'null':preg_replace('/\s+/',' ',print_r($item,true)));},$trace['args']),','))).")"; // DEBUG<2并且非CLI模式下不显示函数参数，否则显示函数参数，参数大于90字符省略
 				}
 			}
 			$li=implode(defined('STDIN')?PHP_EOL:'</p><p>',array_reverse($li));
 			echo defined('STDIN')?($errfile?$errormsg.PHP_EOL.$li.PHP_EOL:exit($errormsg.PHP_EOL.$li.PHP_EOL)):exit("<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;font:italic 14px/20px Georgia,Times New Roman;word-wrap:break-word;'><p>{$errormsg}</p><p>{$li}</p></div>");
 		}
-		else
+		else // 非DEBUG模式，不显示错误详情， 使用用户定义的错误处理器，没有则使用默认
 		{
 			$errorController=(isset($GLOBALS['app']['router'][0])&&is_file(CONTROLLER_PATH.$GLOBALS['app']['router'][0].'.php'))?$GLOBALS['app']['router'][0]:DEFAULT_CONTROLLER;
 			$errorRouter=[$errorController,$errno==404?(defined('ERROR_PAGE_404')?ERROR_PAGE_404:'Error404'):(defined('ERROR_PAGE_500')?ERROR_PAGE_500:'Error500'),$errormsg];
@@ -429,8 +433,8 @@ function with($class)
 {
 	if(is_string($class))
 	{
-		$arguments=func_get_args();
-		$arr=explode('/',array_shift($arguments),3);
+		$args=func_get_args();
+		$arr=explode('/',array_shift($args),3);
 		$m=end($arr);
 		$GLOBALS['app']['lib'][$m]=isset($GLOBALS['app']['lib'][$m])?$GLOBALS['app']['lib'][$m]:$m;
 		if($GLOBALS['app']['lib'][$m] instanceof $m)
@@ -443,7 +447,7 @@ function with($class)
 			if(class_exists($m))
 			{
 				$class=new ReflectionClass($m);
-				$GLOBALS['app']['lib'][$m]=$class->newInstanceArgs($arguments);
+				$GLOBALS['app']['lib'][$m]=$class->newInstanceArgs($args);
 				return $GLOBALS['app']['lib'][$m];
 			}
 			unset($GLOBALS['app']['lib'][$m]);
@@ -497,7 +501,7 @@ class request
 		isset($_SESSION)||session_start();
 		return self::getVar($_SESSION,$key,$default,$clean);
 	}
-	public static function input($key=null,$default=null,$json=true)
+	public static function input($json=true,$key=null,$default=null)
 	{
 		$str=file_get_contents('php://input');
 		$json?($data=json_decode($str,true)):parse_str($str,$data);
@@ -507,44 +511,6 @@ class request
 	{
 		return isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:$default;
 	}
-	public static function info($key=null,$default=null)
-	{
-		$data=['ip'=>self::ip(),'ajax'=>self::isAjax(),'ua'=>self::ua(),'refer'=>self::refer(),'protocol'=>(isset($_SERVER['HTTPS'])&&(strtolower($_SERVER['HTTPS'])!='off'))?"https":"http"];
-		return $key?(isset($data[$key])?$data[$key]:$default):$data;
-	}
-	public static function serverInfo($key=null,$default=null)
-	{
-		$info=['php_os'=>PHP_OS,'php_sapi'=>PHP_SAPI,'php_vision'=>PHP_VERSION,'post_max_size'=>ini_get('post_max_size'),'max_execution_time'=>ini_get('max_execution_time'),'server_ip'=>gethostbyname($_SERVER['SERVER_NAME']),'upload_max_filesize'=>ini_get('file_uploads')?ini_get('upload_max_filesize'):0];
-		return $key?(isset($info[$key])?$info[$key]:$default):$info;
-	}
-	public static function isCli()
-	{
-		return defined('STDIN')&&defined('STDOUT');
-	}
-	public static function isAjax()
-	{
-		return isset($_SERVER['HTTP_X_REQUESTED_WITH'])&&$_SERVER['HTTP_X_REQUESTED_WITH']==='XMLHttpRequest';
-	}
-	public static function isPjax()
-	{
-		return isset($_SERVER['HTTP_X_PJAX'])&&$_SERVER['HTTP_X_PJAX'];
-	}
-	public static function isSpider()
-	{
-		$agent=isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:null;
-		return $agent?preg_match('/(spider|bot|slurp|crawler)/i',$agent):true;
-	}
-	public static function isMobile()
-	{
-		$agent=isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:null;
-		$regexMatch="/(nokia|iphone|android|motorola|ktouch|samsung|symbian|blackberry|CoolPad|huawei|hosin|htc|smartphone)/i";
-		return $agent?preg_match($regexMatch,$agent):true;
-	}
-	public static function method($method=null,closure $callback=null)
-	{
-		$type=isset($_SERVER['REQUEST_METHOD'])?$_SERVER['REQUEST_METHOD']:'GET';
-		return $method?(($type===strtoupper($method))?($callback?$callback():true):false):$type;
-	}
 	public static function ua($default=null)
 	{
 		return isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:$default;
@@ -552,6 +518,15 @@ class request
 	public static function refer($default=null)
 	{
 		return isset($_SERVER['HTTP_REFERER'])?$_SERVER['HTTP_REFERER']:$default;
+	}
+	public static function https()
+	{
+		return isset($_SERVER['HTTPS'])&&(strtolower($_SERVER['HTTPS'])!='off')?:false;
+	}
+	public static function is($m=null,closure $callback=null)
+	{
+		$t=isset($_SERVER['REQUEST_METHOD'])?$_SERVER['REQUEST_METHOD']:'GET';
+		return $m?(($t===strtoupper($m))?($callback?$callback():true):false):$t;
 	}
 	public static function verify(array $rule,$callback=false,$post=true)
 	{
@@ -681,7 +656,7 @@ class validate
 			switch ($type)
 			{
 				case 'need': return $item;
-				case 'require': return $item==0 || $item;
+				case 'require': return $item===0 || $item;
 				case 'email': return self::email($item);
 				case 'username': return self::username($item);
 				case 'password': return self::password($item);
@@ -742,6 +717,10 @@ class db
 	{
 		return is_null($v)?app::get($k):app::set($k,$v);
 	}
+	final private static function error($errno,$err)
+	{
+		return app::error($errno,$err);
+	}
 	final private static function init($dbDsn,$dbUser,$dbPass)
 	{
 		$options=[PDO::ATTR_PERSISTENT=>true,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>3];
@@ -757,7 +736,7 @@ class db
 			}
 			catch(PDOException $e)
 			{
-				return app::error($e->getCode(),$e->getMessage());
+				return self::error($e->getCode(),$e->getMessage());
 			}
 		}
 		return $pdo;
@@ -790,7 +769,7 @@ class db
 		}
 		catch (PDOException $e)
 		{
-			return app::error($e->getCode(),$e->getMessage());
+			return self::error($e->getCode(),$e->getMessage());
 		}
 	}
 	final public static function lastId()
@@ -922,19 +901,10 @@ class db
 		{
 			return call_user_func_array([self::$pdo,$method],$args);
 		}
-		return app::error(500,"call error static method {$method} in class ".get_called_class());
+		return self::error(500,"method {$method} not found in class ".get_called_class());
 	}
 }
 
-function __autoload($class)
-{
-	if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.php")||is_file($file=LIB_PATH."{$class}.php"))
-	{
-		require_once $file;
-		return class_exists($class)||app::error(500,"{$file} has no class {$class}");
-	}
-	return false;
-}
 function session($key,$val=null,$delete=false)
 {
 	isset($_SESSION)||session_start();

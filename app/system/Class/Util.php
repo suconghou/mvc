@@ -193,6 +193,35 @@ final class Util
 		return $size>=1024?round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i]:$size.' B';
 	}
 
+	public static function serverInfo($key=null,$default=null)
+	{
+		$info=['php_os'=>PHP_OS,'php_sapi'=>PHP_SAPI,'php_vision'=>PHP_VERSION,'post_max_size'=>ini_get('post_max_size'),'max_execution_time'=>ini_get('max_execution_time'),'server_ip'=>gethostbyname($_SERVER['SERVER_NAME']),'upload_max_filesize'=>ini_get('file_uploads')?ini_get('upload_max_filesize'):0];
+		return $key?(isset($info[$key])?$info[$key]:$default):$info;
+	}
+	public static function isCli()
+	{
+		return defined('STDIN')&&defined('STDOUT');
+	}
+	public static function isAjax()
+	{
+		return isset($_SERVER['HTTP_X_REQUESTED_WITH'])&&$_SERVER['HTTP_X_REQUESTED_WITH']==='XMLHttpRequest';
+	}
+	public static function isPjax()
+	{
+		return isset($_SERVER['HTTP_X_PJAX'])&&$_SERVER['HTTP_X_PJAX'];
+	}
+	public static function isSpider()
+	{
+		$agent=isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:null;
+		return $agent?preg_match('/(spider|bot|slurp|crawler)/i',$agent):true;
+	}
+	public static function isMobile()
+	{
+		$agent=isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:null;
+		$regexMatch="/(nokia|iphone|android|motorola|ktouch|samsung|symbian|blackberry|CoolPad|huawei|hosin|htc|smartphone)/i";
+		return $agent?preg_match($regexMatch,$agent):true;
+	}
+
 
 
 }
