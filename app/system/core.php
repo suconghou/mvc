@@ -723,7 +723,7 @@ class db
 	}
 	final private static function init($dbDsn,$dbUser,$dbPass)
 	{
-		$options=[PDO::ATTR_PERSISTENT=>true,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>3];
+		$options=[PDO::ATTR_PERSISTENT=>true,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>3,PDO::ATTR_EMULATE_PREPARES=>false];
 		try
 		{
 			$pdo=new PDO($dbDsn,$dbUser,$dbPass,$options);
@@ -734,7 +734,7 @@ class db
 			{
 				$pdo=new PDO($dbDsn,$dbUser,$dbPass,$options);
 			}
-			catch(PDOException $e)
+			catch(Exception $e)
 			{
 				return self::error($e->getCode(),$e->getMessage());
 			}
@@ -748,28 +748,39 @@ class db
 	final public static function getData($sql,$type=PDO::FETCH_ASSOC)
 	{
 		$rs=self::execute($sql,true);
-		return $rs===false?false:$rs->fetchAll($type);
+		return $rs?$rs->fetchAll($type):$rs;
 	}
 	final public static function getLine($sql,$type=PDO::FETCH_ASSOC)
 	{
 		$rs=self::execute($sql,true);
-		return $rs===false?false:$rs->fetch($type);
+		return $rs?$rs->fetch($type):$rs;
 	}
 	final public static function getVar($sql)
 	{
 		$rs=self::execute($sql,true);
-		return $rs===false?false:$rs->fetchColumn();
+		return $rs?$rs->fetchColumn():$rs;
 	}
 	final public static function execute($sql,$isQuery=null)
 	{
+		$pdo=self::ready();
 		try
 		{
 			(self::$lastSql=$sql)&&self::$sqlCount++;
-			return $isQuery===false?(self::ready()->prepare($sql)):($isQuery?(self::ready()->query($sql)):(self::ready()->exec($sql)));
+			return $isQuery===false?($pdo->prepare($sql)):($isQuery?($pdo->query($sql)):($pdo->exec($sql)));
 		}
 		catch (PDOException $e)
 		{
-			return self::error($e->getCode(),$e->getMessage());
+			list($codestr,$errno,$errmsg) = $pdo->errorInfo();
+			if($errno==2006 || $errno==2013) // mysql connection lost try reconnect
+			{
+				// self::close();
+				$pdo=self::ready();
+				return $isQuery===false?($pdo->prepare($sql)):($isQuery?($pdo->query($sql)):($pdo->exec($sql)));
+			}
+			else
+			{
+				return self::error($errno,$errmsg);
+			}
 		}
 	}
 	final public static function lastId()
