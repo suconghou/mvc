@@ -451,6 +451,35 @@ list($res1,$res2,$res3)=self::query([$sql1,$data1,'fetchAll'],[$sql2,$data2,'fet
 
 所有的SQL执行最终都会指向`orm::exec($sql,array $bind=null,$fetch=null)`
 
+
+## 同时保持多个数据库连接
+
+db::getData 等方法默认去配置中加载db设置并连接，默认配置键为db
+
+db::getInstance 指定一个配置键或者数据库配置并连接，并缓存下来  （空参数则获取默认的实例） 随后在调用则返回自己
+
+
+## 配置 smtp
+
+框架内置一个简单的smtp邮件发送函数，使用此功能前需配置smtp
+
+例如配置QQ企业邮箱
+
+**不使用ssl加密通信**
+```
+$mail=['server'=>'smtp.exmail.qq.com','port'=>25,'user'=>'support@xx.com','pass'=>'password'];
+```
+在阿里云上,禁止了所有对外的25端口流量，所以在阿里云服务器上需使用ssl加密方式通信，采用465端口。
+
+**使用ssl加密通信**
+```
+$mail=['server'=>'ssl://smtp.exmail.qq.com','port'=>465,'user'=>'support@xx.com','pass'=>'password'];
+```
+
+> 此函数支持批量发送邮件，多个接收人使用分号隔开
+> 此函数不支持抄送、密送、携带附件
+
+
 ## 缓存
 
 M.class.php
@@ -460,7 +489,6 @@ Kvdb.class.php
 Cache.class.php
 
 Store.class.php
-
 
 
 
