@@ -82,7 +82,7 @@ final class app
 			echo $e->getMessage().PHP_EOL;
 		}
 	}
-	private static function init($script)
+	private static function init(string $script)
 	{
 		if(!self::httpCache())
 		{
