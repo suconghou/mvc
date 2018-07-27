@@ -246,19 +246,19 @@ final class app
 			default: return ['time'=>round((microtime(true)-self::$global['sys-start-time']),4),'memory'=>memory_get_usage()-self::$global['sys-start-memory'],'query'=>db::$sqlCount?:0];
 		}
 	}
-	public static function fileCache($router=null,$delete=false)
+	public static function file($router=null,$delete=false)
 	{
 		$file=sprintf('%s%u.html',VAR_PATH_HTML,crc32(ROOT.strtolower(trim($router?(is_array($router)?implode('/',$router):$router):DEFAULT_CONTROLLER.'/'.DEFAULT_ACTION ,'/'))));
 		return $delete?(is_file($file)&&unlink($file)):$file;
 	}
-	public static function httpCache($min=0)
+	public static function cache($s=0)
 	{
-		if($min=$min*60)
+		if($s)
 		{
-			header('Expires: '.gmdate('D, d M Y H:i:s',$_SERVER['REQUEST_TIME']+$min).' GMT');
-			header("Cache-Control: public, max-age={$min}");
+			header('Expires: '.gmdate('D, d M Y H:i:s',$_SERVER['REQUEST_TIME']+$s).' GMT');
+			header("Cache-Control: public, max-age={$s}");
 			header('Last-Modified: '.gmdate('D, d M Y H:i:s',$_SERVER['REQUEST_TIME']).' GMT');
-			return !header('ETag: W/'.($_SERVER['REQUEST_TIME']+$min).'-'.$min);
+			return !header('ETag: W/'.($_SERVER['REQUEST_TIME']+$s).'-'.$s);
 		}
 		else if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'],$_SERVER['HTTP_IF_NONE_MATCH'])&&(count($param=explode('-',ltrim($_SERVER['HTTP_IF_NONE_MATCH'],'W/')))==2))
 		{
@@ -270,6 +270,20 @@ final class app
 				return !header('Expires: '.gmdate('D, d M Y H:i:s',$expired).' GMT',true,304);
 			}
 		}
+	}
+	public static function template($template,$data,$s=0)
+	{
+		$callback=$s?function(&$buffer)use($s)
+		{
+			if(is_writable(VAR_PATH_HTML))
+			{
+				$router=&$GLOBALS['app']['router'];
+				$file=is_object($router[1])?app::file($router[0]):app::file($router);
+				file_put_contents($file,$buffer)&&touch($file,$_SERVER['REQUEST_TIME']+$s);
+			}
+			echo $buffer;
+		}:null;
+		return template($template,$data,$callback);
 	}
 	public static function get($key,$default=null)
 	{
@@ -378,54 +392,6 @@ final class app
 			}
 			exit($errorPage);
 		}
-	}
-}
-
-class response
-{
-	private $data;
-	public function __construct(array &$data)
-	{
-		$this->data=&$data;
-	}
-	public function out($template=null,$min=0,$file=false)
-	{
-		if(is_string($template))
-		{
-			return $this->view($template,$min,$file);
-		}
-		else
-		{
-			return $this->json(is_array($template)?$template:(is_array($min)?$min:[]),is_int($template)?$template:(is_int($min)?$min:0),$file);
-		}
-	}
-	public function view($template,$min=0,$file=false)
-	{
-		$min&&app::httpCache($min);
-		$callback=($file&&$min)?function(&$buffer)use($min)
-		{
-			if(is_writable(VAR_PATH_HTML))
-			{
-				$router=&$GLOBALS['app']['router'];
-				$file=is_object($router[1])?app::fileCache($router[0]):app::fileCache($router);
-				file_put_contents($file,$buffer)&&touch($file,$_SERVER['REQUEST_TIME']+($min*60));
-			}
-			echo $buffer;
-		}:null;
-		return template($template,$this->data,$callback);
-	}
-	public function json(array $msg,$min=0,$callback=null)
-	{
-		$min&&app::httpCache($min);
-		if($msg)
-		{
-			$msg['data']=&$this->data;
-		}
-		else
-		{
-			$msg=&$this->data;
-		}
-		return json($msg,$callback);
 	}
 }
 
