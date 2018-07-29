@@ -84,7 +84,7 @@ final class app
 	}
 	private static function init($script)
 	{
-		if(!self::httpCache())
+		if(!self::cache())
 		{
 			list($uri)=explode('?',$_SERVER['REQUEST_URI'],2);
 			$uri=strpos($uri,$script)===false?$uri:str_ireplace($script,null,$uri);
@@ -132,7 +132,7 @@ final class app
 		if($router&&!is_object($router))
 		{
 			$GLOBALS['app']['router']=$router;
-			$file=is_object($router[1])?self::fileCache($router[0]):self::fileCache($router);
+			$file=is_object($router[1])?self::file($router[0]):self::file($router);
 			if(is_file($file))
 			{
 				$expire=filemtime($file);
