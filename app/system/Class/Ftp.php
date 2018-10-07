@@ -36,7 +36,7 @@ class Ftp
 		if(FALSE===(self::$conn=ftp_connect(self::$host,self::$port)))
 		{
 			self::$error='connect '.self::$host.':'.$self::$port.' failed !';
-			return flase;
+			return false;
 		}
 		if(!$this->login())
 		{

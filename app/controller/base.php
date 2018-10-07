@@ -52,8 +52,8 @@ class base
 		}
 		header('Access-Control-Allow-Origin: '.$host);
 		header('Access-Control-Allow-Credentials:true');
-		header('Access-Control-Allow-Methods:GET, POST, PUT, DELETE, OPTIONS');
-		header('Access-Control-Allow-Headers:Origin, X-Requested-With, Content-Type, Accept');
+		header('Access-Control-Allow-Methods:GET, POST, PUT, DELETE,HEAD, OPTIONS');
+		header('Access-Control-Allow-Headers:Origin, X-Requested-With, Content-Type, Content-Length, Accept, Accept-Encoding');
 		return header('Access-Control-Max-Age:3600');
 	}
 

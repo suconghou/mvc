@@ -191,7 +191,18 @@ final class Util
 		$size=max($size,0);
 		$unit=['B','KB','MB','GB','TB','PB','EB','ZB','YB'];
 		return $size>=1024?round($size/pow(1024,($i=floor(log($size,1024)))),$dec).' '.$unit[$i]:$size.' B';
-	}
+    }
+    
+    public static function info($key=null,$default=null)
+    {
+        $data['ip']=self::ip();
+        $data['ajax']=self::isAjax();
+        $data['ua']=self::ua();
+        $data['refer']=self::refer();
+        $data['protocol'] = (isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) != 'off')) ? "https" : "http";
+        if($key) return isset($data[$key])?$data[$key]:$default;
+        return $data;
+    }
 
 	public static function serverInfo($key=null,$default=null)
 	{

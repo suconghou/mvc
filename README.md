@@ -7,7 +7,6 @@
 > * 单文件入口,不依赖`PathInfo`,入口文件即是配置文件,超级简洁
 > * 文件夹随意移动,轻松多项目共享,入口文件随意命名,CLI模式轻松使用
 > * `MYSQL/SQLITE`任意切换,注入过滤/ORM,文件缓存/HTTP缓存/数据库缓存,轻松安全
-> * 项目打包,`LESS`解析压缩,`JAVASCRIPT`打包压缩,动静分离部署,全栈开发,轻松搞定
 > * 异常捕获,`DEBUG`日志,自定义错误页,自定义异常路由一应俱全
 > * 普通路由,正则路由,回调处理,百变URI随心所欲,插件模式,整站模式,即插即用
 > * 文件加载自动完成,无需`Include`简单高效,丰富类库轻松调用
@@ -28,7 +27,7 @@
 
 对于`nginx`
 
-```
+```nginx
 try_files $uri $uri/ /index.php?$args;
 ```
 加入`location / {}`里面
@@ -47,31 +46,26 @@ RewriteRule ^(.*)$ index.php [QSA,L]
 ##开始使用
 
 - `with()` 即可加载`app/system` 路径下的文件,或者下一级目录的文件 ,可加载普通php文件,也可加载.class.php文件,后者必须存在以文件名命名的类
--
--
--
--
-
-
-```
-
-```
-
 - 所有加载过的类库和模型,都会记住是否已加载过,不会重复加载,也不会重复实例化
+
+
 - 加载过的类库和模型全局可用
 - Class以及controller和model目录下的类都可以直接通过类名调用其静态方法
 
 -----
-## 其他
+## CLI运行和打包
 
 
-修改为测试模式 `debug=2  php index.php em lists2016`
-
+指定debug模式运行  `debug=2  php index.php em lists2016`
 
 打包项目 `php -d phar.readonly=0 index.php`
 
+打包后,项目所有php结尾的文件被包含到一个文件内,无需任何修改即可直接运行phar
 
-```
+
+
+
+```php
 
 // with(['code'=>0,'msg'=>'hello'])->out(20);//json
 // with(['user'=>123456,'password'=>'hello222'])->out(['code'=>0,'msg'=>'ok'],1);//json without cache
@@ -83,17 +77,91 @@ RewriteRule ^(.*)$ index.php [QSA,L]
 // with($data)->out('login',40);//view http cache 40
 // with($data)->out('login',40,true);//view file cache 40
 // var_dump(M::get('a'),M::get('ab'),app::cost());
-
 ```
+
+## 路由与RESTful
+
+### 普通路由
+
+普通路由模式和其他大部分框架如`codeigniter`一致,控制器文件内包含一个同名Class.
+
+URI为`/api/userinfo/1`则对用于api.php里的userinfo方法,1为此方法的第一个实参
+
+### 正则路由
+
+***使用 app::route() 添加正则路由***
+
+- 映射路由到普通路由上,访问/hello 等同于访问/home/hello
+
+```php
+app::route('\/hello',['home','hello'])
+```
+
+- 传递参数,访问`/userinfo/1` ,则参数1将会传递给home中的userinfo方法为第一个实参
+
+```php
+app::route('\/userinfo\/(\d+)',['home','userinfo'])
+```
+
+- 插件模式,访问/upload 会激发Plugins目录下的Upload类
+```php
+app::route('\/upload','Plugins/Upload')
+```
+
+- 闭包模式,直接对应一个闭包.
+```php
+app::route('\/about',function(){echo 'about';})
+```
+
+>  正则路由的优先级大于普通路由
+
+## 控制器
+
+
+
+### 依赖注入
+
+
+
+
+
+## 同时连接多个数据库
+
+默认的`db::getData` `db::runSql`等使用默认的数据库配置,默认的数据库配置为`config`中的`db`键,形式如
+```
+'db'=>
+[
+	'dsn'=>'mysql:host=172.168.1.3;port=13306;dbname=dbname;charset=utf8',
+	'user'=>'work',
+	'pass'=>'123456',
+]
+```
+使用PDO链接,支持mysql,sqlite,pgsql等
+
+
+
+内部根据$cfg做缓存
+
+$instance=db::getInstance($cfg)
+
+
+传入$cfg获取指定的实例
+
+```php
+$instance->insert
+```
+
+### 数据库切换
+
 
 
 ## 轻量级的ORM操作
 
 无过度封装,简单直接,轻松完成大部分数据库操作.
 
-**增加**
+### 增加
 
-```
+```php
 orm::insert(array $data,$table=null,$ignore=false,$replace=false)
 orm::replace(array $data,$table=null)
 ```
@@ -108,18 +176,18 @@ orm::replace(array $data,$table=null)
 
 > *对于批量插入,参见下面说明*
 
-**删除**
+### 删除
 
-```
+```php
 orm::delete(array $where=[],$table=null)
 ```
 将`$where`设置为空数组即可删除全表数据
 
 详细的`$where`使用见*WHERE构造器*
 
-**查询**
+### 查询
 
-```
+```php
 orm::find(array $where=[],$table=null,$col='*',array $orderLimit=null,$fetch='fetchAll')
 orm::findOne(array $where=[],$table=null,$col='*',array $orderLimit=[1],$fetch='fetch')
 orm::findVar(array $where=[],$table=null,$method='COUNT(1)',array $orderLimit=[1])
@@ -136,7 +204,7 @@ orm::findPage(array $where=[],$table=null,$col='*',$page=1,$limit=20,array $orde
 
 详细的`$where`使用见*WHERE构造器*
 
-*大量查询*
+#### 大量查询
 
 如果你的一条SQL要查询大量数据,结果集往往超过几十万条,一次读取结果集会使得内存溢出,脚本终止.
 
@@ -146,7 +214,7 @@ orm::findPage(array $where=[],$table=null,$col='*',$page=1,$limit=20,array $orde
 
 使用参数`true`后将返回一个`PDOStatement`,你将可以自由进行后续操作.
 
-```
+```php
 $stm=User::find(['id >'=>1],'userTable','*',['id'=>'ASC'],true);
 while($row=$stm->fetch())
 {
@@ -160,34 +228,34 @@ while($row=$stm->fetch())
 即使循环获取,数据也是从MySQL服务器发送到了PHP进程中保存,若数据实在太大,可以设置数据任然保存在MySQL服务器,循环的过程中现场取
 
 在查询之前,给PDO实例设置
-```
+```php
 self::setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY,false);
 ```
 然后再循环获取,内存使用会显著下降
 
 > *因PDO使用长连接,该设置会影响一定时段内的所有SQL查询,你也可以查询完设置回`true`避免影响其他查询*
+> *自PHP5.5起,可以使用yield,大数据量下可以显著帮你节省内存*
 
-
-*子查询*
+#### 子查询
 
 使用原始值可以实现子查询
-```
+```php
 $where=['!id IN'=>'(SELECT `id` FROM `user` WHERE fid=1)','age >'=>18]
 ```
 
-**更新**
-```
+### 更新
+
+```php
 orm::update(array $where,array $data,$table=null)
 ```
 
-`$where`的具体形式见*WHERE构造器*
+`$where`的具体形式见***WHERE构造器***
 
-`$data`的具体形式见*SET构造器*
+`$data`的具体形式见***SET构造器***
 
+### WHERE构造器
 
-**WHERE构造器**
-
-```
+```php
 orm::condition(array &$where,$prefix='WHERE')
 ```
 
@@ -236,10 +304,9 @@ orm::condition(array &$where,$prefix='WHERE')
 
 > *构造器一次不能生成包含`AND`和`OR`相互嵌套的复杂条件,若想使用,见下面说明*
 
+### SET构造器
 
-**SET构造器**
-
-```
+```php
 orm::values(array &$data,$set=false,$table=null)
 ```
 
@@ -259,10 +326,9 @@ orm::values(array &$data,$set=false,$table=null)
 
 原始值没有引号包裹,也不是预处理字段,随意使用将会带来安全隐患.
 
+### ORDERLIMIT构造器
 
-**ORDERLIMIT构造器**
-
-```
+```php
 orm::orderLimit(array $orderLimit,$limit=[])
 ```
 只需一个参数,`$limit`参数无需设置
@@ -281,34 +347,34 @@ orm::orderLimit(array $orderLimit,$limit=[])
 
 代表`LIMIT 0,5`
 
-### 使用`ON DUPLICATE KEY UPDATE`
+### 使用 ON DUPLICATE KEY UPDATE
 
 例如`$data=['id'=>123,'name'=>'456'];` 其中`id`为主键
 
-```
+```php
 $sql=sprintf('INSERT INTO%s ON DUPLICATE KEY UPDATE id=:id,name=:name',self::values($data,false,static::table));
 return self::exec($sql,$data);
 ```
 
 如果`$data`里的数据全部需要覆盖更新,可以直接使用`self::values($data,true)`
-```
+```php
 $sql=sprintf('INSERT INTO%s ON DUPLICATE KEY UPDATE %s',self::values($data,false,static::table),self::values($data,true));
 return self::exec($sql,$data);
 ```
 
 
-### 使用`INSERT DELAYED`
+### 使用 INSERT DELAYED
 
 > DELAYED仅适用于MyISAM, MEMORY和ARCHIVE表
 
 可采用如下方式构造
-```
+```php
 $sql=sprintf('REPLACE DELAYED INTO `%s` %s',static::table,self::values($data));
 $sql=sprintf('INSERT DELAYED INTO `%s` %s',static::table,self::values($data));
 $sql=sprintf('INSERT DELAYED IGNORE INTO `%s` %s',static::table,self::values($data));
 ```
 
-### 使用`CASE WHEN`
+### 使用 CASE WHEN
 
 
 ### 批量插入
@@ -320,7 +386,7 @@ $sql=sprintf('INSERT DELAYED IGNORE INTO `%s` %s',static::table,self::values($da
 因为`InnoDB`默认是`auto-commit mode`,每条SQL都会当做一个事务自动提交,会带来额外开销.
 
 数据源
-```
+```php
 $data=
 [
 	['id'=>11,'name'=>'name11']
@@ -328,7 +394,7 @@ $data=
 ```
 
 `INSERT INTO`也可以使用`IGNORE`,`REPLACE`,`ON DUPLICATE KEY UPDATE`
-```
+```php
 try
 {
 	$example=reset($data);
@@ -351,7 +417,7 @@ catch(PDOExecption $e)
 ```
 
 如果字段与数组的键相同,还可以简化变量绑定
-```
+```php
 foreach ($row as $column => $value)
 {
 	$stm->bindParam(":{$column}",$value);
@@ -365,7 +431,7 @@ $stm->execute();
 使用单条SQL代替循环插入速度将会更快
 
 数据源
-```
+```php
 $data=
 [
 	6=>['id'=>11,'name'=>'name1','age'=>22],
@@ -376,7 +442,7 @@ $data=
 ```
 
 设置`$values=[]`
-```
+```php
 array_map(function($v)use(&$values){array_push($values,...array_values($v));},$data);
 $holders=substr(str_repeat('(?'.str_repeat(',?',count(reset($data))-1).'),',count($data)),0,-1);
 $sql=sprintf('INSERT INTO%s %s',sprintf(' `%s` (%s) VALUES',self::table,implode(',',array_map(function($k){return "`{$k}`";},array_keys(reset($data))))),substr(str_repeat('(?'.str_repeat(',?',count(reset($data))-1).'),',count($data)),0,-1));
@@ -385,14 +451,14 @@ $sql=sprintf('INSERT INTO%s %s',sprintf(' `%s` (%s) VALUES',self::table,implode(
 如果你的PHP版本小于PHP5.6
 
 将第一行替换为
-```
+```php
 array_map(function($v)use(&$values){array_map(function($i)use(&$values){array_push($values,$i);},$v);},$data);
 ```
 
 *批量插入中使用`ON DUPLICATE KEY UPDATE`*
 
 在最后面添加一行
-```
+```php
 $sql.=' ON DUPLICATE KEY UPDATE '.implode(',',array_map(function($v){return "`{$v}`=VALUES({$v})";},array_keys(reset($data))));
 ```
 完成以后最好`unset($data,$holders);`释放内存,
@@ -401,7 +467,7 @@ $sql.=' ON DUPLICATE KEY UPDATE '.implode(',',array_map(function($v){return "`{$
 如果`$data`太大,超过1W个元素,或者字段太大,建议分块插入
 
 2000个一批,速度并不会有明显影响,内存会较为节省
-```
+```Php
 foreach(array_chunk($data,2e3) as $item)
 {
 	self::dobatchinsert($item);
@@ -412,7 +478,7 @@ foreach(array_chunk($data,2e3) as $item)
 ### 嵌套的`AND`和`OR`
 
 
-```
+```php
 $where1=['age >'=>18,'sex'=>1];
 $where2=['id >'=>20,'!id <'=>40];
 $sql=sprintf('SELECT id FROM `%s`%s%s',static::table,self::condition($where1),self::condition($where2,'OR'));
@@ -424,7 +490,7 @@ return self::exec($sql,$where1+$where2);
 ### 高级查询
 
 
-```
+```php
 $where=['age >'=>1];
 $sql=sprintf('SELECT id FROM `%s` m%s',static::table,self::condition($where,'LEFT JOIN `user` u ON u.id=m.id WHERE'));
 return self::exec($sql,$where);
@@ -435,14 +501,13 @@ return self::exec($sql,$where);
 
 使用`orm::query`可以一次完成多个SQL操作,它是`orm::exec`的批处理.
 
-```
+```php
 
 $sql1="SELECT 1";
 $sql2="SELECT 2";
 $sql3="SELECT 3";
 $data1=$data2=$data3=[];
 list($res1,$res2,$res3)=self::query([$sql1,$data1,'fetchAll'],[$sql2,$data2,'fetch'],[$sql3,$data3,true]);
-
 ```
 
 每个参数都是数组
@@ -450,6 +515,20 @@ list($res1,$res2,$res3)=self::query([$sql1,$data1,'fetchAll'],[$sql2,$data2,'fet
 数组内部,第一个元素要批处理的$sql语句,第二个参数绑定的参数,第三个参数获取方式.
 
 所有的SQL执行最终都会指向`orm::exec($sql,array $bind=null,$fetch=null)`
+
+
+
+## 视图
+
+### 输出 JSON
+
+### 视图缓存
+
+### HTTP缓存
+
+
+
+
 
 ## 缓存
 
@@ -463,7 +542,33 @@ Store.class.php
 
 
 
+引入命名空间
 
+配置全局可读
+
+数据库多实例同时连接.
+
+
+spl_auto_load 代替 __autoload
+
+with make
+
+
+app::get() 获取和修改config
+
+app::set()
+
+app::load()
+
+
+不能这样 , 普通路由有问题, 可考虑插件形式
+route::get('get')
+
+route::post()
+
+route::put()
+
+route::delete()
 
 
 
