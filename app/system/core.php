@@ -622,7 +622,7 @@ class validate
 			switch ($type)
 			{
 				case 'need': return $item;
-				case 'require': return $item===0 || $item;
+				case 'require': return $item===0 || $item ==='0' || $item;
 				case 'email': return self::email($item);
 				case 'username': return self::username($item);
 				case 'password': return self::password($item);
@@ -689,7 +689,7 @@ class db
 	}
 	final private static function init($dbDsn,$dbUser,$dbPass)
 	{
-		$options=[PDO::ATTR_PERSISTENT=>true,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>3,PDO::ATTR_EMULATE_PREPARES=>false];
+		$options=[PDO::ATTR_PERSISTENT=>true,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>3,PDO::ATTR_EMULATE_PREPARES=>false,PDO::ATTR_STRINGIFY_FETCHES=>false];
 		try
 		{
 			$pdo=new PDO($dbDsn,$dbUser,$dbPass,$options);
