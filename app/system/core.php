@@ -15,6 +15,7 @@ class app
     {
         try
         {
+			error_reporting(DEBUG?E_ALL:E_ALL&~E_NOTICE);
 			if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'],$_SERVER['HTTP_IF_NONE_MATCH'])&&(count($param=explode('-',ltrim($_SERVER['HTTP_IF_NONE_MATCH'],'W/')))==2))
             {
                 $last=strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
@@ -26,17 +27,36 @@ class app
                 }
 			}
 			$cli = defined('STDIN') && defined('STDOUT');
+			$errHandler = function(throwable $e,bool $cli)
+			{
+				$err=$e->getTraceAsString();
+				$errMsg = $e->getMessage();
+				$errCode = $e->getCode();
+				if ($cli)
+				{
+					echo $errCode,' ',$errMsg,PHP_EOL,$err,PHP_EOL;
+				}
+				else
+				{
+					$errs = str_replace(PHP_EOL,'</p><p>',$err);
+					echo "<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;font:italic 14px/20px Georgia,Times New Roman;word-wrap:break-word;'><p>ERROR({$errCode}) {$errMsg}</p><p>{$errs}</p></div>";
+				}
+			};
 			if($cli)
 			{
+				if(($name=getenv('name')) && ($entry=getenv('entry')))
+				{
+					return self::createPhar($name,$entry);
+				}
 				$uri=implode('/',$GLOBALS['argv']);
 			}
 			else
 			{
 				list($uri)=explode('?',$_SERVER['REQUEST_URI'],2);
-				if(stripos($uri,$_SERVER['SCRIPT_NAME'])===0)
-				{
-					$uri = substr($uri,strlen($_SERVER['SCRIPT_NAME']));
-				}
+			}
+			if(stripos($uri,$_SERVER['SCRIPT_NAME'])===0)
+			{
+				$uri = substr($uri,strlen($_SERVER['SCRIPT_NAME']));
 			}
 
             $varPath = VAR_PATH;
@@ -59,91 +79,53 @@ class app
 			}
 
 			$request_method = $_SERVER['REQUEST_METHOD']??'GET';
-            list($uri_match,$r,$matches,$fn,$notfound,$errfound)=route::run($uri,$request_method);
 			
-			try
-			{
-				spl_autoload_register(function($name)
-				{
-					if(is_file($file=CONTROLLER_PATH."{$name}.php")||is_file($file=MODEL_PATH."{$name}.php")||is_file($file=LIB_PATH."{$name}.php")||is_file($file=LIB_PATH."{$name}.phar.php"))
-					{
-						require_once $file;
-					}
-				});
-				set_error_handler(function(int $errno,string $errstr,string $errfile,int $errline)
-				{
-					throw new Exception(sprintf('%s%s',$errstr,$errfile?(' in file '.$errfile.($errline?"({$errline})":'')):''),$errno);
-				});
-				if($uri_match) // 正则模式已匹配,此处处理闭包模式与插件模式
-				{
-					if($fn instanceof closure)
-					{
-						return call_user_func_array($fn,$matches);
-					}
-					else if(is_string($fn))
-					{
-						//插件模式,根据路由触发一个类
-						return call_user_func_array([self,'load'],array_merge([$fn],$matches));
-					}
-					else if(is_array($fn))
-					{
-						return call_user_func_array([self,'run'],array_merge($fn,$matches));
-					}
-					throw new Exception("error route handler",101);
-				}
-				return self::run($r);
-			}
-			catch(Exception $e)
-			{
-				$errCode = $e->getCode();
-				if($errCode==404 && !empty($notfound))
-				{
+            list($uri_match,$r,$matches,$fn,$notfound,$errfound)=route::run($uri,$request_method);
 
-				}
-				else if($errCode==500 && !empty($errfound))
-				{
-
-				}
-				else
-				{
-					throw $e;
-				}
-			}
-			catch(Error $e)
+			$execHandler = function($fn,array $params)
 			{
-				throw $e;
+				if($fn instanceof closure)
+				{
+					return call_user_func_array($fn,$params);
+				}
+				else if(is_string($fn))
+				{
+					return call_user_func_array([self,'load'],array_merge([$fn],$params));
+				}
+				else if(is_array($fn))
+				{
+					return call_user_func_array([self,'run'],array_merge($fn,$params));
+				}
+				throw new Exception("error route handler",101);
+			};
+
+			
+			spl_autoload_register(function($name)
+			{
+				if(is_file($file=CONTROLLER_PATH."{$name}.php")||is_file($file=MODEL_PATH."{$name}.php")||is_file($file=LIB_PATH."{$name}.php")||is_file($file=LIB_PATH."{$name}.phar.php"))
+				{
+					require_once $file;
+				}
+			});
+			set_error_handler(function(int $errno,string $errstr,string $errfile,int $errline)
+			{
+				throw new Exception(sprintf('%s%s',$errstr,$errfile?(' in file '.$errfile.($errline?"({$errline})":'')):''),$errno);
+			});
+			if($uri_match) // 正则模式已匹配,此处处理闭包模式与插件模式
+			{
+				return $execHandler($fn,$matches);
 			}
+			return self::run($r);
+		
         }
-        catch(Exception $e)
+        catch(Exception | Error $e)
         {
-            $err=$e->getTraceAsString();
-            $errMsg = $e->getMessage();
-            $errCode = $e->getCode();
-            if ($cli)
-            {
-                echo $errCode,' ',$errMsg,PHP_EOL,$err,PHP_EOL;
-            }
-            else
-            {
-                $errs = str_replace(PHP_EOL,'</p><p>',$err);
-                echo "<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;font:italic 14px/20px Georgia,Times New Roman;word-wrap:break-word;'><p>ERROR({$errCode}) {$errMsg}</p><p>{$errs}</p></div>";
-            }
-        }
-        catch(Error $e)
-        {
-            $err=$e->getTraceAsString();
-            $errMsg = $e->getMessage();
-            $errCode = $e->getCode();
-            if ($cli)
-            {
-                echo $errCode,' ',$errMsg,PHP_EOL,$err,PHP_EOL;
-            }
-            else
-            {
-                $errs = str_replace(PHP_EOL,'</p><p>',$err);
-                echo "<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;font:italic 14px/20px Georgia,Times New Roman;word-wrap:break-word;'><p>ERROR({$errCode}) {$errMsg}</p><p>{$errs}</p></div>";
-            }
-        }
+			if($e->getCode()==404)
+			{
+				return ($notfound??$errfound??$errHandler)($e,$cli);
+			}
+            return ($errfound??$errHandler)($e,$cli);
+		}
         finally
         {
 
@@ -153,41 +135,19 @@ class app
     
 
 
-	private static function cli($phar=false)
+	private static function createPhar(string $name,string $entry)
 	{
-		$router=$GLOBALS['argv'];
-		$script=basename(array_shift($router));
-		if($GLOBALS['argc']>1)
+		$path=ROOT.$name;
+		$phar=new Phar($path,FilesystemIterator::CURRENT_AS_FILEINFO|FilesystemIterator::KEY_AS_FILENAME|FilesystemIterator::SKIP_DOTS,$name);
+		$phar->startBuffering();
+		$dirObj=new RegexIterator(new RecursiveIteratorIterator(new RecursiveDirectoryIterator(ROOT)),'/^[\w\/\-\\\.:]+\.php$/i');
+		foreach($dirObj as $file)
 		{
-			$phar||chdir(ROOT);
-			$ret=self::regex('/'.implode('/',$router));
-			return is_object($ret)?$ret:(($GLOBALS['app']['router']=$ret?$ret:$router)&&self::run($GLOBALS['app']['router']));
+			$phar->addFromString(substr($file,strlen(ROOT)),php_strip_whitespace($file));
 		}
-		if($phar)
-		{
-			return self::run([DEFAULT_CONTROLLER,DEFAULT_ACTION]);
-		}
-		try
-		{
-			$pharName=rtrim($script,'php').'phar';
-			$path=ROOT.$pharName;
-			is_file($path)&&unlink($path);
-			$phar=new Phar($path,FilesystemIterator::CURRENT_AS_FILEINFO|FilesystemIterator::KEY_AS_FILENAME|FilesystemIterator::SKIP_DOTS,$pharName);
-			$phar->startBuffering();
-			$dirObj=new RegexIterator(new RecursiveIteratorIterator(new RecursiveDirectoryIterator(ROOT)),'/^[\w\/\-\\\.:]+\.php$/i');
-			foreach($dirObj as $file)
-			{
-				$phar->addFromString(substr($file,strlen(ROOT)),php_strip_whitespace($file));
-			}
-			$phar->setStub((getenv('EXE')?"#!/usr/bin/env php".PHP_EOL:null)."<?php Phar::mapPhar('$pharName');require 'phar://{$pharName}/{$script}';__HALT_COMPILER();");
-			$phar->stopBuffering();
-			getenv('EXE')&&chmod($path,0700);
-			echo "{$phar->count()} files stored in {$path}".PHP_EOL;
-		}
-		catch(Exception $e)
-		{
-			echo $e->getMessage().PHP_EOL;
-		}
+		$phar->setStub("#!/usr/bin/env php".PHP_EOL."<?php Phar::mapPhar('$name');require 'phar://{$name}/{$entry}';__HALT_COMPILER();");
+		$phar->stopBuffering();
+		echo "{$phar->count()} files stored in {$path}".PHP_EOL;
     }
 
     public static function load($fn,...$args)
@@ -229,7 +189,7 @@ class app
         }
         return call_user_func_array([self::$global['sys.'.$r[0]],$r[1]],array_slice($r,2));
 	}
-	public static function log($msg,$type='DEBUG',$file=null)
+	public static function log($msg,string $type='DEBUG',string $file=null)
 	{
 		if(is_writable(VAR_PATH_LOG)&&(DEBUG||(($type=strtoupper($type))=='ERROR')))
 		{
@@ -239,7 +199,7 @@ class app
 		}
 	}
 
-	public static function cost($type=null)
+	public static function cost(string $type=null)
 	{
 		switch ($type)
 		{
@@ -261,16 +221,16 @@ class app
         header('Last-Modified: '.gmdate('D, d M Y H:i:s',$_SERVER['REQUEST_TIME']).' GMT');
         return header('ETag: W/'.($_SERVER['REQUEST_TIME']+$s).'-'.$s);
 	}
-	public static function get($key,$default=null)
+	public static function get(string $key,$default=null)
 	{
 		return isset(self::$global[$key])?self::$global[$key]:$default;
 	}
-	public static function set($key,$value)
+	public static function set(string $key,$value)
 	{
 		self::$global[$key]=$value;
 		return self::$global;
 	}
-	public static function config($key=null,$default=null,$cfgfile='config.php')
+	public static function config(string $key=null,$default=null,$cfgfile='config.php')
 	{
 		$config=is_array($cfgfile)?$cfgfile:(isset(self::$global[$cfgfile])?self::$global[$cfgfile]:(self::$global[$cfgfile]=include $cfgfile));
 		if($key=array_filter(explode('.',$key,9)))
@@ -289,15 +249,15 @@ class app
 		}
 		return $config;
 	}
-	public static function on($event,closure $task)
+	public static function on(string $event,closure $task)
 	{
 		return self::$global['event'][$event]=$task;
 	}
-	public static function off($event)
+	public static function off(string $event)
 	{
 		unset(self::$global['event'][$event]);
 	}
-	public static function emit($event,$args=[])
+	public static function emit(string $event,$args=[])
 	{
 		return empty(self::$global['event'][$event])?:call_user_func_array(self::$global['event'][$event],is_array($args)?$args:[$args]);
 	}
@@ -318,7 +278,7 @@ class route
     private static $notfound;
     private static $errfound;
 
-    static function u($path=null,$query=null,$host=null)
+    static function u(string $path=null,$query=null,$host=null)
     {
         $prefix='';
         if($host===true)
@@ -390,12 +350,12 @@ class route
         self::$routes[$regex]=[$fn,$methods];
     }
 
-    static function notfound($fn)
+    static function notfound(closure $fn)
     {
         self::$notfound = $fn;
     }
 
-    static function errfound($fn)
+    static function errfound(closue $fn)
     {
         self::$errfound = $fn;
     }
@@ -404,7 +364,8 @@ class route
     {
         $r=array_values(array_filter(explode('/',$uri,9),'strlen'));
         $uri = '/'.implode('/',$r);
-        $ret = self::match($uri,$m);
+		$ret = self::match($uri,$m);
+		self::$routes=[];
         if($ret)
         {
             list($url,$matches,$fn) = $ret;
