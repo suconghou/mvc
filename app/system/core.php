@@ -7,45 +7,152 @@
  * @version 1.9.15
  */
 
-final class app
+class app
 {
-	private static $global;
-	public static function start(array &$config)
-	{
-		self::$global=&$config;
-		self::$global['sys-start-time']=microtime(true);
-		self::$global['sys-start-memory']=memory_get_usage();
-		error_reporting(DEBUG?E_ALL:E_ALL&~E_NOTICE);
-		set_include_path(LIB_PATH);
-		set_error_handler('app::error');
-		set_exception_handler('app::error');
-		register_shutdown_function(function()
-		{
-			if($error=error_get_last())
-			{
-				$errormsg="ERROR({$error['type']}) {$error['message']} in {$error['file']} on line {$error['line']}";
-				headers_sent()||header('Error-At:'.preg_replace('/\s+/',' ',DEBUG?"{$error['file']}:{$error['line']}=>{$error['message']}":(basename($error['file']).":{$error['line']}")),true,500);
-				return app::log($errormsg,'ERROR');
+    private static $global;
+
+    public static function start(array $config)
+    {
+        try
+        {
+			if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'],$_SERVER['HTTP_IF_NONE_MATCH'])&&(count($param=explode('-',ltrim($_SERVER['HTTP_IF_NONE_MATCH'],'W/')))==2))
+            {
+                $last=strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
+                list($expired,$cacheTime)=$param;
+                if($expired>$_SERVER['REQUEST_TIME']||($last+$cacheTime>$_SERVER['REQUEST_TIME']))
+                {
+                    header('Cache-Control: public, max-age='.($expired-$_SERVER['REQUEST_TIME']));
+                    return header('Expires: '.gmdate('D, d M Y H:i:s',$expired).' GMT',true,304);
+                }
 			}
-		});
-		spl_autoload_register(function($class)
-		{
-			if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.php")||is_file($file=LIB_PATH."{$class}.php"))
+			$cli = defined('STDIN') && defined('STDOUT');
+			if($cli)
 			{
-				require_once $file;
-				return class_exists($class)||app::error(500,"{$file} has no class {$class}");
+				$uri=implode('/',$GLOBALS['argv']);
 			}
-			return false;
-		});
-		date_default_timezone_set(empty($config['timezone'])?'prc':$config['timezone']);
-		defined('DEFAULT_ACTION')||define('DEFAULT_ACTION','index');
-		defined('DEFAULT_CONTROLLER')||define('DEFAULT_CONTROLLER','home');
-		defined('STDIN')||(empty($config['gzip'])?ob_start():ob_start("ob_gzhandler"));
-		list($pharRun,$pharVar,$scriptName)=[substr(ROOT,0,7)=='phar://',substr(VAR_PATH,0,7)=='phar://','/'.trim($_SERVER['SCRIPT_NAME'],'./')];
-		$varPath=$pharVar?str_ireplace(['phar://',$scriptName],null,VAR_PATH):VAR_PATH;
-		define('VAR_PATH_LOG',$varPath.'log'.DIRECTORY_SEPARATOR)&&define('VAR_PATH_HTML',$varPath.'html'.DIRECTORY_SEPARATOR);
-		return defined('STDIN')?self::cli($pharRun):self::process(self::init($scriptName));
-	}
+			else
+			{
+				list($uri)=explode('?',$_SERVER['REQUEST_URI'],2);
+				if(stripos($uri,$_SERVER['SCRIPT_NAME'])===0)
+				{
+					$uri = substr($uri,strlen($_SERVER['SCRIPT_NAME']));
+				}
+			}
+
+            $varPath = VAR_PATH;
+
+            define('VAR_PATH_LOG',$varPath.'log'.DIRECTORY_SEPARATOR);
+            define('VAR_PATH_HTML',$varPath.'html'.DIRECTORY_SEPARATOR);
+
+			$file = self::file($uri);
+            if(is_file($file))
+            {
+                $expire=filemtime($file);
+                if($_SERVER['REQUEST_TIME']<$expire)
+                {
+                    header('Expires: '.gmdate('D, d M Y H:i:s',$expire).' GMT');
+                    header('Cache-Control: public, max-age='.($expire-$_SERVER['REQUEST_TIME']));
+                    header('X-Cache: Hit');
+                    return isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])?header('Last-Modified: '.$_SERVER['HTTP_IF_MODIFIED_SINCE'],true,304):(header('Last-Modified: '.gmdate('D, d M Y H:i:s',$_SERVER['REQUEST_TIME']).' GMT',true,200)||readfile($file));
+                }
+                unlink($file);
+			}
+
+			$request_method = $_SERVER['REQUEST_METHOD']??'GET';
+            list($uri_match,$r,$matches,$fn,$notfound,$errfound)=route::run($uri,$request_method);
+			
+			try
+			{
+				spl_autoload_register(function($name)
+				{
+					if(is_file($file=CONTROLLER_PATH."{$name}.php")||is_file($file=MODEL_PATH."{$name}.php")||is_file($file=LIB_PATH."{$name}.php")||is_file($file=LIB_PATH."{$name}.phar.php"))
+					{
+						require_once $file;
+					}
+				});
+				set_error_handler(function(int $errno,string $errstr,string $errfile,int $errline)
+				{
+					throw new Exception(sprintf('%s%s',$errstr,$errfile?(' in file '.$errfile.($errline?"({$errline})":'')):''),$errno);
+				});
+				if($uri_match) // 正则模式已匹配,此处处理闭包模式与插件模式
+				{
+					if($fn instanceof closure)
+					{
+						return call_user_func_array($fn,$matches);
+					}
+					else if(is_string($fn))
+					{
+						//插件模式,根据路由触发一个类
+						return call_user_func_array([self,'load'],array_merge([$fn],$matches));
+					}
+					else if(is_array($fn))
+					{
+						return call_user_func_array([self,'run'],array_merge($fn,$matches));
+					}
+					throw new Exception("error route handler",101);
+				}
+				return self::run($r);
+			}
+			catch(Exception $e)
+			{
+				$errCode = $e->getCode();
+				if($errCode==404 && !empty($notfound))
+				{
+
+				}
+				else if($errCode==500 && !empty($errfound))
+				{
+
+				}
+				else
+				{
+					throw $e;
+				}
+			}
+			catch(Error $e)
+			{
+				throw $e;
+			}
+        }
+        catch(Exception $e)
+        {
+            $err=$e->getTraceAsString();
+            $errMsg = $e->getMessage();
+            $errCode = $e->getCode();
+            if ($cli)
+            {
+                echo $errCode,' ',$errMsg,PHP_EOL,$err,PHP_EOL;
+            }
+            else
+            {
+                $errs = str_replace(PHP_EOL,'</p><p>',$err);
+                echo "<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;font:italic 14px/20px Georgia,Times New Roman;word-wrap:break-word;'><p>ERROR({$errCode}) {$errMsg}</p><p>{$errs}</p></div>";
+            }
+        }
+        catch(Error $e)
+        {
+            $err=$e->getTraceAsString();
+            $errMsg = $e->getMessage();
+            $errCode = $e->getCode();
+            if ($cli)
+            {
+                echo $errCode,' ',$errMsg,PHP_EOL,$err,PHP_EOL;
+            }
+            else
+            {
+                $errs = str_replace(PHP_EOL,'</p><p>',$err);
+                echo "<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;font:italic 14px/20px Georgia,Times New Roman;word-wrap:break-word;'><p>ERROR({$errCode}) {$errMsg}</p><p>{$errs}</p></div>";
+            }
+        }
+        finally
+        {
+
+        }
+    }
+
+    
+
+
 	private static function cli($phar=false)
 	{
 		$router=$GLOBALS['argv'];
@@ -81,121 +188,46 @@ final class app
 		{
 			echo $e->getMessage().PHP_EOL;
 		}
-	}
-	private static function init(string $script)
+    }
+
+    public static function load($fn,...$args)
+    {
+        var_dump('load');die;
+    }
+
+
+	//参数必须是数组,第一个为控制器,第二个为方法,后面的为参数
+	public static function run(array $r)
 	{
-		if(!self::httpCache())
-		{
-			list($uri)=explode('?',$_SERVER['REQUEST_URI'],2);
-			$uri=strpos($uri,$script)===false?$uri:str_ireplace($script,null,$uri);
-			$router=self::regex($uri);
-			if($router)
-			{
-				return $router;
-			}
-			else
-			{
-				$router=array_values(array_filter(explode('/',$uri,9)));
-			}
-			if(empty($router[0]))
-			{
-				$router=[DEFAULT_CONTROLLER,DEFAULT_ACTION];
-			}
-			else if(empty($router[1]))
-			{
-				if(preg_match('/^[a-z]\w{0,20}$/i',$router[0]))
-				{
-					$router=[$router[0],DEFAULT_ACTION];
-				}
-				else
-				{
-					return self::error(404,"request controller {$router[0]} error");
-				}
-			}
-			else
-			{
-				if(!preg_match('/^[a-z]\w{0,20}$/i',$router[0]))
-				{
-					return self::error(404,"request controller {$router[0]} error");
-				}
-				if(!preg_match('/^[a-z]\w{0,20}$/i',$router[1]))
-				{
-					return self::error(404,"request action {$router[0]}:{$router[1]} error");
-				}
-			}
-			return $router;
-		}
-	}
-	//Object为插件模式,router[1]为Object是闭包模式,0为对应URL,此处未执行闭包
-	private static function process($router)
-	{
-		if($router&&!is_object($router))
-		{
-			$GLOBALS['app']['router']=$router;
-			$file=is_object($router[1])?self::fileCache($router[0]):self::fileCache($router);
-			if(is_file($file))
-			{
-				$expire=filemtime($file);
-				if($_SERVER['REQUEST_TIME']<$expire)
-				{
-					header('Expires: '.gmdate('D, d M Y H:i:s',$expire).' GMT');
-					header('Cache-Control: public, max-age='.($expire-$_SERVER['REQUEST_TIME']));
-					header('X-Cache: Hit');
-					return isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])?header('Last-Modified: '.$_SERVER['HTTP_IF_MODIFIED_SINCE'],true,304):(header('Last-Modified: '.gmdate('D, d M Y H:i:s',$_SERVER['REQUEST_TIME']).' GMT',true,200)||readfile($file));
-				}
-				unlink($file);
-			}
-			return self::run($router);
-		}
-	}
-	//参数可以多个,也可以数组,router[1]为Object是闭包
-	public static function run($router)
-	{
-		$router=is_array($router)?$router:func_get_args();
-		$router=isset($router[1])?$router:[$router[0],DEFAULT_ACTION];
-		if(is_object($router[1]))
-		{
-			return call_user_func_array($router[1],array_slice($router,2));
-		}
-		if(is_file($path=CONTROLLER_PATH.$router[0].'.php'))
-		{
-			list($controllerName,$action)=$router;
-			$index=2;
-		}
-		else if(is_file($path=CONTROLLER_PATH.$router[0].DIRECTORY_SEPARATOR.$router[1].'.php'))
-		{
-			$controllerName=$router[1];
-			$action=isset($router[2])?$router[2]:DEFAULT_ACTION;
-			$index=3;
-		}
-		else
-		{
-			return self::error(404,"request controller {$router[0]} not found");
-		}
-		require_once $path;
-		class_exists($controllerName)||self::error(404,"request controller class {$controllerName} not found");
-		method_exists($controllerName,$action)||self::error(404,"request controller {$controllerName} has no method {$action}");
-		$GLOBALS['app']['ctl'][$controllerName]=isset($GLOBALS['app']['ctl'][$controllerName])?$GLOBALS['app']['ctl'][$controllerName]:$controllerName;
-		if((!$GLOBALS['app']['ctl'][$controllerName] instanceof $controllerName)&&($class=new ReflectionClass($controllerName))&&($class->isInstantiable()))
-		{
-			if(($constructor=$class->getConstructor())&&($params=$constructor->getParameters()))
-			{
-				foreach ($params as &$param)
-				{
-					$param=(($di=$param->getClass())&&($m=$di->name))?($GLOBALS['app']['lib'][$m]=isset($GLOBALS['app']['lib'][$m])?$GLOBALS['app']['lib'][$m]:(new $m())):$router;
-				}
-				$GLOBALS['app']['ctl'][$controllerName]=$class->newInstanceArgs($params);
-			}
-			else
-			{
-				$GLOBALS['app']['ctl'][$controllerName]=new $controllerName($router);
-			}
-		}
-		return is_callable([$GLOBALS['app']['ctl'][$controllerName],$action])?call_user_func_array([$GLOBALS['app']['ctl'][$controllerName],$action],array_slice($router,$index)):self::error(404,"Request Controller Class {$controllerName} Method {$action} Is Not Callable");
-	}
-	public static function route($regex,$arr)
-	{
-		$GLOBALS['app']['reg'][$regex]=$arr;
+        if(empty($r[0]))
+        {
+            $r[0]='home';
+        }
+        else if(!preg_match('/^[a-z]\w{0,20}$/i',$r[0]))
+        {
+            throw new Exception(sprintf('request controller %s error',$r[0]),404);
+        }
+        if(empty($r[1]))
+        {
+            $r[1]='index';
+        }
+        else if(!preg_match('/^[a-z]\w{0,20}$/i',$r[1]))
+        {
+            throw new Exception(sprintf('request action %s:%s error',$r[0],$r[1]),404);
+        }
+        if(!method_exists($r[0],$r[1]))
+        {
+            throw new Exception(sprintf('request action %s:%s not exist',$r[0],$r[1]),404);
+        }
+        if(empty(self::$global['sys.'.$r[0]]))
+        {
+            self::$global['sys.'.$r[0]]=new $r[0];
+        }
+        if(!is_callable([self::$global['sys.'.$r[0]],$r[1]]))
+        {
+            throw new Exception(sprintf('request action %s:%s not callable',$r[0],$r[1]),404);
+        }
+        return call_user_func_array([self::$global['sys.'.$r[0]],$r[1]],array_slice($r,2));
 	}
 	public static function log($msg,$type='DEBUG',$file=null)
 	{
@@ -206,36 +238,7 @@ final class app
 			return error_log($msg,3,$path);
 		}
 	}
-	private static function regex($uri)
-	{
-		if(!empty($GLOBALS['app']['reg']))
-		{
-			foreach ($GLOBALS['app']['reg'] as $regex=>$item)
-			{
-				if(preg_match("/^{$regex}$/",$uri,$matches))
-				{
-					$url=$matches[0];
-					unset($matches[0],$GLOBALS['app']['reg']);
-					if(is_array($item))
-					{
-						return array_merge($item,$matches);
-					}
-					else if(is_object($item))
-					{
-						//传入URL,作为闭包时的文件缓存依据
-						return array_merge([$url,$item],$matches);
-					}
-					else
-					{
-						//插件模式,根据路由触发一个类
-						return call_user_func_array('with',array_merge([$item],$matches));
-					}
-				}
-			}
-			unset($GLOBALS['app']['reg']);
-		}
-		return [];
-	}
+
 	public static function cost($type=null)
 	{
 		switch ($type)
@@ -246,30 +249,17 @@ final class app
 			default: return ['time'=>round((microtime(true)-self::$global['sys-start-time']),4),'memory'=>memory_get_usage()-self::$global['sys-start-memory'],'query'=>db::$sqlCount?:0];
 		}
 	}
-	public static function fileCache($router=null,$delete=false)
+	public static function file(string $r="",bool $delete=false)
 	{
-		$file=sprintf('%s%u.html',VAR_PATH_HTML,crc32(ROOT.strtolower(trim($router?(is_array($router)?implode('/',$router):$router):DEFAULT_CONTROLLER.'/'.DEFAULT_ACTION ,'/'))));
+		$file=sprintf('%s%u.html',VAR_PATH_HTML,crc32(ROOT.strtolower($r)));
 		return $delete?(is_file($file)&&unlink($file)):$file;
 	}
-	public static function httpCache($min=0)
+	public static function cache(int $s=0)
 	{
-		if($min=$min*60)
-		{
-			header('Expires: '.gmdate('D, d M Y H:i:s',$_SERVER['REQUEST_TIME']+$min).' GMT');
-			header("Cache-Control: public, max-age={$min}");
-			header('Last-Modified: '.gmdate('D, d M Y H:i:s',$_SERVER['REQUEST_TIME']).' GMT');
-			return !header('ETag: W/'.($_SERVER['REQUEST_TIME']+$min).'-'.$min);
-		}
-		else if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'],$_SERVER['HTTP_IF_NONE_MATCH'])&&(count($param=explode('-',ltrim($_SERVER['HTTP_IF_NONE_MATCH'],'W/')))==2))
-		{
-			$last=strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
-			list($expired,$cacheTime)=$param;
-			if($expired>$_SERVER['REQUEST_TIME']||($last+$cacheTime>$_SERVER['REQUEST_TIME']))
-			{
-				header('Cache-Control: public, max-age='.($expired-$_SERVER['REQUEST_TIME']));
-				return !header('Expires: '.gmdate('D, d M Y H:i:s',$expired).' GMT',true,304);
-			}
-		}
+        header('Expires: '.gmdate('D, d M Y H:i:s',$_SERVER['REQUEST_TIME']+$s).' GMT');
+        header("Cache-Control: public, max-age={$s}");
+        header('Last-Modified: '.gmdate('D, d M Y H:i:s',$_SERVER['REQUEST_TIME']).' GMT');
+        return header('ETag: W/'.($_SERVER['REQUEST_TIME']+$s).'-'.$s);
 	}
 	public static function get($key,$default=null)
 	{
@@ -313,165 +303,129 @@ final class app
 	}
 	public static function __callStatic($fn,$args=[])
 	{
-		return isset(self::$global['event'][$fn])?call_user_func_array(self::$global['event'][$fn],$args):self::error(500,"call error static method {$fn} in class ".get_called_class());
+		if(isset(self::$global['event'][$fn]))
+		{
+			return call_user_func_array(self::$global['event'][$fn],$args);
+		}
+		throw new Exception("call error static method {$fn}",500);
 	}
-	public static function error($errno,$errstr=null,$errfile=null,$errline=null)
-	{
-		if($errno instanceof Exception or $errno instanceof Error)
-		{
-			$errstr=$errno->getMessage();
-			$errfile=$errno->getFile();
-			$errline=$errno->getLine();
-			$backtrace=$errno->getTrace();
-			$errno=$errno->getCode();
-		}
-		else if(in_array($errno,[E_NOTICE,E_WARNING],true)&&(substr($errstr,0,3)==='PDO'||DEBUG<2))
-		{
-			return;
-		}
-		else
-		{
-			$backtrace=debug_backtrace();
-		}
-		$errstr=substr($errstr,0,999);
-		$errormsg=sprintf('ERROR(%d) %s%s%s',$errno,$errstr,$errfile?" in {$errfile}":null,$errline?" on line {$errline}":null);
-		$code=($errno>=100&&$errno<=511)?$errno:500;
-		$errno===404?app::log($errormsg,'DEBUG',$errno):app::log($errormsg,'ERROR');
-		defined('STDIN')||(app::get('sys-error')&&exit("error found in error handler:{$errormsg}"))||(header('Error-At:'.preg_replace('/\s+/',' ',$errstr),true,$code)||app::set('sys-error',true));
-		if(DEBUG||getenv('EXE')) // DEBUG和打包时（指定了EXE环境变量）显示错误详情而不是用户自定义的错误处理器
-		{
-			$li=[];
-			foreach($backtrace as $trace)
-			{
-				if(isset($trace['file']))
-				{
-					$li[]="{$trace['file']}:{$trace['line']}=>".(isset($trace['class'])?$trace['class']:null).(isset($trace['type'])?$trace['type']:null)."{$trace['function']}(".((empty($trace['args'])||(!defined('STDIN')&&DEBUG<2))?null:(implode(array_map(function($item){return strlen(print_r($item,true))>90?'...':(is_null($item)?'null':preg_replace('/\s+/',' ',print_r($item,true)));},$trace['args']),','))).")"; // DEBUG<2并且非CLI模式下不显示函数参数，否则显示函数参数，参数大于90字符省略
-				}
-			}
-			$li=implode(defined('STDIN')?PHP_EOL:'</p><p>',array_reverse($li));
-			echo defined('STDIN')?($errfile?$errormsg.PHP_EOL.$li.PHP_EOL:exit($errormsg.PHP_EOL.$li.PHP_EOL)):exit("<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;font:italic 14px/20px Georgia,Times New Roman;word-wrap:break-word;'><p>{$errormsg}</p><p>{$li}</p></div>");
-		}
-		else // 非DEBUG模式，不显示错误详情， 使用用户定义的错误处理器，没有则使用默认
-		{
-			$errorController=(isset($GLOBALS['app']['router'][0])&&is_file(CONTROLLER_PATH.$GLOBALS['app']['router'][0].'.php'))?$GLOBALS['app']['router'][0]:DEFAULT_CONTROLLER;
-			$errorRouter=[$errorController,$errno==404?(defined('ERROR_PAGE_404')?ERROR_PAGE_404:'Error404'):(defined('ERROR_PAGE_500')?ERROR_PAGE_500:'Error500'),$errormsg];
-			$errorPage="<title>Error..</title><center><span style='font-size:300px;color:gray;font-family:黑体'>{$code}...</span></center>";
-			if(method_exists($errorController,$errorRouter[1]))//当前已加载的控制器或默认控制器中含有ERROR处理
-			{
-				$GLOBALS['app']['ctl'][$errorController]=isset($GLOBALS['app']['ctl'][$errorController])?$GLOBALS['app']['ctl'][$errorController]:$errorController;
-				if((!$GLOBALS['app']['ctl'][$errorController] instanceof $errorController)&&($class=new ReflectionClass($errorController))&&($class->isInstantiable()))
-				{
-					if(($constructor=$class->getConstructor())&&($params=$constructor->getParameters()))
-					{
-						foreach ($params as &$param)
-						{
-							$param=(($di=$param->getClass())&&($m=$di->name))?($GLOBALS['app']['lib'][$m]=isset($GLOBALS['app']['lib'][$m])?$GLOBALS['app']['lib'][$m]:(new $m())):(isset($GLOBALS['app']['router'])?$GLOBALS['app']['router']:null);
-						}
-						$GLOBALS['app']['ctl'][$errorController]=$class->newInstanceArgs($params);
-					}
-					else
-					{
-						$GLOBALS['app']['ctl'][$errorController]=new $errorController($errorRouter);
-					}
-				}
-				$errorPage=is_callable([$GLOBALS['app']['ctl'][$errorController],$errorRouter[1]])?call_user_func([$GLOBALS['app']['ctl'][$errorController],$errorRouter[1]],$errormsg):$errorPage;
-			}
-			exit($errorPage);
-		}
-	}
+
 }
 
-class response
+class route
 {
-	private $data;
-	public function __construct(array &$data)
-	{
-		$this->data=&$data;
-	}
-	public function out($template=null,$min=0,$file=false)
-	{
-		if(is_string($template))
-		{
-			return $this->view($template,$min,$file);
-		}
-		else
-		{
-			return $this->json(is_array($template)?$template:(is_array($min)?$min:[]),is_int($template)?$template:(is_int($min)?$min:0),$file);
-		}
-	}
-	public function view($template,$min=0,$file=false)
-	{
-		$min&&app::httpCache($min);
-		$callback=($file&&$min)?function(&$buffer)use($min)
-		{
-			if(is_writable(VAR_PATH_HTML))
-			{
-				$router=&$GLOBALS['app']['router'];
-				$file=is_object($router[1])?app::fileCache($router[0]):app::fileCache($router);
-				file_put_contents($file,$buffer)&&touch($file,$_SERVER['REQUEST_TIME']+($min*60));
-			}
-			echo $buffer;
-		}:null;
-		return template($template,$this->data,$callback);
-	}
-	public function json(array $msg,$min=0,$callback=null)
-	{
-		$min&&app::httpCache($min);
-		if($msg)
-		{
-			$msg['data']=&$this->data;
-		}
-		else
-		{
-			$msg=&$this->data;
-		}
-		return json($msg,$callback);
-	}
-}
+    private static $routes=[];
+    private static $notfound;
+    private static $errfound;
 
-function with($class)
-{
-	if(is_string($class))
-	{
-		$args=func_get_args();
-		$arr=explode('/',array_shift($args),3);
-		$m=end($arr);
-		$GLOBALS['app']['lib'][$m]=isset($GLOBALS['app']['lib'][$m])?$GLOBALS['app']['lib'][$m]:$m;
-		if($GLOBALS['app']['lib'][$m] instanceof $m)
-		{
-			return $GLOBALS['app']['lib'][$m];
-		}
-		if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.php")||is_file($file=LIB_PATH."{$class}.php")||is_file($file=LIB_PATH."{$class}.phar"))
-		{
-			$ret=require_once $file;
-			if(class_exists($m))
-			{
-				$class=new ReflectionClass($m);
-				$GLOBALS['app']['lib'][$m]=$class->newInstanceArgs($args);
-				return $GLOBALS['app']['lib'][$m];
-			}
-			unset($GLOBALS['app']['lib'][$m]);
-			return $ret;
-		}
-		return app::error(404,"can not load {$class}");
-	}
-	return new response($class);
-}
+    static function u($path=null,$query=null,$host=null)
+    {
+        $prefix='';
+        if($host===true)
+        {
+            $protocol=(isset($_SERVER['HTTPS'])&&(strtolower($_SERVER['HTTPS'])!='off'))?"https":"http";
+            $host=isset($_SERVER['HTTP_HOST'])?$_SERVER['HTTP_HOST']:'';
+            $prefix = "{$protocol}://{$host}";
+        }
+        else if($host)
+        {
+            $prefix = $host;
+        }
+        if(is_array($query))
+        {
+            $query=http_build_query($query);
+        }
+        if($query)
+        {
+            return "{$prefix}{$path}?{$query}";
+        }
+        return "{$prefix}{$path}";
+    }
 
-function template($v,array $_data_=null,$callback=null)
-{
-	if((is_file($_v_=VIEW_PATH.$v.'.php'))||(is_file($_v_=VIEW_PATH.$v)))
-	{
-		(is_array($_data_)&&!empty($_data_))&&extract($_data_);
-		if($callback)
-		{
-			ob_start()&&include $_v_;
-			$contents=ob_get_contents();
-			return (ob_end_clean()&&($callback instanceof closure))?$callback($contents):$contents;
-		}
-		return include $_v_;
-	}
-	return app::error(404,"file {$_v_} not found");
+    static function to(string $url,int $timeout=0)
+    {
+        if(in_array($timeout,[0,301,302,303,307,308],true))
+        {
+            header("Location:{$url}",true,$timeout);
+        }
+        else
+        {
+            header("Refresh:{$timeout};url={$url}",true,302);
+        }
+        exit(header('Cache-Control:no-cache, no-store, max-age=0, must-revalidate'));
+    }
+
+    static function get(string $regex,$fn)
+    {
+        return self::add($regex,$fn,['GET']);
+    }
+
+    static function post(string $regex,$fn)
+    {
+        return self::add($regex,$fn,['POST']);
+    }
+
+    static function put(string $regex,$fn)
+    {
+        return self::add($regex,$fn,['PUT']);
+    }
+
+    static function delete(string $regex,$fn)
+    {
+        return self::add($regex,$fn,['DELETE']);
+    }
+
+    static function head(string $regex,$fn)
+    {
+        return self::add($regex,$fn,['HEAD']);
+    }
+
+    static function any(string $regex,$fn,array $methods=['GET','POST','PUT','DELETE','HEAD'])
+    {
+        return self::add($regex,$fn,$methods);
+    }
+
+    static function add(string $regex,$fn,array $methods)
+    {
+        self::$routes[$regex]=[$fn,$methods];
+    }
+
+    static function notfound($fn)
+    {
+        self::$notfound = $fn;
+    }
+
+    static function errfound($fn)
+    {
+        self::$errfound = $fn;
+    }
+
+    static function run(string $uri,string $m)
+    {
+        $r=array_values(array_filter(explode('/',$uri,9),'strlen'));
+        $uri = '/'.implode('/',$r);
+        $ret = self::match($uri,$m);
+        if($ret)
+        {
+            list($url,$matches,$fn) = $ret;
+            return [$url,$r,$matches,$fn,self::$notfound,self::$errfound];
+        }
+        return [false,$r,[],null,self::$notfound,self::$errfound];
+    }
+
+    private static function match(string $uri,string $m)
+    {
+        foreach(self::$routes as $regex => list($fn,$methods))
+        {
+            if(in_array($m,$methods,true) && preg_match("/^{$regex}$/",$uri,$matches))
+            {
+                $url=array_shift($matches);
+                return [$url,$matches,$fn];
+            }
+        }
+        return false;
+    }
+
 }
 
 class request
@@ -707,115 +661,35 @@ class validate
 
 class db
 {
-	private static $instances=[];
-	private static $dbIndex='db';
+    private static $_instances=[];
+    protected $_pdo;
 
-	public static $lastSql;
-	public static $sqlCount;
+    final public static function getVar(string $sql)
+	{
+		$rs=self::execute($sql,true);
+		return $rs?$rs->fetchColumn():$rs;
+    }
 
-	final private static function store($k,$v=null)
+    final public static function getLine(string $sql,$type=PDO::FETCH_ASSOC)
 	{
-		return is_null($v)?app::get($k):app::set($k,$v);
-	}
-	final private static function error($errno,$err)
-	{
-		return app::error($errno,$err);
-	}
-	final private static function init($dbDsn,$dbUser,$dbPass)
-	{
-		$options=[PDO::ATTR_PERSISTENT=>true,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>3,PDO::ATTR_EMULATE_PREPARES=>false];
-		try
-		{
-			$pdo=new PDO($dbDsn,$dbUser,$dbPass,$options);
-		}
-		catch (PDOException $e)
-		{
-			try
-			{
-				$pdo=new PDO($dbDsn,$dbUser,$dbPass,$options);
-			}
-			catch(Exception $e)
-			{
-				return self::error($e->getCode(),$e->getMessage());
-			}
-		}
-		return $pdo;
-	}
-	final public static function runSql($sql)
-	{
-		return self::execute($sql);
-	}
-	final public static function getData($sql,$type=PDO::FETCH_ASSOC)
+		$rs=self::execute($sql,true);
+		return $rs?$rs->fetch($type):$rs;
+    }
+
+    final public static function getData(string $sql,$type=PDO::FETCH_ASSOC)
 	{
 		$rs=self::execute($sql,true);
 		return $rs?$rs->fetchAll($type):$rs;
 	}
-	final public static function getLine($sql,$type=PDO::FETCH_ASSOC)
-	{
-		$rs=self::execute($sql,true);
-		return $rs?$rs->fetch($type):$rs;
-	}
-	final public static function getVar($sql)
-	{
-		$rs=self::execute($sql,true);
-		return $rs?$rs->fetchColumn():$rs;
-	}
-	final public static function execute($sql,$isQuery=null)
-	{
-		$pdo=self::ready();
-		try
-		{
-			(self::$lastSql=$sql)&&self::$sqlCount++;
-			return $isQuery===false?($pdo->prepare($sql)):($isQuery?($pdo->query($sql)):($pdo->exec($sql)));
-		}
-		catch (PDOException $e)
-		{
-			list($codestr,$errno,$errmsg) = $pdo->errorInfo();
-			if($errno==2006 || $errno==2013) // mysql connection lost try reconnect
-			{
-				// self::close();
-				$pdo=self::ready();
-				return $isQuery===false?($pdo->prepare($sql)):($isQuery?($pdo->query($sql)):($pdo->exec($sql)));
-			}
-			else
-			{
-				return self::error($errno,$errmsg);
-			}
-		}
-	}
-	final public static function lastId()
-	{
-		return self::ready()->lastInsertId();
-	}
-	final public static function getInstance($dbIndex=null,array $dbCfg=null)
-	{
-		if($dbIndex)
-		{
-			self::store($dbIndex)||self::store($dbIndex,$dbCfg);
-		}
-		return self::ready($dbIndex);
-	}
-	final private static function ready($dbIndex=null)
-	{
-		if($dbIndex)
-		{
-			self::$dbIndex=$dbIndex;
-		}
-		else
-		{
-			$dbIndex=self::$dbIndex;
-		}
-		if(empty(self::$instances[$dbIndex]))
-		{
-			$db=self::store($dbIndex);
-			self::$instances[$dbIndex]=self::init(isset($db['dsn'])?$db['dsn']:null,isset($db['user'])?$db['user']:null,isset($db['pass'])?$db['pass']:null);
-		}
-		return self::$instances[$dbIndex];
-	}
 
-	final public static function insert(array $data,$table=null,$ignore=false,$replace=false)
+	final public static function runSql(string $sql)
 	{
-		$sql=sprintf('%s %sINTO `%s` %s',$replace?'REPLACE':'INSERT',$ignore&&!$replace?'IGNORE ':null,$table?:self::getCurrentTable(),self::values($data));
+		return self::execute($sql);
+    }
+
+    final public static function insert(array $data,$table=null,bool $ignore=false,bool $replace=false)
+	{
+		$sql=sprintf('%s %sINTO %s %s',$replace?'REPLACE':'INSERT',$ignore?'IGNORE ':'',$table?:self::getCurrentTable(),self::values($data));
 		return self::exec($sql,$data);
 	}
 
@@ -826,29 +700,28 @@ class db
 
 	final public static function delete(array $where=[],$table=null)
 	{
-		$sql=sprintf('DELETE FROM `%s`%s',$table?:self::getCurrentTable(),self::condition($where));
+		$sql=sprintf('DELETE FROM %s%s',$table?:self::getCurrentTable(),self::condition($where));
 		return self::exec($sql,$where);
 	}
 
-	final public static function find(array $where=[],$table=null,$col='*',array $orderLimit=null,$fetch='fetchAll')
+	final public static function find(array $where=[],$table=null,string $col='*',array $orderLimit=null,$fetch='fetchAll')
 	{
-		$sql=sprintf('SELECT %s FROM `%s`%s%s',$col,$table?:self::getCurrentTable(),self::condition($where),$orderLimit?self::orderLimit($orderLimit):null);
+		$sql=sprintf('SELECT %s FROM %s%s%s',$col,$table?:self::getCurrentTable(),self::condition($where),$orderLimit?self::orderLimit($orderLimit):null);
 		return self::exec($sql,$where,$fetch);
 	}
 
-	final public static function findOne(array $where=[],$table=null,$col='*',array $orderLimit=[1],$fetch='fetch')
+	final public static function findOne(array $where=[],$table=null,string $col='*',array $orderLimit=[1],$fetch='fetch')
 	{
 		return self::find($where,$table,$col,$orderLimit,$fetch);
 	}
 
-	final public static function findVar(array $where=[],$table=null,$method='COUNT(1)',array $orderLimit=[1])
+	final public static function findVar(array $where=[],$table=null,string $col='COUNT(1)',array $orderLimit=[1])
 	{
-		return self::find($where,$table,$method,$orderLimit,'fetchColumn');
+		return self::find($where,$table,$col,$orderLimit,'fetchColumn');
 	}
 
-	final public static function findPage(array $where=[],$table=null,$col='*',$page=1,$limit=20,array $order=[])
+	final public static function findPage(array $where=[],$table=null,string $col='*',int $page=1,int $limit=20,array $order=[])
 	{
-		$page=$page<1?1:intval($page);
 		$total=intval(self::findVar($where,$table));
 		$pages=ceil($total/$limit);
 		$list=self::find($where,$table,$col,[($page-1)*$limit=>intval($limit)]+$order);
@@ -857,10 +730,58 @@ class db
 
 	final public static function update(array $where,array $data,$table=null)
 	{
-		$sql=sprintf('UPDATE `%s` SET %s%s',$table?:self::getCurrentTable(),self::values($data,true),self::condition($where));
+		$sql=sprintf('UPDATE %s SET %s%s',$table?:self::getCurrentTable(),self::values($data,true),self::condition($where));
 		$intersect=array_keys(array_intersect_key($data,$where));
 		$sql=$intersect?preg_replace(array_map(function($x)use(&$data){$data["{$x}_"]=$data[$x];unset($data[$x]);return sprintf('/:%s/',$x);},$intersect),'\0_',$sql,1):$sql;
 		return self::exec($sql,$data+$where);
+	}
+
+    final public static function query(array $v)
+	{
+		return array_map(function($v){return call_user_func_array('self::exec',$v);},func_get_args());
+	}
+
+    final public static function init(string $dsn,string $user,string $pass)
+	{
+		$options=[PDO::ATTR_PERSISTENT=>true,PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_TIMEOUT=>3,PDO::ATTR_EMULATE_PREPARES=>false,PDO::ATTR_STRINGIFY_FETCHES=>false];
+		return new PDO($dsn,$user,$pass,$options);
+	}
+    // isQuery false:预处理,true:查询,其他'',null:执行SQL
+	final public static function execute(string $sql,$isQuery=null)
+	{
+        $pdo = self::ready();
+        return $isQuery===false?($pdo->prepare($sql)):($isQuery?($pdo->query($sql)):($pdo->exec($sql)));
+    }
+
+	final public static function lastId()
+	{
+		return self::ready()->lastInsertId();
+    }
+
+    final public static function ready()
+    {
+        if(empty(static::$_pdo))
+        {
+            list('dsn'=>$dsn,'user'=>$user,'pass'=>$pass) = app::get('db');
+            static::$_pdo = self::init($dsn,$user,$pass);
+        }
+        return static::$_pdo;
+    }
+
+	final public static function getInstance(array $dbConfig)
+	{
+        list('dsn'=>$dsn,'user'=>$user,'pass'=>$pass) = $dbConfig;
+        $instanceKey = $user.$pass.$dsn;
+        if(empty(self::$_instances[$instanceKey]))
+        {
+            $pdoKey = $dsn.$user.$pass;
+            if(empty(self::$_instances[$pdoKey]))
+            {
+                self::$_instances[$pdoKey] = self::init($dsn,$user,$pass);
+            }
+            self::$_instances[$instanceKey] = new class(self::$_instances[$pdoKey]) extends db {function __construct ($pdo){self::$_pdo=$pdo;}};
+        }
+        return self::$_instances[$instanceKey];
 	}
 
 	final public static function exec($sql,array $bind=null,$fetch=null)
@@ -870,17 +791,12 @@ class db
 	    return is_string($fetch)?$stm->$fetch():($fetch?$stm:$rs);
 	}
 
-	final public static function query(array $v)
+	final public static function getCurrentTable()
 	{
-		return array_map(function($v){return call_user_func_array('self::exec',$v);},func_get_args());
+		return defined('static::table')?static::table:static::class;
 	}
 
-	final protected static function getCurrentTable()
-	{
-		return defined('static::table')?static::table:get_called_class();
-	}
-
-	final protected static function condition(array &$where,$prefix='WHERE')
+	final public static function condition(array &$where,$prefix='WHERE')
 	{
 		$keys=array_keys($where);
 		$condition=$keys?implode(sprintf(' %s ',isset($where[0])?$where[0]:'AND'),array_map(function($v)use(&$where){$x=array_values(array_filter(explode(' ',$v)));$n=null;$k=trim(ltrim($x[0],'!'));if(is_array($where[$v])){$marks=[];$i=0;array_map(function($t)use(&$marks,&$where,&$i){$q='_'.$i++;$marks[]=":{$q}";$where[$q]=$t;},$where[$v]);}else{if($k!=$x[0]){$n=$where[$v];}elseif($x[0]!=$v){$where[$x[0]]=$where[$v];}}$str=sprintf('`%s` %s %s',$k,isset($x[1])?(isset($x[2])?"{$x[1]} {$x[2]}":$x[1]):(is_array($where[$v])?'IN':'='),is_array($where[$v])?sprintf('(%s)',implode(',',$marks)):($n?$n:":{$k}"));if(is_array($where[$v])||$n||$x[0]!=$v){unset($where[$v]);}return $str;},array_filter($keys))):null;
@@ -888,13 +804,13 @@ class db
 		return $condition?sprintf('%s(%s)',$prefix?" {$prefix} ":null,$condition):null;
 	}
 
-	final protected static function values(array &$data,$set=false,$table=null)
+	final public static function values(array &$data,bool $set=false,string $table=null)
 	{
 		$keys=array_keys($data);
 		return $set?implode(',',array_map(function($x)use(&$data){$k=trim($x);if($k!=$x){$data[$k]=$data[$x];unset($data[$x]);}$n=ltrim($k,'!');if($n!=$k){$n=$data[$k];unset($data[$k]);}return sprintf('`%s` = %s',trim(ltrim($k,'!')),$n==$k?":{$k}":$n);},$keys)):sprintf('%s(%s) VALUES (%s)',$table?" `{$table}` ":null,implode(',',array_map(function($x){return sprintf('`%s`',trim(ltrim(trim($x),'!')));},$keys)),implode(',',array_map(function($x)use(&$data){$k=trim($x);$n=trim(ltrim($k,'!'));if($n!=$k){$n=$data[$x];unset($data[$x]);}elseif($k!=$x){$data[$k]=$data[$x];unset($data[$x]);}return $n==$k?":{$k}":$n;},$keys)));
 	}
 
-	final protected static function orderLimit(array $orderLimit,$limit=[])
+	final public static function orderLimit(array $orderLimit,$limit=[])
 	{
 		$orderLimit=array_filter($orderLimit,function($x)use($orderLimit,&$limit){if(preg_match('/^\d+$/',$x)){$k=array_search($x,$orderLimit,true);$limit=[$k,$x];return false;}else{return true;}});
 		$limit=$limit?" LIMIT ".implode(',',$limit):null;
@@ -902,18 +818,64 @@ class db
 		return sprintf('%s%s',$orderLimit?' ORDER BY '.implode(',',$orderLimit):null,$limit);
 	}
 
-	final public function __call($method,$args=null)
+	final public function __call($fn,$args=null)
 	{
-		return self::__callStatic($method,$args);
+		return self::__callStatic($fn,$args);
 	}
-	final public static function __callStatic($method,$args=null)
+	final public static function __callStatic($fn,$args=null)
 	{
-		if(method_exists(self::ready(),$method))
+		if(method_exists(self::ready(),$fn))
 		{
-			return call_user_func_array([self::$pdo,$method],$args);
+			return call_user_func_array([self::$pdo,$fn],$args);
 		}
-		return self::error(500,"method {$method} not found in class ".get_called_class());
+		throw new Exception("method {$fn} not found in class ".static::class,500);
 	}
+}
+
+
+function with($class)
+{
+	if(is_string($class))
+	{
+		$args=func_get_args();
+		$arr=explode('/',array_shift($args),3);
+		$m=end($arr);
+		$GLOBALS['app']['lib'][$m]=isset($GLOBALS['app']['lib'][$m])?$GLOBALS['app']['lib'][$m]:$m;
+		if($GLOBALS['app']['lib'][$m] instanceof $m)
+		{
+			return $GLOBALS['app']['lib'][$m];
+		}
+		if(is_file($file=MODEL_PATH."{$class}.php")||is_file($file=CONTROLLER_PATH."{$class}.php")||is_file($file=LIB_PATH.'Class'.DIRECTORY_SEPARATOR."{$class}.php")||is_file($file=LIB_PATH."{$class}.php")||is_file($file=LIB_PATH."{$class}.phar"))
+		{
+			$ret=require_once $file;
+			if(class_exists($m))
+			{
+				$class=new ReflectionClass($m);
+				$GLOBALS['app']['lib'][$m]=$class->newInstanceArgs($args);
+				return $GLOBALS['app']['lib'][$m];
+			}
+			unset($GLOBALS['app']['lib'][$m]);
+			return $ret;
+		}
+		return app::error(404,"can not load {$class}");
+	}
+	return new response($class);
+}
+
+function template($v,array $_data_=null,$callback=null)
+{
+	if((is_file($_v_=VIEW_PATH.$v.'.php'))||(is_file($_v_=VIEW_PATH.$v)))
+	{
+		(is_array($_data_)&&!empty($_data_))&&extract($_data_);
+		if($callback)
+		{
+			ob_start()&&include $_v_;
+			$contents=ob_get_contents();
+			return (ob_end_clean()&&($callback instanceof closure))?$callback($contents):$contents;
+		}
+		return include $_v_;
+	}
+	return app::error(404,"file {$_v_} not found");
 }
 
 function session($key,$val=null,$delete=false)
@@ -941,149 +903,3 @@ function json(array $data,$callback=null)
 	header('Content-Type: text/'.($callback?'javascript':'json').';charset=utf-8',true,200);
 	exit($data);
 }
-function redirect($url,$timeout=0)
-{
-	$timeout=intval($timeout);
-	if(in_array($timeout,[0,301,302,303,307,308]))
-	{
-		header("Location:{$url}",true,$timeout);
-	}
-	else
-	{
-		header("Refresh:{$timeout};url={$url}",true,302);
-	}
-	exit(header('Cache-Control:no-cache, no-store, max-age=0, must-revalidate'));
-}
-function baseUrl($path=null)
-{
-	if(is_int($path))
-	{
-		$router=&$GLOBALS['app']['router'];
-		return isset($router[$path])?$router[$path]:null;
-	}
-	$protocol=(isset($_SERVER['HTTPS'])&&(strtolower($_SERVER['HTTPS'])!='off'))?"https":"http";
-	$host=isset($_SERVER['HTTP_HOST'])?$_SERVER['HTTP_HOST']:'';
-	$path=is_null($path)?null:(is_bool($path)?($path?$_SERVER['REQUEST_URI']:'/'.implode('/',$GLOBALS['app']['router'])):'/'.ltrim($path,'/'));
-	return "{$protocol}://{$host}{$path}";
-}
-function csrf_token($check=false,$name='_token',closure $callback=null)
-{
-	isset($_SESSION)||session_start();
-	$token=isset($_SESSION['csrf_token'])?$_SESSION['csrf_token']:null;
-	if($check)
-	{
-		if(!(isset($_REQUEST[$name])&&$_REQUEST[$name]===$token))
-		{
-			return $callback?$callback($token):app::error(403,'csrf token not match');
-		}
-		return true;
-	}
-	else if(!$token)
-	{
-		$token=md5(uniqid());
-		$_SESSION['csrf_token']=$token;
-	}
-	return $token;
-}
-//发送邮件,用来替代原生mail,多个接受者用分号隔开
-function sendMail($mailTo,$mailSubject,$mailMessage=null)
-{
-	try
-	{
-		$mail=app::get('mail',[]);
-		if(!$fp=fsockopen($mail['server'],empty($mail['port'])?25:$mail['port'],$errno,$errstr,3))
-		{
-			throw new Exception($errstr,$errno);
-		}
-		$lastmessage=fgets($fp,128);
-		if(substr($lastmessage,0,3)!='220')
-		{
-			throw new Exception("CONNECT ERROR - {$lastmessage}",2);
-		}
-		fputs($fp,"EHLO mail\r\n");
-		$lastmessage=fgets($fp,128);
-		if(!in_array(substr($lastmessage,0,3),[220,250]))
-		{
-			throw new Exception("HELO/EHLO - {$lastmessage}",3);
-		}
-		while(true)
-		{
-			if(substr($lastmessage,3,1)!='-'||empty($lastmessage))
-			{
-				break;
-			}
-			$lastmessage=fgets($fp,128);
-		}
-		if(!empty($mail['auth'])&&$mail['auth'])
-		{
-			fputs($fp,"AUTH LOGIN\r\n");
-			$lastmessage=fgets($fp,128);
-			if(substr($lastmessage,0,3)!=334)
-			{
-				throw new Exception("AUTH LOGIN - {$lastmessage}",4);
-			}
-			fputs($fp,base64_encode($mail['user'])."\r\n");
-			$lastmessage=fgets($fp,128);
-			if(substr($lastmessage,0,3)!=334)
-			{
-				throw new Exception("AUTH LOGIN - {$lastmessage}",5);
-			}
-			fputs($fp,base64_encode($mail['pass'])."\r\n");
-			$lastmessage=fgets($fp,128);
-			if(substr($lastmessage,0,3)!=235)
-			{
-				throw new Exception("AUTH LOGIN - {$lastmessage}",6);
-			}
-		}
-		fputs($fp,"MAIL FROM: <{$mail['user']}>\r\n");
-		$lastmessage=fgets($fp,128);
-		if(substr($lastmessage,0,3)!=250)
-		{
-			fputs($fp,"MAIL FROM: <{$mail['user']}>\r\n");
-			$lastmessage=fgets($fp,128);
-			if(substr($lastmessage,0,3)!=250)
-			{
-				throw new Exception("MAIL FROM - {$lastmessage}",7);
-			}
-		}
-		foreach(explode(';',$mailTo) as $touser)
-		{
-			if($touser=trim($touser))
-			{
-				fputs($fp,"RCPT TO: <{$touser}>\r\n");
-				$lastmessage=fgets($fp,128);
-				if(substr($lastmessage,0,3)!=250)
-				{
-					throw new Exception("RCPT TO - {$lastmessage}",8);
-				}
-			}
-		}
-		fputs($fp,"DATA\r\n");
-		$lastmessage=fgets($fp,128);
-		if(substr($lastmessage,0,3)!=354)
-		{
-			throw new Exception("DATA - {$lastmessage}",9);
-		}
-		$headers="MIME-Version:1.0\r\nContent-type:text/html\r\nContent-Transfer-Encoding: base64\r\nFrom: {$mail['name']}<{$mail['user']}>\r\nDate: ".date("r")."\r\nMessage-ID: <".uniqid(rand(1,999)).">\r\n";
-		$mailSubject='=?utf-8?B?'.base64_encode($mailSubject).'?=';
-		$mailMessage=chunk_split(base64_encode(preg_replace("/(^|(\r\n))(\.)/","\1.\3",$mailMessage)));
-		fputs($fp,$headers);
-		fputs($fp,"To: {$mailTo}\r\n");
-		fputs($fp,"Subject: {$mailSubject}\r\n");
-		fputs($fp,"\r\n\r\n");
-		fputs($fp,"{$mailMessage}\r\n.\r\n");
-		$lastmessage=fgets($fp,128);
-		if(substr($lastmessage,0,3)!=250)
-		{
-			throw new Exception("END - {$lastmessage}",10);
-		}
-		fputs($fp,"QUIT\r\n");
-		return true;
-	}
-	catch(Exception $e)
-	{
-		app::log($e->getMessage(),'ERROR');
-		throw $e;
-	}
-}
-

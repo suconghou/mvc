@@ -2,6 +2,15 @@
 
 ------
 
+
+1. 先不考虑打包
+
+1. http 缓存 2. file 缓存 3. 路由匹配
+
+
+
+class_exist / method_exist will call apl_autoload
+
 ## 框架特色
 > * 核心代码不足2000行,仅两个文件便可工作,极速加载
 > * 单文件入口,不依赖`PathInfo`,入口文件即是配置文件,超级简洁
@@ -95,26 +104,42 @@ RewriteRule ^(.*)$ index.php [QSA,L]
 
 普通路由支持二级文件夹路由.
 
-正则路由需自己提前注册.
+**_使用 route::get() 添加正则路由_**
 
 正则路由优先级高于普通路由.
 
-## 调试级别
+```php
+route::get('\/hello',['home','hello'])
+```
 
 DEBUG三个等级分别对应DEBUG值0,1,2
 
-注意：DEBUG的值需为数字
+```php
+route::get('\/userinfo\/(\d+)',['home','userinfo'])
+```
 
 > 0:线上模式,非严格模式,自动记录错误日志,上线后使用
 
-> 1:测试模式,非严格模式,显示错误详情,自动记录错误日志,测试时可使用
+```php
+route::get('\/upload','Plugins/Upload')
+```
 
 > 2:最大Debug等级,严格模式,显示错误详情,自动记录错误日志,开发时使用
 
-严格模式遇到notice等错误就会终止运行并报告和记录日志,非严格模式或CLI模式下将忽略notice并继续运行
+```php
+route::get('\/about',function(){echo 'about';})
+```
 
 无论什么调试级别，对于大于notice的错误，只要日志目录可写，都会记录相应的错误。
 
+
+```php
+route::u()
+
+route::u('/home/hello',)
+```
+
+## 控制器
 
 
 
@@ -514,14 +539,11 @@ list($res1,$res2,$res3)=self::query([$sql1,$data1,'fetchAll'],[$sql2,$data2,'fet
 所有的SQL执行最终都会指向`orm::exec($sql,array $bind=null,$fetch=null)`
 
 
-## 同时保持多个数据库连接
+都是无状态的
 
-db::getData 等方法默认去配置中加载db设置并连接，默认配置键为db
-
-db::getInstance 指定一个配置键或者数据库配置并连接，并缓存下来  （空参数则获取默认的实例） 随后在调用则返回自己
-
-
-## 配置 smtp
+```
+define('DEFAULT_CONTROLLER','home'); //默认的控制器
+define('DEFAULT_ACTION','index'); ///默认的动作
 
 框架内置一个简单的smtp邮件发送函数，使用此功能前需配置smtp
 

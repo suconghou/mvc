@@ -11,7 +11,29 @@ class home extends base
 		//可以添加权限控制,保护整个控制器
 	}
 
-	function index()
+	public function index($value='')
+	{
+		header('Content-Type','application/json');
+		echo "console.info('hello')";
+
+	}
+
+	/**
+	 * popen 异步任务
+	 */
+	static function async1($task)
+	{
+
+		$arg="hello world";
+		pclose(popen("/data/data/cn.suconghou.hello/files/php /mnt/sdcard/external_sd/web/task.php '$arg' >/dev/null 2>&1 &", 'r'));
+
+
+	}
+
+	/**
+	 *  写入异步任务并返回文件名
+	 */
+	static function async(closure $task)
 	{
      	return template('mvc');
 	}
