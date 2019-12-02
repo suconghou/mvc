@@ -9,7 +9,7 @@ class Kvdb
 	const tCache='`kvdb`';
 	private static $instance;
 
-	public static function ready($file='kvdb.db')
+	public static function ready(string $file='kvdb.db')
 	{
 		if(!self::$instance)
 		{
@@ -22,7 +22,7 @@ class Kvdb
 		return self::$instance;
 	}
 
-	public static function set($key,$value,$expired=86400)
+	public static function set(string $key,$value,int $expired=86400)
 	{
 		$t=$expired>2592000?$expired:time()+$expired;
 		$stm=self::ready()->prepare('REPLACE INTO '.self::tCache." (k,v,t) VALUES ('$key',:v,$t)");
@@ -31,7 +31,7 @@ class Kvdb
 	}
 
 
-	public static function mset(array $set,$expired=86400,$i=0)
+	public static function mset(array $set,int $expired=86400,$i=0)
 	{
 		$t=$expired>2592000?$expired:time()+$expired;
 		$holders=array_map(function($k)use($t){return "('{$k}',?,{$t})";},array_keys($set));
@@ -40,7 +40,7 @@ class Kvdb
 		return (bool)$stm->execute();
 	}
 
-	public static function get($key,$default=null)
+	public static function get(string $key,$default=null)
 	{
 		$value=self::ready()->querySingle('SELECT v FROM '.self::tCache." WHERE k='{$key}' and t > (SELECT strftime('%s', 'now')) ");
 		return $value?json_decode($value,true):$default;
@@ -76,7 +76,7 @@ class Kvdb
 		}
 	}
 
-	public static function ex($key,$expired=86400)
+	public static function ex(string $key,int $expired=86400)
 	{
 		$t=$expired>2592000?$expired:time()+$expired;
 		$stm=self::ready()->prepare('UPDATE '.self::tCache." SET t={$t} WHERE k=:k");
