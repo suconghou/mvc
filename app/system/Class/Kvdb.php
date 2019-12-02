@@ -14,7 +14,7 @@ class Kvdb
 		if(!self::$instance)
 		{
 			self::$instance=new SQLite3($file);
-			foreach (['PRAGMA SYNCHRONOUS=OFF','PRAGMA CACHE_SIZE=8000','PRAGMA TEMP_STORE=MEMORY','CREATE TABLE IF NOT EXISTS '.self::tCache.' ("k" text NOT NULL, "v" text NOT NULL, "t" integer NOT NULL, PRIMARY KEY ("k") )'] as $sql)
+			foreach (['PRAGMA JOURNAL_MODE=OFF', 'PRAGMA LOCKING_MODE=EXCLUSIVE', 'PRAGMA SYNCHRONOUS=OFF', 'PRAGMA CACHE_SIZE=8000', 'PRAGMA PAGE_SIZE=4096', 'PRAGMA TEMP_STORE=MEMORY','CREATE TABLE IF NOT EXISTS '.self::tCache.' ("k" text NOT NULL, "v" text NOT NULL, "t" integer NOT NULL, PRIMARY KEY ("k") )'] as $sql)
 			{
 				self::$instance->exec($sql);
 			}

@@ -15,6 +15,7 @@ class app
     {
         try
         {
+			self::$global = $config;
 			error_reporting(DEBUG?E_ALL:E_ALL&~E_NOTICE);
 			if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'],$_SERVER['HTTP_IF_NONE_MATCH'])&&(count($param=explode('-',ltrim($_SERVER['HTTP_IF_NONE_MATCH'],'W/')))==2))
             {
@@ -347,7 +348,7 @@ class route
 
     static function add(string $regex,$fn,array $methods)
     {
-        self::$routes[$regex]=[$fn,$methods];
+        self::$routes[]=[$regex,$fn,$methods];
     }
 
     static function notfound(closure $fn)
@@ -376,7 +377,7 @@ class route
 
     private static function match(string $uri,string $m)
     {
-        foreach(self::$routes as $regex => list($fn,$methods))
+        foreach(self::$routes as $i => list($regex,$fn,$methods))
         {
             if(in_array($m,$methods,true) && preg_match("/^{$regex}$/",$uri,$matches))
             {
