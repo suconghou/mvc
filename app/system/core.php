@@ -8,6 +8,7 @@ declare(strict_types=1);
  * @version 1.2.0
  */
 
+
 class app
 {
 	private static $global;
@@ -20,10 +21,10 @@ class app
 		try {
 			if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE'], $_SERVER['HTTP_IF_NONE_MATCH']) && (count($param = explode('-', ltrim($_SERVER['HTTP_IF_NONE_MATCH'], 'W/'))) == 2)) {
 				$last = strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
-				list($expired, $cacheTime) = $param;
-				if ($expired > $_SERVER['REQUEST_TIME'] || ($last + $cacheTime > $_SERVER['REQUEST_TIME'])) {
-					header('Cache-Control: public, max-age=' . ($expired - $_SERVER['REQUEST_TIME']));
-					return header('Expires: ' . gmdate('D, d M Y H:i:s', $expired) . ' GMT', true, 304);
+				list($expire, $t) = $param;
+				if ($expire > $_SERVER['REQUEST_TIME'] || ($last + $t > $_SERVER['REQUEST_TIME'])) {
+					header('Cache-Control: public, max-age=' . ($expire - $_SERVER['REQUEST_TIME']));
+					return header('Expires: ' . gmdate('D, d M Y H:i:s', intval($expire)) . ' GMT', true, 304);
 				}
 			}
 			$cli = defined('STDIN') && defined('STDOUT');
@@ -57,13 +58,17 @@ class app
 			define('VAR_PATH_HTML', $varPath . 'html' . DIRECTORY_SEPARATOR);
 			$request_method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 			$file = self::file($request_method . $uri);
+			self::$global['sys.cachefile'] = $file;
 			if (is_file($file)) {
 				$expire = filemtime($file);
 				if ($_SERVER['REQUEST_TIME'] < $expire) {
+					$t = $expire - $_SERVER['REQUEST_TIME'];
 					header('Expires: ' . gmdate('D, d M Y H:i:s', $expire) . ' GMT');
-					header('Cache-Control: public, max-age=' . ($expire - $_SERVER['REQUEST_TIME']));
+					header('Cache-Control: public, max-age=' . $t);
 					header('X-Cache: Hit');
-					return isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) ? header('Last-Modified: ' . $_SERVER['HTTP_IF_MODIFIED_SINCE'], true, 304) : (header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME']) . ' GMT', true, 200) || readfile($file));
+					header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME']) . ' GMT');
+					header('ETag: W/' . ($_SERVER['REQUEST_TIME'] + $t) . '-' . $t);
+					return readfile($file);
 				}
 				unlink($file);
 			}
@@ -140,10 +145,18 @@ class app
 		if (empty(self::$global['sys.' . $r[0]])) {
 			self::$global['sys.' . $r[0]] = new $r[0]($r);
 		}
-		if (!is_callable([self::$global['sys.' . $r[0]], $r[1]])) {
+		$instance = self::$global['sys.' . $r[0]];
+		if (!is_callable([$instance, $r[1]])) {
 			throw new Exception(sprintf('request action %s:%s not callable', $r[0], $r[1]), 404);
 		}
-		return call_user_func_array([self::$global['sys.' . $r[0]], $r[1]], array_slice($r, 2));
+		try {
+			return call_user_func_array([$instance, $r[1]], array_slice($r, 2));
+		} catch (Exception | Error $e) {
+			if (is_callable($instance)) {
+				return $instance($e);
+			}
+			throw $e;
+		}
 	}
 
 	public static function log($msg, string $type = 'DEBUG', string $file = null)
@@ -780,6 +793,17 @@ class db
 
 function template($v, array $_data_ = null, $callback = null)
 {
+	if (is_int($callback) && $callback > 1) {
+		$t = $callback;
+		$callback = function ($buffer) use ($t) {
+			echo $buffer;
+			if (is_writable(VAR_PATH_HTML)) {
+				if ($file = app::get('sys.cachefile')) {
+					file_put_contents($file, $buffer) && touch($file, $_SERVER['REQUEST_TIME'] + $t);
+				}
+			}
+		};
+	}
 	if ((is_file($_v_ = VIEW_PATH . $v . '.php')) || (is_file($_v_ = VIEW_PATH . $v))) {
 		(is_array($_data_) && !empty($_data_)) && extract($_data_);
 		if ($callback) {
