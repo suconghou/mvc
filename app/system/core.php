@@ -14,9 +14,10 @@ class app
 
 	public static function start(array $config)
 	{
+		$err = null;
+		self::$global = $config;
+		error_reporting(self::get('debug') ? E_ALL : E_ALL & ~E_NOTICE);
 		try {
-			self::$global = $config;
-			error_reporting(self::get('debug') ? E_ALL : E_ALL & ~E_NOTICE);
 			if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE'], $_SERVER['HTTP_IF_NONE_MATCH']) && (count($param = explode('-', ltrim($_SERVER['HTTP_IF_NONE_MATCH'], 'W/'))) == 2)) {
 				$last = strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
 				list($expired, $cacheTime) = $param;
@@ -28,7 +29,7 @@ class app
 			$cli = defined('STDIN') && defined('STDOUT');
 			$errHandler = function (throwable $e) use ($cli) {
 				if ($cli) {
-					echo PHP_EOL, $e, PHP_EOL;
+					echo $e, PHP_EOL;
 				} else {
 					$err = $e->getTraceAsString();
 					$errMsg = $e->getMessage();
@@ -48,14 +49,13 @@ class app
 			if (stripos($uri, $_SERVER['SCRIPT_NAME']) === 0) {
 				$uri = substr($uri, strlen($_SERVER['SCRIPT_NAME']));
 			}
-
 			$varPath = VAR_PATH;
-
+			if (substr($varPath, 0, 7) === 'phar://') {
+				$varPath = str_replace('/' . $_SERVER['SCRIPT_NAME'], '', substr($varPath, 7));
+			}
 			define('VAR_PATH_LOG', $varPath . 'log' . DIRECTORY_SEPARATOR);
 			define('VAR_PATH_HTML', $varPath . 'html' . DIRECTORY_SEPARATOR);
-
 			$request_method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-
 			$file = self::file($request_method . $uri);
 			if (is_file($file)) {
 				$expire = filemtime($file);
@@ -67,7 +67,6 @@ class app
 				}
 				unlink($file);
 			}
-
 			// 普通路由执行器,交由app::run执行,app::run只能执行普通路由
 			$execHandler = function (array $r) {
 				return self::run($r);
@@ -78,14 +77,34 @@ class app
 			route::register(CONTROLLER_PATH, MODEL_PATH, LIB_PATH);
 			// 进行正则路由匹配,未匹配到fallback到普通路由
 			route::notfound($execHandler);
-
 			return route::run($uri, $request_method);
 		} catch (Exception | Error $e) {
-			if ($e->getCode() == 404) {
-				return ($notfound ?? $errfound ?? $errHandler)($e);
+			$err = $e;
+			$errfound = self::get('errfound');
+			$errno = $e->getCode();
+			$errstr = substr($err->getMessage(), 0, 99);
+			try {
+				if ($errno === 404) {
+					headers_sent() || header('Error-At:' . preg_replace('/\s+/', ' ', $errstr), true, 404);
+					$notfound = self::get('notfound');
+					return ($notfound ?? $errfound ?? $errHandler)($e, $cli);
+				}
+				headers_sent() || header('Error-At:' . preg_replace('/\s+/', ' ', $errstr), true, in_array($errno, [500, 502, 503, 504], true) ? $errno : 500);
+				return ($errfound ?? $errHandler)($e, $cli);
+			} catch (Exception | Error $e) {
+				$err = $e;
+				echo $e;
 			}
-			return ($errfound ?? $errHandler)($e);
-		} finally { }
+		} finally {
+			if ($err) {
+				$errstr = $err->getMessage();
+				$errfile = $err->getFile();
+				$errline = $err->getLine();
+				$errno = $err->getCode();
+				$errormsg = sprintf('ERROR(%d) %s%s%s', $errno, $errstr, $errfile ? " in {$errfile}" : null, $errline ? " on line {$errline}" : null);
+				$errno === 404 ? self::log($errormsg, 'DEBUG', strval($errno)) : self::log($errormsg, 'ERROR');
+			}
+		}
 	}
 
 	private static function createPhar(string $name, string $entry)
