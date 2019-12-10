@@ -652,7 +652,7 @@ class db
 	final public static function query(array ...$v)
 	{
 		return array_map(function ($item) {
-			return self::exec($item);
+			return self::exec(...$item);
 		}, $v);
 	}
 
