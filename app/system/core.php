@@ -215,7 +215,6 @@ class route
 {
 	private static $routes = [];
 	private static $notfound;
-
 	static function u(string $path = null, $query = null, $host = null): string
 	{
 		$prefix = '';
@@ -234,7 +233,6 @@ class route
 		}
 		return "{$prefix}{$path}";
 	}
-
 	static function to(string $url, int $timeout = 0)
 	{
 		if (in_array($timeout, [0, 301, 302, 303, 307, 308], true)) {
@@ -244,47 +242,42 @@ class route
 		}
 		exit(header('Cache-Control:no-cache, no-store, max-age=0, must-revalidate'));
 	}
-
 	static function get(string $regex, $fn)
 	{
 		return self::add($regex, $fn, ['GET']);
 	}
-
 	static function post(string $regex, $fn)
 	{
 		return self::add($regex, $fn, ['POST']);
 	}
-
 	static function put(string $regex, $fn)
 	{
 		return self::add($regex, $fn, ['PUT']);
 	}
-
 	static function delete(string $regex, $fn)
 	{
 		return self::add($regex, $fn, ['DELETE']);
 	}
-
 	static function head(string $regex, $fn)
 	{
 		return self::add($regex, $fn, ['HEAD']);
 	}
-
-	static function any(string $regex, $fn, array $methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD'])
+	static function options(string $regex, $fn)
+	{
+		return self::add($regex, $fn, ['OPTIONS']);
+	}
+	static function any(string $regex, $fn, array $methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'])
 	{
 		return self::add($regex, $fn, $methods);
 	}
-
 	static function add(string $regex, $fn, array $methods)
 	{
 		self::$routes[] = [$regex, $fn, $methods];
 	}
-
 	static function notfound($fn)
 	{
 		self::$notfound = $fn;
 	}
-
 	public static function register(string ...$dirs)
 	{
 		spl_autoload_register(function ($name) use ($dirs) {
@@ -301,7 +294,6 @@ class route
 			return false;
 		});
 	}
-
 	// 调用此方法,上层需try
 	static function run(string $uri, string $m)
 	{
@@ -320,7 +312,6 @@ class route
 		}
 		return self::call(self::$notfound, [$r], []);
 	}
-
 	private static function match(string $uri, string $m)
 	{
 		foreach (self::$routes as list($regex, $fn, $methods)) {
@@ -331,7 +322,6 @@ class route
 		}
 		return false;
 	}
-
 	// fn 可能是个字符串函数名,可能是个closure,可能是个数组
 	private static function call($fn, array $ctx, array $params)
 	{
