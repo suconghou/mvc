@@ -396,7 +396,7 @@ class request
 	}
 	public static function is($m = null, closure $callback = null)
 	{
-		$t = isset($_SERVER['REQUEST_METHOD']) ?? 'GET';
+		$t = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 		return $m ? (($t === strtoupper($m)) ? ($callback ? $callback() : true) : false) : $t;
 	}
 	public static function verify(array $rule, $callback = false, $post = true)
@@ -476,8 +476,8 @@ class validate
 					throw new Exception($item['require'] ?: "{$k} is required", -20);
 				} else if (isset($item['required'])) {
 					throw new Exception($item['required'] ?: "{$k} is required", -21);
-				} else if(isset($item['default'])){
-					$data[$k]=$item['default'];
+				} else if (isset($item['default'])) {
+					$data[$k] = $item['default'];
 				}
 			}
 		} catch (Exception | Error $e) {
@@ -510,7 +510,7 @@ class validate
 				case 'set':
 					return in_array($item, explode(',', $val), true);
 				default:
-					return self::this($type, $item);
+					return preg_match($type, $item);
 			}
 		} else {
 			switch ($type) {
@@ -518,7 +518,11 @@ class validate
 					return $item;
 				case 'require':
 				case 'default':
-					return $item === 0 || $item ==='0' || $item;
+					return $item === 0 || $item === '0' || $item;
+				case 'int':
+					return preg_match('/^\d+$/', $item);
+				case 'number':
+					return is_numeric($item);
 				case 'email':
 					return self::email($item);
 				case 'username':
@@ -534,7 +538,7 @@ class validate
 				case 'idcard':
 					return self::idcard($item);
 				default:
-					return self::this($type, $item);
+					return preg_match($type, $item);
 			}
 		}
 	}
@@ -568,10 +572,6 @@ class validate
 	public static function password($pass)
 	{
 		return preg_match('/^(?=^.{8,}$)(?=.*\d)(?=.*\W+)(?=.*[A-Z])(?=.*[a-z])(?!.*\n).*$/', $pass);
-	}
-	public static function this($pattern, $subject)
-	{
-		return preg_match($pattern, $subject);
 	}
 }
 
@@ -700,7 +700,7 @@ class db
 		return static::class;
 	}
 
-	final public static function condition(array &$where, $prefix = 'WHERE'): string
+	final public static function condition(array &$where, $prefix = 'WHERE')
 	{
 		$keys = array_keys($where);
 		$condition = $keys ? implode(sprintf(' %s ', isset($where[0]) ? $where[0] : 'AND'), array_map(function ($v) use (&$where) {
@@ -766,7 +766,7 @@ class db
 	final public static function orderLimit(array $orderLimit, $limit = []): string
 	{
 		$orderLimit = array_filter($orderLimit, function ($x) use ($orderLimit, &$limit) {
-			if (preg_match('/^\d+$/', $x)) {
+			if (is_int($x) || preg_match('/^\d+$/', $x)) {
 				$k = array_search($x, $orderLimit, true);
 				$limit = [$k, $x];
 				return false;
