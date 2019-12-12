@@ -458,27 +458,29 @@ class validate
 		try {
 			$switch = [];
 			foreach ($rule as $k => &$item) {
-				if (isset($data[$k])) //存在要验证的数据
-				{
+				if (isset($data[$k])) {
 					foreach ($item as $type => $msg) {
 						if ($msg instanceof closure) {
 							$data[$k] = $msg($data[$k], $k);
 						} else if (is_array($msg)) {
-							if (!in_array($data[$k], $msg)) {
-								throw new Exception($type, -12);
+							if (!in_array($data[$k], $msg, true)) {
+								throw new Exception($type ?: "{$k} error", -22);
 							}
 						} else if (is_int($type)) {
 							$switch[$k] = $msg;
 						} else if (!self::check($data[$k], $type)) {
-							throw new Exception($msg, -11);
+							throw new Exception($msg ?: "{$k} error", -23);
 						}
 					}
-				} else if (isset($item['require'])) //标记为require,却不存在
-				{
-					throw new Exception($item['require'], -10);
+				} else if (isset($item['require'])) {
+					throw new Exception($item['require'] ?: "{$k} is required", -20);
+				} else if (isset($item['required'])) {
+					throw new Exception($item['required'] ?: "{$k} is required", -21);
+				} else if(isset($item['default'])){
+					$data[$k]=$item['default'];
 				}
 			}
-		} catch (Exception $e) {
+		} catch (Exception | Error $e) {
 			if ($callback === false) {
 				throw $e;
 			}
@@ -503,17 +505,20 @@ class validate
 					return strlen($item) == $val;
 				case 'eq':
 					return trim($item) == trim($val);
-				case '!eq':
+				case 'eqs':
 					return strtolower(trim($item)) == strtolower(trim($val));
+				case 'set':
+					return in_array($item, explode(',', $val), true);
 				default:
 					return self::this($type, $item);
 			}
 		} else {
 			switch ($type) {
-				case 'need':
+				case 'required':
 					return $item;
 				case 'require':
-					return $item === 0 || $item;
+				case 'default':
+					return $item === 0 || $item ==='0' || $item;
 				case 'email':
 					return self::email($item);
 				case 'username':
