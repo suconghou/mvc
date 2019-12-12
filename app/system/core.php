@@ -459,25 +459,35 @@ class validate
 			$switch = [];
 			foreach ($rule as $k => &$item) {
 				if (isset($data[$k])) {
-					foreach ($item as $type => $msg) {
-						if ($msg instanceof closure) {
-							$data[$k] = $msg($data[$k], $k);
-						} else if (is_array($msg)) {
-							if (!in_array($data[$k], $msg, true)) {
-								throw new Exception($type ?: "{$k} error", -22);
+					if (is_array($item)) {
+						foreach ($item as $type => $msg) {
+							if ($msg instanceof closure) {
+								$data[$k] = $msg($data[$k], $k);
+							} else if (is_array($msg)) {
+								if (!in_array($data[$k], $msg, true)) {
+									throw new Exception($type ?: "{$k} error", -22);
+								}
+							} else if (is_int($type)) {
+								$switch[$k] = $msg;
+							} else if (!self::check($data[$k], $type)) {
+								throw new Exception($msg ?: "{$k} error", -23);
 							}
-						} else if (is_int($type)) {
-							$switch[$k] = $msg;
-						} else if (!self::check($data[$k], $type)) {
-							throw new Exception($msg ?: "{$k} error", -23);
 						}
+					} else if ($item instanceof closure) {
+						$data[$k] = $item();
+					} else {
+						$data[$k] = $item;
 					}
+				} else if ($item instanceof closure) {
+					$data[$k] = $item();
+				} else if (!is_array($item)) {
+					$data[$k] = $item;
 				} else if (isset($item['require'])) {
 					throw new Exception($item['require'] ?: "{$k} is required", -20);
 				} else if (isset($item['required'])) {
 					throw new Exception($item['required'] ?: "{$k} is required", -21);
 				} else if (isset($item['default'])) {
-					$data[$k] = $item['default'];
+					$data[$k] = $item['default'] instanceof closure ? $item['default']() : $item['default'];
 				}
 			}
 		} catch (Exception | Error $e) {
@@ -491,7 +501,7 @@ class validate
 			$data[$to] = $data[$from];
 			unset($data[$from]);
 		}
-		return $data; //数据全部校验通过
+		return $data;
 	}
 	private static function check($item, $type)
 	{
