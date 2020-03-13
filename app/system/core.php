@@ -131,12 +131,12 @@ class app
 	{
 		if (empty($r[0])) {
 			$r[0] = 'home';
-		} else if (!preg_match('/^[a-z]\w{0,20}$/i', $r[0])) {
+		} else if (!preg_match('/^[a-z][\w\\\-]{0,20}$/i', $r[0])) {
 			throw new Exception(sprintf('request controller %s error', $r[0]), 404);
 		}
 		if (empty($r[1])) {
 			$r[1] = 'index';
-		} else if (!preg_match('/^[a-z]\w{0,20}$/i', $r[1])) {
+		} else if (!preg_match('/^[a-z][\w\\\-]{0,20}$/i', $r[1])) {
 			throw new Exception(sprintf('request action %s:%s error', $r[0], $r[1]), 404);
 		}
 		if (!method_exists($r[0], $r[1]) || !method_exists($r[0], '__invoke')) {
