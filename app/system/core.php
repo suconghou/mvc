@@ -139,7 +139,7 @@ class app
 		} else if (!preg_match('/^[a-z]\w{0,20}$/i', $r[1])) {
 			throw new Exception(sprintf('request action %s:%s error', $r[0], $r[1]), 404);
 		}
-		if (!method_exists($r[0], $r[1])) {
+		if (!method_exists($r[0], $r[1]) || !method_exists($r[0], '__invoke')) {
 			throw new Exception(sprintf('request action %s:%s not exist', $r[0], $r[1]), 404);
 		}
 		if (empty(self::$global['sys.' . $r[0]])) {
@@ -152,10 +152,7 @@ class app
 		try {
 			return call_user_func_array([$instance, $r[1]], array_slice($r, 2));
 		} catch (Exception | Error $e) {
-			if (is_callable($instance)) {
-				return $instance($e);
-			}
-			throw $e;
+			return $instance($e);
 		}
 	}
 
@@ -182,7 +179,7 @@ class app
 	}
 	public static function get(string $key, $default = null)
 	{
-		return isset(self::$global[$key]) ? self::$global[$key] : $default;
+		return self::$global[$key] ?? $default;
 	}
 	public static function set(string $key, $value)
 	{
@@ -233,7 +230,7 @@ class route
 		$prefix = '';
 		if ($host === true) {
 			$protocol = (isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) != 'off')) ? "https" : "http";
-			$host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
+			$host =  $_SERVER['HTTP_HOST'] ?? '';
 			$prefix = "{$protocol}://{$host}";
 		} else if ($host) {
 			$prefix = $host;
@@ -376,19 +373,19 @@ class request
 	{
 		$str = file_get_contents('php://input');
 		$json ? ($data = json_decode($str, true)) : parse_str($str, $data);
-		return $key ? (isset($data[$key]) ? $data[$key] : $default) : $data;
+		return $key ? ($data[$key] ?? $default) : $data;
 	}
 	public static function ip($default = null)
 	{
-		return isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : $default;
+		return  $_SERVER['REMOTE_ADDR'] ?? $default;
 	}
 	public static function ua($default = null)
 	{
-		return isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : $default;
+		return  $_SERVER['HTTP_USER_AGENT'] ?? $default;
 	}
 	public static function refer($default = null)
 	{
-		return isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : $default;
+		return  $_SERVER['HTTP_REFERER'] ?? $default;
 	}
 	public static function https()
 	{
@@ -412,7 +409,7 @@ class request
 			}
 		}
 		foreach ($keys as $key) {
-			$data[$key] = isset($data[$key]) ? $data[$key] : null;
+			$data[$key] =  $data[$key] ?? null;
 		}
 		return validate::verify($rule, $data, $callback);
 	}
@@ -713,7 +710,7 @@ class db
 	final public static function condition(array &$where, $prefix = 'WHERE')
 	{
 		$keys = array_keys($where);
-		$condition = $keys ? implode(sprintf(' %s ', isset($where[0]) ? $where[0] : 'AND'), array_map(function ($v) use (&$where) {
+		$condition = $keys ? implode(sprintf(' %s ', $where[0] ?? 'AND'), array_map(function ($v) use (&$where) {
 			$x = array_values(array_filter(explode(' ', $v)));
 			$n = null;
 			$k = trim(ltrim($x[0], '!'));
