@@ -524,8 +524,9 @@ class validate
 				case 'required':
 					return $item;
 				case 'require':
-				case 'default':
 					return $item === 0 || $item === '0' || $item;
+				case 'default':
+					return true;
 				case 'int':
 					return preg_match('/^\d+$/', $item);
 				case 'number':
