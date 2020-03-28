@@ -524,11 +524,11 @@ class validate
 				case 'required':
 					return $item;
 				case 'require':
-					return $item === 0 || $item === '0' || $item;
+					return $item === 0.0 || $item === 0 || $item === '0' || $item;
 				case 'default':
 					return true;
 				case 'int':
-					return preg_match('/^\d+$/', $item);
+					return filter_var($item, FILTER_VALIDATE_INT) !== false;
 				case 'number':
 					return is_numeric($item);
 				case 'email':
@@ -554,7 +554,7 @@ class validate
 	{
 		return filter_var($email, FILTER_VALIDATE_EMAIL);
 	}
-	public static function phone($phone)
+	public static function phone(string $phone)
 	{
 		return preg_match("/^1\d{10}$/", $phone);
 	}
@@ -567,17 +567,17 @@ class validate
 		return filter_var($ip, FILTER_VALIDATE_IP);
 	}
 	//中国大陆身份证号(15位或18位)
-	public static function idcard($id)
+	public static function idcard(string $id)
 	{
 		return preg_match('/^\d{15}(\d\d[0-9xX])?$/', $id);
 	}
 	//字母数字汉字,不能全是数字
-	public static function username($username)
+	public static function username(string $username)
 	{
 		return is_numeric($username) ? false : preg_match('/^[\w\x{4e00}-\x{9fa5}]{3,20}$/u', $username);
 	}
 	//数字/大写字母/小写字母/标点符号组成，四种都必有，8位以上
-	public static function password($pass)
+	public static function password(string $pass)
 	{
 		return preg_match('/^(?=^.{8,}$)(?=.*\d)(?=.*\W+)(?=.*[A-Z])(?=.*[a-z])(?!.*\n).*$/', $pass);
 	}
