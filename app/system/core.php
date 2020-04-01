@@ -83,7 +83,7 @@ class app
 			// 进行正则路由匹配,未匹配到fallback到普通路由
 			route::notfound($execHandler);
 			return route::run($uri, $request_method);
-		} catch (Exception | Error $e) {
+		} catch (Throwable $e) {
 			$err = $e;
 			$errfound = self::get('errfound');
 			$errno = $e->getCode();
@@ -96,7 +96,7 @@ class app
 				}
 				headers_sent() || header('Error-At:' . preg_replace('/\s+/', ' ', $errstr), true, in_array($errno, [500, 502, 503, 504], true) ? $errno : 500);
 				return ($errfound ?? $errHandler)($e, $cli);
-			} catch (Exception | Error $e) {
+			} catch (Throwable $e) {
 				$err = $e;
 				echo $e;
 			}
@@ -151,7 +151,7 @@ class app
 		}
 		try {
 			return call_user_func_array([$instance, $r[1]], array_slice($r, 2));
-		} catch (Exception | Error $e) {
+		} catch (Throwable $e) {
 			return $instance($e);
 		}
 	}
@@ -487,7 +487,7 @@ class validate
 					$data[$k] = $item['default'] instanceof closure ? $item['default']() : $item['default'];
 				}
 			}
-		} catch (Exception | Error $e) {
+		} catch (Throwable $e) {
 			if ($callback === false) {
 				throw $e;
 			}
@@ -800,7 +800,7 @@ class db
 		if (method_exists($pdo, $fn)) {
 			return call_user_func_array([$pdo, $fn], $args);
 		}
-		throw new Exception("method {$fn} not found in class " . static::class, 500);
+		throw new BadMethodCallException("method {$fn} not found in class " . static::class, 500);
 	}
 }
 
