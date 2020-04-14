@@ -50,7 +50,7 @@ class app
 			if (stripos($uri, $_SERVER['SCRIPT_NAME']) === 0) {
 				$uri = substr($uri, strlen($_SERVER['SCRIPT_NAME']));
 			}
-			$varPath = VAR_PATH;
+			$varPath = $config['var_path'] ?? (__DIR__ . DIRECTORY_SEPARATOR);
 			if (substr($varPath, 0, 7) === 'phar://') {
 				$varPath = str_replace('/' . $_SERVER['SCRIPT_NAME'], '', substr($varPath, 7));
 			}
@@ -79,7 +79,7 @@ class app
 			set_error_handler(function (int $errno, string $errstr, string $errfile, int $errline) {
 				throw new Exception(sprintf('%s%s', $errstr, $errfile ? (' in file ' . $errfile . ($errline ? "({$errline})" : '')) : ''), $errno);
 			});
-			route::register(CONTROLLER_PATH, MODEL_PATH, LIB_PATH);
+			route::register(...$config['lib_path'] ?? [__DIR__ . DIRECTORY_SEPARATOR]);
 			// 进行正则路由匹配,未匹配到fallback到普通路由
 			route::notfound($execHandler);
 			return route::run($uri, $request_method);
@@ -217,7 +217,7 @@ class app
 		if (isset(self::$global['event'][$fn])) {
 			return call_user_func_array(self::$global['event'][$fn], $args);
 		}
-		throw new Exception("call error static method {$fn}", 500);
+		throw new BadMethodCallException("call error static method {$fn}", 500);
 	}
 }
 
@@ -804,8 +804,9 @@ class db
 	}
 }
 
-function template($v, array $_data_ = null, $callback = null)
+function template(string $v, array $_data_ = null, $callback = null, string $_path_ = '')
 {
+	$_path_ = $_path_ ?: app::get('view_path', '');
 	if (is_int($callback) && $callback > 1) {
 		$t = $callback;
 		$callback = function ($buffer) use ($t) {
@@ -817,7 +818,7 @@ function template($v, array $_data_ = null, $callback = null)
 			}
 		};
 	}
-	if ((is_file($_v_ = VIEW_PATH . $v . '.php')) || (is_file($_v_ = VIEW_PATH . $v))) {
+	if ((is_file($_v_ = $_path_ . $v . '.php')) || (is_file($_v_ = $_path_ . $v))) {
 		(is_array($_data_) && !empty($_data_)) && extract($_data_);
 		if ($callback) {
 			ob_start() && include $_v_;
