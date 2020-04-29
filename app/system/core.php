@@ -87,14 +87,13 @@ class app
 			$err = $e;
 			$errfound = self::get('errfound');
 			$errno = $e->getCode();
-			$errstr = substr($err->getMessage(), 0, 99);
+			$errstr = substr($err->getMessage(), 0, 200);
 			try {
+				headers_sent() || header('Error-At:' . preg_replace('/\s+/', ' ', $errstr), true, in_array($errno, [400, 401, 403, 404, 500, 502, 503, 504], true) ? $errno : 500);
 				if ($errno === 404) {
-					headers_sent() || header('Error-At:' . preg_replace('/\s+/', ' ', $errstr), true, 404);
 					$notfound = self::get('notfound');
 					return ($notfound ?? $errfound ?? $errHandler)($e, $cli);
 				}
-				headers_sent() || header('Error-At:' . preg_replace('/\s+/', ' ', $errstr), true, in_array($errno, [500, 502, 503, 504], true) ? $errno : 500);
 				return ($errfound ?? $errHandler)($e, $cli);
 			} catch (Throwable $e) {
 				$err = $e;

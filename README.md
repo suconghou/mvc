@@ -3,33 +3,24 @@
 ------
 
 
-1. 先不考虑打包
-
-1. http 缓存 2. file 缓存 3. 路由匹配
-
-
-
-class_exist / method_exist will call apl_autoload
 
 ## 框架特色
-> * 核心代码不足2000行,仅两个文件便可工作,极速加载
+> * 核心代码不足1000行,仅两个文件便可工作,极速加载
 > * 单文件入口,不依赖`PathInfo`,入口文件即是配置文件,超级简洁
 > * 文件夹随意移动,轻松多项目共享,入口文件随意命名,CLI模式轻松使用
 > * `MYSQL/SQLITE`任意切换,注入过滤/ORM,文件缓存/HTTP缓存/数据库缓存,轻松安全
 > * PHAR项目打包,单个文件可直接运行,CLI模式更加方便
 > * 异常捕获,`DEBUG`日志,自定义错误页,自定义异常路由一应俱全
-> * 普通路由,正则路由,回调处理,百变URI随心所欲,插件模式,整站模式,即插即用
+> * 普通路由,正则路由,回调处理,百变URI随心所欲,插件模式,即插即用
 > * 文件加载自动完成,延迟按需加载、无需`Include`简单高效
-
 
 
 ------
 
 ## 安装配置
 
-- 框架的安装非常简单,仅需三个文件便可运行
 - `index.php`入口文件即配置文件,`core.php`框架核心,外加一个处理请求的控制器文件
-- 框架早期版本支持`PHP5.2`,先已全新迁移至`PHP5.4`,强烈推荐你使用`PHP5.6`或`PHP7`并开启`OPcache`
+- `PHP7.2`及以上
 - 使用PDO连接数据库,支持`MySql`和`Sqlite`,需开启`PDO_MYSQL`
 - 定义配置文件的程序路径(一般不需改变)和其他参数,例如SMTP,数据库,即可完美使用
 - 需要URL REWRITE支持,否则链接中要添加`index.php`
@@ -53,46 +44,47 @@ RewriteRule ^(.*)$ index.php [QSA,L]
 存入文件`.htaccess`
 
 ----
-##开始使用
 
-- `with()` 即可加载`app/system` 路径下的文件,或者下一级目录的文件 ,可加载普通php文件,也可加载.class.php文件,后者必须存在以文件名命名的类
--
--
--
--
+## 开始使用
 
 
-```
+入口文件`index.php`即为配置文件,主要配置控制器模型等地址
 
-```
+配置项`lib_path`为一个数组,配置控制器,模型,类库的自动查找地址
 
-- 所有加载过的类库和模型,都会记住是否已加载过,不会重复加载,也不会重复实例化
+`view_path`为模板查找文件夹
+
+`var_path`为缓存目录和日志目录
+
+文件夹 controller model system 其实并无区别
+
+系统并不是按照文件夹结构来区分 controller 和 model 而是按照类本身的特性
+
+包含`__invoke`魔术方法的类将被视为控制器
+
+在控制器抛出异常时,此方法将被调用用于处理异常.
+
+`event`字段配置闭包函数可用于扩展`app`
+
+
+- 所有加载过的控制器,都会记住是否已加载过,不会重复加载,也不会重复实例化
 - 加载过的类库和模型全局可用
-- Class以及controller和model目录下的类都可以直接通过类名调用其静态方法
+- 所有的同名文件类都可以直接通过类名调用其静态方法,或new实例化
+
+
+## DEBUG 
+
+配置文件`debug`字段用于开启debug模式,其值可为`0/1` 或者 `false/true`
+
+框架判断其布尔值,`debug`模式下,记录debug级别log,捕获所有错误
+
+无论什么调试级别，对于大于notice的错误，只要日志目录可写，都会记录相应的错误。
+
+
+
 
 -----
-## 其他
 
-
-修改为测试模式 `debug=2  php index.php em lists2016`
-
-
-
-
-```
-
-// with(['code'=>0,'msg'=>'hello'])->out(20);//json
-// with(['user'=>123456,'password'=>'hello222'])->out(['code'=>0,'msg'=>'ok'],1);//json without cache
-// with($data)->out(30);//json http cache 30
-// with($data)->out([],30);//json http cache 30
-// with($data)->out(30,[]);//jsonp http cache 30
-// with($data)->out([],30,'jsonp');//jsonp http cache 30
-// with($data)->out(30,[],'jsonp');//jsonp http cache 30
-// with($data)->out('login',40);//view http cache 40
-// with($data)->out('login',40,true);//view file cache 40
-// var_dump(M::get('a'),M::get('ab'),app::cost());
-
-```
 
 ## 路由
 
@@ -102,75 +94,197 @@ RewriteRule ^(.*)$ index.php [QSA,L]
 
 正则路由按照URI匹配.
 
-普通路由支持二级文件夹路由.
 
 **_使用 route::get() 添加正则路由_**
 
 正则路由优先级高于普通路由.
 
+
+正则路由有多种写法
+
+字符串函数
+
 ```php
-route::get('\/hello',['home','hello'])
+route::get('\/print','print_r');
 ```
 
-DEBUG三个等级分别对应DEBUG值0,1,2
+闭包
+```php
+route::get('\/dump',function(...$a){
+	var_dump($a);
+});
 
+```
+
+实例化控制器
+
+控制器类将被自动实例化,然后执行
+
+```php
+route::get('\/hello',['home','hello'])
+route::get('\/hello',['home','hello','world'])
+```
+
+静态化控制器
+
+控制器类方法将被静态调用
+
+```php
+
+route::post('\/static','home::echo');
+
+```
+
+捕获参数
 ```php
 route::get('\/userinfo\/(\d+)',['home','userinfo'])
 ```
 
-> 0:线上模式,非严格模式,自动记录错误日志,上线后使用
 
+带命名空间的静态调用,可调度到子文件夹,自己再次分发路由
 ```php
-route::get('\/upload','Plugins/Upload')
+route::get('\/admin','\admin\form::index')
 ```
 
-> 2:最大Debug等级,严格模式,显示错误详情,自动记录错误日志,开发时使用
 
+
+闭包模式
 ```php
 route::get('\/about',function(){echo 'about';})
 ```
 
-无论什么调试级别，对于大于notice的错误，只要日志目录可写，都会记录相应的错误。
 
-
+**URL 拼接**
 ```php
-route::u()
+route::u('/home/hello',['act'=>'hi'])
+```
 
-route::u('/home/hello',)
+**重定向**
+```php
+route::to('/login')
 ```
 
 ## 控制器
 
+默认的控制器为`home`,默认的action为`index`
 
+控制器被实例化时,将传入触发实例化时的路由参数给构造函数
 
+控制器实现了单例模式,一个控制器只会实例化一次
 
+`app::run(array $r)` 可以内部转移控制器,交由其他控制器执行
 
 ## 自定义异常处理器
 
-前提：自定义异常处理在DEBUG值为0的情况下才会工作。
+在配置中添加`notfound`和`errfound`并赋值一个闭包,开启自定义错误处理
 
-DEBUG值大于0会直接显示错误详情，而不使用自定义异常处理。
+```php
+'notfound' => function ($e, $cli) {
+	echo '404 page not found';
+},
+'errfound' => function ($e, $cli) {
+	echo 'user hand this error : ', $e->getMessage();
+},
 
-两个常量 
+```
 
-ERROR_PAGE_404
-
-ERROR_PAGE_500
-
-指定出错时使用的action
-
-系统会首先查找
-
+自定义异常处理后,框架提供的404,500等错误详情,页面将不再展现,只能通过日志查看
 
 
 
 ## PHAR打包
 
-打包项目 `php -d phar.readonly=0 index.php`
+设置环境变量 `name` 和 `entry`
+
+name是要生成的phar文件名,可以自己指定
+
+entry为当前项目的入口文件,一般为`index.php`
+
+打包项目执行 `name=index.phar entry=index.php php -d phar.readonly=0 index.php`
+
+打包为`phar`后,页面缓存和日志也会自动查找文件夹写入
 
 
 ## 使用缓存
 
+框架內建2种缓存,可同时工作
+
+### HTTP 缓存
+
+HTTP 缓存使用 `app::cache(int $second)`开启
+
+需要在控制器输出其他内容前调用
+
+客户端下次请求将会`200(from cache)`
+
+有客户端发起协商缓存时,框架也会自动验证,命中时返回`304`
+
+可用于缓存接口,页面等
+
+### 页面缓存
+
+模板函数`template(string $tpl,array $_data_,$callback=null)`实现了页面缓存
+
+设置`$callback`一个大于1的秒数,即可开启页面缓存
+
+同时必须确保配置项`var_path`是可写的
+
+页面缓存的缓存键是当前请求的`URI`,不包含query部分
+
+可用于缓存公共页面,不可缓存带有个人信息的页面
+
+请求来临时同样鉴别对应的`URI`是否已缓存
+
+命中时释放缓存,缓存失效时删除缓存
+
+
+## 验证器
+
+`request::verify($rule,$callback,$data)`
+
+`$data`为要验证的数据,默认$_POST
+
+`$rule`
+
+> required 数字0,字符串0, 空数组,空格,空字符串被认为校验不通过,其他true值,被认为通过校验
+
+> require 数字0,字符串0,和其他true值,被认为通过校验; 
+> 注意:空数组,空格,空字符串被认为校验通过, 与`required`的区别在于数字0和字符串0,`required`更加严格
+
+> default 如果一个值,前端未传被置为默认值,则其他规则对他不生效,如果前端传了,则规则将会生效
+
+> set 规则只能针对值是string类型的值做判断,值为int类型的,一律判断不通过
+
+> 直接使用数据语法来判断更加复杂的是否在集合中, 此比较方法是强类型的比较
+
+> require,required Value值可以为空,为空时自动填充错误提示
+
+定义`callback`值,用于检验不通过时的动作
+
+> false 抛出异常,此为默认
+
+> 闭包函数, 异常将传递给此闭包函数处理
+
+> null或空字符串,0值等, 将静默返回false
+
+> true和其他非0值,则立即响应json并中断
+
+
+
+
+## 多数据库链接
+
+某个Model要链接其他数据库,只需要重写ready方法即可,然后返回新的PDO实例
+```
+public static function ready(): PDO
+{
+	static $_pdo;
+	if (empty($_pdo)) {
+		$_pdo = self::init(app::get('dbdev'));
+	}
+	return $_pdo;
+}
+```
 
 
 
@@ -539,13 +653,25 @@ list($res1,$res2,$res3)=self::query([$sql1,$data1,'fetchAll'],[$sql2,$data2,'fet
 所有的SQL执行最终都会指向`orm::exec($sql,array $bind=null,$fetch=null)`
 
 
-都是无状态的
+## 扩展库
+
+其他库存放于单独文件夹,与此框架无关,且部分库可以单独使用
+
+### SMTP
+
+一个简单的smtp邮件发送函数，使用此功能前需配置配置文件的`mail`字段
 
 ```
-define('DEFAULT_CONTROLLER','home'); //默认的控制器
-define('DEFAULT_ACTION','index'); ///默认的动作
-
-框架内置一个简单的smtp邮件发送函数，使用此功能前需配置smtp
+'mail' =>
+[
+	'server' => 'smtp.yeah.net',
+	'user' => 'suconghou@yeah.net',
+	'pass' => 'password',
+	'name' => '消息通知',
+	'port' => 25,
+	'auth' => true,
+],
+```
 
 例如配置QQ企业邮箱
 
@@ -563,18 +689,6 @@ $mail=['server'=>'ssl://smtp.exmail.qq.com','port'=>465,'user'=>'support@xx.com'
 > 此函数支持批量发送邮件，多个接收人使用分号隔开
 
 > 此函数不支持抄送、密送、携带附件
-
-
-## 缓存
-
-M.class.php
-
-Kvdb.class.php
-
-Cache.class.php
-
-Store.class.php
-
 
 
 
