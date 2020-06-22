@@ -166,7 +166,7 @@ class app
 
 	public static function file(string $r = "", bool $delete = false)
 	{
-		$file = sprintf('%s%u.html', VAR_PATH_HTML, crc32(ROOT . strtolower($r)));
+		$file = sprintf('%s%u.html', VAR_PATH_HTML, crc32(strtolower($r)));
 		return $delete ? (is_file($file) && unlink($file)) : $file;
 	}
 	public static function cache(int $s = 0)
