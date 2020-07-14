@@ -850,6 +850,6 @@ function json(array $data, string $callback = '')
 {
 	$data = json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 	$data = $callback ? $callback . "(" . $data . ")" : $data;
-	header('Content-Type: text/' . ($callback ? 'javascript' : 'json') . ';charset=utf-8', true, 200);
+	headers_sent() || header('Content-Type: text/' . ($callback ? 'javascript' : 'json') . ';charset=utf-8');
 	exit($data);
 }
