@@ -233,7 +233,130 @@ final class Util
 		return $agent?preg_match($regexMatch,$agent):true;
 	}
 
+    //发送邮件,用来替代原生mail,多个接受者用分号隔开
+    public static function sendMail($mailTo,$mailSubject,$mailMessage=null)
+    {
+        try
+        {
+            $mail=app::get('mail',[]);
+            if(!$fp=fsockopen($mail['server'],empty($mail['port'])?25:$mail['port'],$errno,$errstr,3))
+            {
+                throw new Exception($errstr,$errno);
+            }
+            $lastmessage=fgets($fp,128);
+            if(substr($lastmessage,0,3)!='220')
+            {
+                throw new Exception("CONNECT ERROR - {$lastmessage}",2);
+            }
+            fputs($fp,"EHLO mail\r\n");
+            $lastmessage=fgets($fp,128);
+            if(!in_array(substr($lastmessage,0,3),[220,250]))
+            {
+                throw new Exception("HELO/EHLO - {$lastmessage}",3);
+            }
+            while(true)
+            {
+                if(substr($lastmessage,3,1)!='-'||empty($lastmessage))
+                {
+                    break;
+                }
+                $lastmessage=fgets($fp,128);
+            }
+            if(!empty($mail['auth'])&&$mail['auth'])
+            {
+                fputs($fp,"AUTH LOGIN\r\n");
+                $lastmessage=fgets($fp,128);
+                if(substr($lastmessage,0,3)!=334)
+                {
+                    throw new Exception("AUTH LOGIN - {$lastmessage}",4);
+                }
+                fputs($fp,base64_encode($mail['user'])."\r\n");
+                $lastmessage=fgets($fp,128);
+                if(substr($lastmessage,0,3)!=334)
+                {
+                    throw new Exception("AUTH LOGIN - {$lastmessage}",5);
+                }
+                fputs($fp,base64_encode($mail['pass'])."\r\n");
+                $lastmessage=fgets($fp,128);
+                if(substr($lastmessage,0,3)!=235)
+                {
+                    throw new Exception("AUTH LOGIN - {$lastmessage}",6);
+                }
+            }
+            fputs($fp,"MAIL FROM: <{$mail['user']}>\r\n");
+            $lastmessage=fgets($fp,128);
+            if(substr($lastmessage,0,3)!=250)
+            {
+                fputs($fp,"MAIL FROM: <{$mail['user']}>\r\n");
+                $lastmessage=fgets($fp,128);
+                if(substr($lastmessage,0,3)!=250)
+                {
+                    throw new Exception("MAIL FROM - {$lastmessage}",7);
+                }
+            }
+            foreach(explode(';',$mailTo) as $touser)
+            {
+                if($touser=trim($touser))
+                {
+                    fputs($fp,"RCPT TO: <{$touser}>\r\n");
+                    $lastmessage=fgets($fp,128);
+                    if(substr($lastmessage,0,3)!=250)
+                    {
+                        throw new Exception("RCPT TO - {$lastmessage}",8);
+                    }
+                }
+            }
+            fputs($fp,"DATA\r\n");
+            $lastmessage=fgets($fp,128);
+            if(substr($lastmessage,0,3)!=354)
+            {
+                throw new Exception("DATA - {$lastmessage}",9);
+            }
+            $headers="MIME-Version:1.0\r\nContent-type:text/html\r\nContent-Transfer-Encoding: base64\r\nFrom: {$mail['name']}<{$mail['user']}>\r\nDate: ".date("r")."\r\nMessage-ID: <".uniqid(rand(1,999)).">\r\n";
+            $mailSubject='=?utf-8?B?'.base64_encode($mailSubject).'?=';
+            $mailMessage=chunk_split(base64_encode(preg_replace("/(^|(\r\n))(\.)/","\1.\3",$mailMessage)));
+            fputs($fp,$headers);
+            fputs($fp,"To: {$mailTo}\r\n");
+            fputs($fp,"Subject: {$mailSubject}\r\n");
+            fputs($fp,"\r\n\r\n");
+            fputs($fp,"{$mailMessage}\r\n.\r\n");
+            $lastmessage=fgets($fp,128);
+            if(substr($lastmessage,0,3)!=250)
+            {
+                throw new Exception("END - {$lastmessage}",10);
+            }
+            fputs($fp,"QUIT\r\n");
+            return true;
+        }
+        catch(Exception $e)
+        {
+            app::log($e->getMessage(),'ERROR');
+            throw $e;
+        }
+    }
 
+
+    public static function csrf_token($check=false,$name='_token',closure $callback=null)
+    {
+        isset($_SESSION)||session_start();
+        $token=isset($_SESSION['csrf_token'])?$_SESSION['csrf_token']:null;
+        if($check)
+        {
+            if(!(isset($_REQUEST[$name])&&$_REQUEST[$name]===$token))
+            {
+                return $callback?$callback($token):app::error(403,'csrf token not match');
+            }
+            return true;
+        }
+        else if(!$token)
+        {
+            $token=md5(uniqid());
+            $_SESSION['csrf_token']=$token;
+        }
+        return $token;
+    }
+    
+    
 
 }
 

@@ -42,7 +42,7 @@ class Curl
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
 		{
-			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data));
+			curl_setopt_array($ch,[CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data]);
 			$result=curl_exec($ch);
 			curl_close($ch);
 			return $result;
@@ -55,7 +55,7 @@ class Curl
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
 		{
-			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data,CURLOPT_CUSTOMREQUEST=>'PUT'));
+			curl_setopt_array($ch,[CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data,CURLOPT_CUSTOMREQUEST=>'PUT']);
 			$result=curl_exec($ch);
 			curl_close($ch);
 			return $result;
@@ -69,7 +69,7 @@ class Curl
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
 		{
-			curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data,CURLOPT_CUSTOMREQUEST=>'DELETE'));
+			curl_setopt_array($ch,[CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data,CURLOPT_CUSTOMREQUEST=>'DELETE']);
 			$result=curl_exec($ch);
 			curl_close($ch);
 			return $result;
@@ -82,7 +82,7 @@ class Curl
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
 		{
-			curl_setopt_array($ch,array(CURLOPT_NOBODY=>true,CURLOPT_CUSTOMREQUEST=>'HEAD'));
+			curl_setopt_array($ch,[CURLOPT_NOBODY=>true,CURLOPT_CUSTOMREQUEST=>'HEAD']);
 			$result=curl_exec($ch);
 			curl_close($ch);
 			return $result;
@@ -95,7 +95,7 @@ class Curl
 		$ch=self::initCurl($url,$timeout);
 		if($ch)
 		{
-			curl_setopt_array($ch,array(CURLOPT_HEADER=>1,CURLOPT_NOBODY=>1));
+			curl_setopt_array($ch,[CURLOPT_HEADER=>1,CURLOPT_NOBODY=>1]);
 			$header=explode(PHP_EOL,curl_exec($ch));
 			$info=curl_getinfo($ch);
 			foreach ($header as $item)
@@ -130,7 +130,7 @@ class Curl
 			$ch=self::initCurl($url,60);
 			if($ch)
 			{
-				curl_setopt_array($ch,array(CURLOPT_UPLOAD=>1,CURLOPT_INFILE=>fopen($src,'r'),CURLOPT_INFILESIZE=>filesize($src)));
+				curl_setopt_array($ch,[CURLOPT_UPLOAD=>1,CURLOPT_INFILE=>fopen($src,'r'),CURLOPT_INFILESIZE=>filesize($src)]);
 				curl_exec($ch);
 				$error_no=curl_errno($ch);
 				$errorinfo=curl_error($ch);
@@ -149,7 +149,7 @@ class Curl
 		{
 			$header.=$key.':'.$val.PHP_EOL;
 		}
-		$options = array('http' => array('method'=>'GET','timeout'=>$timeout,'header'=>$header));
+		$options = ['http' => ['method'=>'GET','timeout'=>$timeout,'header'=>$header]];
 		$context = stream_context_create($options);
 		$result  = file_get_contents($url, false, $context);
 		return $result;
@@ -163,7 +163,7 @@ class Curl
 			$header.=$key.':'.$val.PHP_EOL;
 		}
 		$data=is_array($data)?http_build_query($data):$data;
-		$options = array('http' => array('method'=>'POST','timeout'=>$timeout,'header'=>$header,'content' => $data));
+		$options = ['http' => ['method'=>'POST','timeout'=>$timeout,'header'=>$header,'content' => $data]];
 		$context = stream_context_create($options);
 		$result  = file_get_contents($url, false, $context);
 		return $result;
@@ -180,7 +180,7 @@ class Curl
 		if(extension_loaded('curl'))
 		{
 			$ch=curl_init($url);
-			curl_setopt_array($ch, array(CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
+			curl_setopt_array($ch, [CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout]);
 			return $ch;
 		}
 		return false;
@@ -198,8 +198,8 @@ class Curl
         if(!is_array($urls))
         {
             $ch=curl_init($urls);
-            curl_setopt_array($ch,array(CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_FOLLOWLOCATION=>1,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
-            $data&&curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data));
+            curl_setopt_array($ch,[CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_FOLLOWLOCATION=>1,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout]);
+            $data&&curl_setopt_array($ch,[CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data]);
             $content=curl_exec($ch);
             curl_close($ch);
             return $content;
@@ -210,8 +210,8 @@ class Curl
             foreach ($urls as &$url)
             {
                 $ch=curl_init($url);
-                curl_setopt_array($ch,array(CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_FOLLOWLOCATION=>1,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
-                $data&&curl_setopt_array($ch,array(CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data));
+                curl_setopt_array($ch,[CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_FOLLOWLOCATION=>1,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout]);
+                $data&&curl_setopt_array($ch,[CURLOPT_POST=>1,CURLOPT_POSTFIELDS=>$data]);
                 curl_multi_add_handle($mh,$ch);
                 $url=$ch;
             }
@@ -243,11 +243,11 @@ class Curl
 	function add($url,$header=0,$nobody=0,$timeout=10)
 	{
 		$this->mh=$this->mh?$this->mh:curl_multi_init();
-		$url=is_array($url)?$url:array($url);
+		$url=is_array($url)?$url:[$url];
 		foreach($url as $u)
 		{
 			$ch=curl_init($u);
-			curl_setopt_array($ch,array(CURLOPT_NOBODY=>$nobody,CURLOPT_HEADER=>$header,CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout));
+			curl_setopt_array($ch,[CURLOPT_NOBODY=>$nobody,CURLOPT_HEADER=>$header,CURLOPT_HTTPHEADER=>self::$headers,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$timeout]);
 			curl_multi_add_handle($this->mh,$ch);
 			$this->ch[$u]=$ch;
 		}
