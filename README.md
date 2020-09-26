@@ -290,30 +290,6 @@ public static function ready(): PDO
 ```
 
 
-- 传递参数,访问`/userinfo/1` ,则参数 1 将会传递给 home 中的 userinfo 方法为第一个实参
-
-```php
-app::route('\/userinfo\/(\d+)',['home','userinfo'])
-```
-
-- 插件模式,访问/upload 会激发 Plugins 目录下的 Upload 类
-
-```php
-app::route('\/upload','Plugins/Upload')
-```
-
-- 闭包模式,直接对应一个闭包.
-
-```php
-app::route('\/about',function(){echo 'about';})
-```
-
-> 正则路由的优先级大于普通路由
-
-## 控制器
-
-### 依赖注入
-
 ## 同时连接多个数据库
 
 默认的`db::getData` `db::runSql`等使用默认的数据库配置,默认的数据库配置为`config`中的`db`键,形式如
@@ -422,7 +398,8 @@ self::setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY,false);
 
 然后再循环获取,内存使用会显著下降
 
-> _因 PDO 使用长连接,该设置会影响一定时段内的所有 SQL 查询,你也可以查询完设置回`true`避免影响其他查询_ > _自 PHP5.5 起,可以使用 yield,大数据量下可以显著帮你节省内存_
+> _因 PDO 使用长连接,该设置会影响一定时段内的所有 SQL 查询,你也可以查询完设置回`true`避免影响其他查询_ 
+> _自 PHP5.5 起,可以使用 yield,大数据量下可以显著帮你节省内存_
 
 #### 子查询
 
