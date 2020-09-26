@@ -225,11 +225,11 @@ HTTP 缓存使用 `app::cache(int $second)`开启
 
 ### 页面缓存
 
-模板函数`template(string $tpl,array $_data_,$callback=null)`实现了页面缓存
+模板函数`template(string $tpl,array $_data_,$callback=null,string $_path_ = '')`实现了页面缓存
 
-设置`$callback`一个大于1的秒数,即可开启页面缓存
+设置`$callback`为一个大于1的秒数,即可开启页面自动缓存
 
-同时必须确保配置项`var_path`是可写的
+同时必须确保配置项`var_path`是可写的,缓存文件存储在其`html`子文件夹
 
 页面缓存的缓存键是当前请求的`URI`,不包含query部分
 
@@ -513,6 +513,7 @@ $sql=sprintf('INSERT DELAYED IGNORE INTO `%s` %s',static::table,self::values($da
 
 ### 使用`CASE WHEN`
 
+...
 
 ### 批量插入
 
@@ -657,7 +658,7 @@ list($res1,$res2,$res3)=self::query([$sql1,$data1,'fetchAll'],[$sql2,$data2,'fet
 
 ## 扩展库
 
-其他库存放于单独文件夹,与此框架无关,且部分库可以单独使用
+其他库存放于单独文件夹,与此框架无关,且部分库可以单独使用,使用框架仅需复制`index.php`和`core.php`
 
 ### SMTP
 
