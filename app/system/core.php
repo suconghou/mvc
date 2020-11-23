@@ -19,7 +19,7 @@ class app
 		self::$global = $config;
 		error_reporting(self::get('debug') ? E_ALL : E_ALL & ~E_NOTICE);
 		try {
-			if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE'], $_SERVER['HTTP_IF_NONE_MATCH']) && (count($param = explode('-', ltrim($_SERVER['HTTP_IF_NONE_MATCH'], 'W/'))) == 2)) {
+			if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE'], $_SERVER['HTTP_IF_NONE_MATCH']) && (count($param = explode('-', ltrim($_SERVER['HTTP_IF_NONE_MATCH'], 'W/'))) === 2)) {
 				$last = strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
 				list($expire, $t) = $param;
 				if ($expire > $_SERVER['REQUEST_TIME'] || ($last + $t > $_SERVER['REQUEST_TIME'])) {
@@ -157,7 +157,7 @@ class app
 
 	public static function log($msg, string $type = 'DEBUG', string $file = null)
 	{
-		if (is_writable(VAR_PATH_LOG) && (self::get('debug') || (($type = strtoupper($type)) == 'ERROR'))) {
+		if (is_writable(VAR_PATH_LOG) && (self::get('debug') || (($type = strtoupper($type)) === 'ERROR'))) {
 			$path = VAR_PATH_LOG . ($file ? $file : date('Y-m-d')) . '.log';
 			$msg = $type . '-' . date('Y-m-d H:i:s') . ' ==> ' . (is_scalar($msg) ? $msg : PHP_EOL . print_r($msg, true)) . PHP_EOL;
 			return error_log($msg, 3, $path);
@@ -510,9 +510,9 @@ class validate
 				case 'length':
 					return strlen($item) == $val;
 				case 'eq':
-					return trim($item) == trim($val);
+					return trim($item) === trim($val);
 				case 'eqs':
-					return strtolower(trim($item)) == strtolower(trim($val));
+					return strtolower(trim($item)) === strtolower(trim($val));
 				case 'set':
 					return in_array($item, explode(',', $val), true);
 				default:
