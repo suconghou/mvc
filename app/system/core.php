@@ -5,7 +5,7 @@ declare(strict_types=1);
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.2.0
+ * @version 1.2.1
  */
 
 
@@ -499,7 +499,7 @@ class validate
 		}
 		return $data;
 	}
-	private static function check($item, $type)
+	private static function check($item, string $type)
 	{
 		if (strpos($type, '=') && (list($key, $val) = explode('=', $type, 2))) {
 			switch ($key) {
@@ -549,7 +549,7 @@ class validate
 			}
 		}
 	}
-	public static function email($email)
+	public static function email(string $email)
 	{
 		return filter_var($email, FILTER_VALIDATE_EMAIL);
 	}
@@ -557,11 +557,11 @@ class validate
 	{
 		return preg_match("/^1\d{10}$/", $phone);
 	}
-	public static function url($url)
+	public static function url(string $url)
 	{
 		return filter_var($url, FILTER_VALIDATE_URL);
 	}
-	public static function ip($ip)
+	public static function ip(string $ip)
 	{
 		return filter_var($ip, FILTER_VALIDATE_IP);
 	}
@@ -695,7 +695,7 @@ class db
 		return $_pdo;
 	}
 
-	final public static function exec($sql, array $bind = null, $fetch = null)
+	final public static function exec(string $sql, array $bind = null, $fetch = null)
 	{
 		$stm = self::execute($sql, false);
 		$rs = $stm->execute($bind);
@@ -707,7 +707,7 @@ class db
 		return static::class;
 	}
 
-	final public static function condition(array &$where, $prefix = 'WHERE')
+	final public static function condition(array &$where, string $prefix = 'WHERE')
 	{
 		$keys = array_keys($where);
 		$condition = $keys ? implode(sprintf(' %s ', $where[0] ?? 'AND'), array_map(function ($v) use (&$where) {
@@ -829,7 +829,7 @@ function template(string $v, array $_data_ = null, $callback = null, string $_pa
 	throw new Exception("file {$_v_} not found", 404);
 }
 
-function session($key, $val = null, $delete = false)
+function session($key, $val = null, bool $delete = false)
 {
 	isset($_SESSION) || session_start();
 	if (is_null($val)) {

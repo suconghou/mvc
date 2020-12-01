@@ -249,6 +249,34 @@ HTTP 缓存使用 `app::cache(int $second)`开启
 
 `$rule`
 
+```php
+$r =
+	[
+		'q' => ['maxlength=50' => 'q最大50字符'],
+		'type' => ['set=video' => 'type不合法'],
+		'order' => ['set=viewCount' => 'order不合法'],
+		'channelId' => ['/^[\w\-]{20,40}$/' => 'channelId为20-40位字母'],
+		'pageToken' => ['/^[\w\-]{4,14}$/' => 'pageToken为4-14位字母'],
+		'relatedToVideoId' => ['/^[\w\-]{4,14}$/' => 'relatedToVideoId为4-14位字母'],
+		'maxResults' => [function ($v) {
+			if (!is_numeric($v) || $v < 1 || $v > 50) {
+				throw new Exception("maxResults不合法", -5);
+			}
+			return intval($v);
+		}],
+		'regionCode' => ['set=HK,TW,US,KR,JP' => 'regionCode不合法'],
+		'part' => 'id,snippet',
+	];
+```
+
+內建的验证类型有 `require` `required` `default` `int` `number` `email` `username` `password` `phone` `url` `ip` `idcard`
+
+动态比较的类型有 `minlength` `maxlength` `length` `eq` `eqs` `set`
+
+注意 `maxResults` 的配置项为一个数组,元素可为闭包和其他规则,
+如果直接写一个闭包而不是数组,代表使用闭包的返回值,而不是对输入值校验.
+
+
 > required 数字0,字符串0, 空数组,空格,空字符串被认为校验不通过,其他true值,被认为通过校验
 
 > require 数字0,字符串0,和其他true值,被认为通过校验; 
@@ -258,7 +286,9 @@ HTTP 缓存使用 `app::cache(int $second)`开启
 
 > set 规则只能针对值是string类型的值做判断,值为int类型的,一律判断不通过
 
-> 直接使用数据语法来判断更加复杂的是否在集合中, 此比较方法是强类型的比较
+> 直接使用数组语法来判断更加复杂的是否在集合中, 此比较方法是强类型的比较
+
+> eqs为不区分大小写,eq为区分大小写,都会自动去空格
 
 > require,required Value值可以为空,为空时自动填充错误提示
 
@@ -289,33 +319,6 @@ public static function ready(): PDO
 }
 ```
 
-
-## 同时连接多个数据库
-
-默认的`db::getData` `db::runSql`等使用默认的数据库配置,默认的数据库配置为`config`中的`db`键,形式如
-
-```
-'db'=>
-[
-	'dsn'=>'mysql:host=172.168.1.3;port=13306;dbname=dbname;charset=utf8',
-	'user'=>'work',
-	'pass'=>'123456',
-]
-```
-
-使用 PDO 链接,支持 mysql,sqlite,pgsql 等
-
-内部根据$cfg 做缓存
-
-$instance=db::getInstance($cfg)
-
-传入$cfg 获取指定的实例
-
-```php
-$instance->insert
-```
-
-### 数据库切换
 
 ## 轻量级的 ORM 操作
 
