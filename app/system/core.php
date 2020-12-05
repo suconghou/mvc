@@ -27,7 +27,7 @@ class app
 					return header('Expires: ' . gmdate('D, d M Y H:i:s', intval($expire)) . ' GMT', true, 304);
 				}
 			}
-			$cli = defined('STDIN') && defined('STDOUT');
+			$cli = PHP_SAPI === 'cli';
 			$errHandler = function (throwable $e) use ($cli) {
 				if ($cli) {
 					echo $e, PHP_EOL;
