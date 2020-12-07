@@ -324,11 +324,31 @@ public static function ready(): PDO
 
 无过度封装,简单直接,轻松完成大部分数据库操作.
 
+
+PDO参数
+```php
+$options = [PDO::ATTR_PERSISTENT => true, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, PDO::ATTR_TIMEOUT => 3, PDO::ATTR_EMULATE_PREPARES => false, PDO::ATTR_STRINGIFY_FETCHES => false];
+```
+
+`ATTR_EMULATE_PREPARES`若是开启的话,数据库中的`int`和`float`取回来时,在PHP中被转化为`string`,造成类型不一致,故需要
+```
+ATTR_EMULATE_PREPARES => false
+ATTR_STRINGIFY_FETCHES => false
+```
+
+`ATTR_EMULATE_PREPARES`配置为`false`时,预编译中的同名命名参数(`:name`这样的形式)只能使用一次.
+见https://www.php.net/manual/en/pdo.prepare.php
+
+命名参数与`?`占位符也不可混用
+
+此框架都已自动处理.
+
+
 ### 增加
 
 ```php
-orm::insert(array $data,$table=null,$ignore=false,$replace=false)
-orm::replace(array $data,$table=null)
+orm::insert(array $data,string $table='',bool $ignore=false,bool $replace=false)
+orm::replace(array $data,string $table='')
 ```
 
 `replace`也是通过`insert`方法,只是参数不同.
@@ -344,7 +364,7 @@ orm::replace(array $data,$table=null)
 ### 删除
 
 ```php
-orm::delete(array $where=[],$table=null)
+orm::delete(array $where=[],string $table='')
 ```
 
 将`$where`设置为空数组即可删除全表数据
@@ -354,10 +374,10 @@ orm::delete(array $where=[],$table=null)
 ### 查询
 
 ```php
-orm::find(array $where=[],$table=null,$col='*',array $orderLimit=null,$fetch='fetchAll')
-orm::findOne(array $where=[],$table=null,$col='*',array $orderLimit=[1],$fetch='fetch')
-orm::findVar(array $where=[],$table=null,$method='COUNT(1)',array $orderLimit=[1])
-orm::findPage(array $where=[],$table=null,$col='*',$page=1,$limit=20,array $order=[])
+orm::find(array $where=[],string $table='',string $col='*',array $orderLimit=[],$fetch='fetchAll')
+orm::findOne(array $where=[],string $table='',string $col='*',array $orderLimit=[1],$fetch='fetch')
+orm::findVar(array $where=[],string $table='',string $col='COUNT(1)',array $orderLimit=[1])
+orm::findPage(array $where=[],string $table='',string $col='*',int $page=1,int $limit=20,array $order=[])
 ```
 
 `findOne`,`findVar`,`findPage`均是借助于`find`方法,只不过传递参数不同.
@@ -415,7 +435,7 @@ $where=['!id IN'=>'(SELECT `id` FROM `user` WHERE fid=1)','age >'=>18]
 ### 更新
 
 ```php
-orm::update(array $where,array $data,$table=null)
+orm::update(array $where,array $data,string $table='')
 ```
 
 `$where`的具体形式见**_WHERE 构造器_**
@@ -425,7 +445,7 @@ orm::update(array $where,array $data,$table=null)
 ### WHERE 构造器
 
 ```php
-orm::condition(array &$where,$prefix='WHERE')
+orm::condition(array &$where,string $prefix='WHERE')
 ```
 
 在查询和删除,更新等场景下,传入一个数组作为条件
@@ -470,12 +490,16 @@ orm::condition(array &$where,$prefix='WHERE')
 
 使用`!`定义符后对应的键值须为定值,对于用户发送来的数据,使用`!`定义符前需要仔细过滤,仅能信任使用`intval`过滤后的值.
 
+`!time` 或者 `! time` `! time <` `!time <` 等都是合法的,
+
+但`!time<` `! time<`是非法的,字段和操作符之间必须使用空格隔开
+
 > _构造器一次不能生成包含`AND`和`OR`相互嵌套的复杂条件,若想使用,见下面说明_
 
 ### SET 构造器
 
 ```php
-orm::values(array &$data,$set=false,$table=null)
+orm::values(array &$data,bool $set=false,string $table='')
 ```
 
 `$data`使用关联数组表示,默认生成`VALUES()`语句用于`INSERT`,将`$set`设置为`true`生成用于`update`的语句
@@ -497,7 +521,7 @@ orm::values(array &$data,$set=false,$table=null)
 ### ORDERLIMIT 构造器
 
 ```php
-orm::orderLimit(array $orderLimit,$limit=[])
+orm::orderLimit(array $orderLimit,array $limit=[])
 ```
 
 只需一个参数,`$limit`参数无需设置
@@ -546,6 +570,7 @@ $sql=sprintf('INSERT DELAYED IGNORE INTO `%s` %s',static::table,self::values($da
 
 ### 使用`CASE WHEN`
 
+> 请自己拼接SQL,然后预处理执行
 ...
 
 ### 批量插入
@@ -690,7 +715,7 @@ list($res1,$res2,$res3)=self::query([$sql1,$data1,'fetchAll'],[$sql2,$data2,'fet
 
 数组内部,第一个元素要批处理的$sql 语句,第二个参数绑定的参数,第三个参数获取方式.
 
-所有的 SQL 执行最终都会指向`orm::exec($sql,array $bind=null,$fetch=null)`
+所有的 SQL 执行最终都会指向`orm::exec($sql,array $bind=[],$fetch=null)`
 
 ## 扩展库
 
