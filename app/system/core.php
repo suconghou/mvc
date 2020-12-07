@@ -5,7 +5,7 @@ declare(strict_types=1);
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.2.1
+ * @version 1.2.2
  */
 
 
@@ -105,7 +105,7 @@ class app
 				$errfile = $err->getFile();
 				$errline = $err->getLine();
 				$errno = $err->getCode();
-				$errormsg = sprintf('ERROR(%d) %s%s%s', $errno, $errstr, $errfile ? " in {$errfile}" : null, $errline ? " on line {$errline}" : null);
+				$errormsg = sprintf('ERROR(%d) %s%s%s', $errno, $errstr, $errfile ? " in {$errfile}" : '', $errline ? " on line {$errline}" : '');
 				$errno === 404 ? self::log($errormsg, 'DEBUG', strval($errno)) : self::log($errormsg, 'ERROR');
 			}
 		}
@@ -155,7 +155,7 @@ class app
 		}
 	}
 
-	public static function log($msg, string $type = 'DEBUG', string $file = null)
+	public static function log($msg, string $type = 'DEBUG', string $file = '')
 	{
 		if (is_writable(VAR_PATH_LOG) && (self::get('debug') || (($type = strtoupper($type)) === 'ERROR'))) {
 			$path = VAR_PATH_LOG . ($file ? $file : date('Y-m-d')) . '.log';
@@ -185,10 +185,10 @@ class app
 		self::$global[$key] = $value;
 		return self::$global;
 	}
-	public static function conf(string $key = null, $default = null, $cfgfile = 'config.php')
+	public static function conf(string $key = '', $default = null, string $cfgfile = 'config.php')
 	{
 		$config = is_array($cfgfile) ? $cfgfile : (isset(self::$global[$cfgfile]) ? self::$global[$cfgfile] : (self::$global[$cfgfile] = include $cfgfile));
-		if ($key = array_filter(explode('.', $key, 9))) {
+		if ($key = array_filter(explode('.', $key, 9), 'strlen')) {
 			foreach ($key as $item) {
 				if (is_array($config) && isset($config[$item])) {
 					$config = $config[$item];
@@ -224,7 +224,7 @@ class route
 {
 	private static $routes = [];
 	private static $notfound;
-	static function u(string $path = null, $query = null, $host = null): string
+	static function u(string $path = '', $query = null, $host = null): string
 	{
 		$prefix = '';
 		if ($host === true) {
@@ -343,32 +343,32 @@ class route
 
 class request
 {
-	public static function post($key = null, $default = null, $clean = false)
+	public static function post($key = null, $default = null, string $clean = '')
 	{
 		return self::getVar($_POST, $key, $default, $clean);
 	}
-	public static function get($key = null, $default = null, $clean = false)
+	public static function get($key = null, $default = null, string $clean = '')
 	{
 		return self::getVar($_GET, $key, $default, $clean);
 	}
-	public static function param($key = null, $default = null, $clean = false)
+	public static function param($key = null, $default = null, string $clean = '')
 	{
 		return self::getVar($_REQUEST, $key, $default, $clean);
 	}
-	public static function server($key = null, $default = null, $clean = false)
+	public static function server($key = null, $default = null, string $clean = '')
 	{
 		return self::getVar($_SERVER, $key, $default, $clean);
 	}
-	public static function cookie($key = null, $default = null, $clean = false)
+	public static function cookie($key = null, $default = null, string $clean = '')
 	{
 		return self::getVar($_COOKIE, $key, $default, $clean);
 	}
-	public static function session($key = null, $default = null, $clean = false)
+	public static function session($key = null, $default = null, string $clean = '')
 	{
 		isset($_SESSION) || session_start();
 		return self::getVar($_SESSION, $key, $default, $clean);
 	}
-	public static function input($json = true, $key = null, $default = null)
+	public static function input(bool $json = true, $key = null, $default = null)
 	{
 		$str = file_get_contents('php://input');
 		$json ? ($data = json_decode($str, true)) : parse_str($str, $data);
@@ -390,7 +390,7 @@ class request
 	{
 		return isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) != 'off');
 	}
-	public static function is($m = null, closure $callback = null)
+	public static function is(string $m = null, closure $callback = null)
 	{
 		$t = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 		return $m ? (($t === strtoupper($m)) ? ($callback ? $callback() : true) : false) : $t;
@@ -412,7 +412,7 @@ class request
 		}
 		return validate::verify($rule, $data, $callback);
 	}
-	public static function getVar(&$origin, $var, $default = null, $clean = false)
+	public static function getVar(&$origin, $var, $default = null, string $clean = '')
 	{
 		if ($var) {
 			if (is_array($var)) {
@@ -426,7 +426,7 @@ class request
 		}
 		return $origin;
 	}
-	public static function clean($val, $type = null)
+	public static function clean($val, string $type = '')
 	{
 		switch ($type) {
 			case 'int':
@@ -584,6 +584,11 @@ class validate
 
 class db
 {
+	final private static function id(): int
+	{
+		static $id = 0;
+		return ++$id;
+	}
 
 	final public static function getVar(string $sql)
 	{
@@ -591,13 +596,13 @@ class db
 		return $rs ? $rs->fetchColumn() : $rs;
 	}
 
-	final public static function getLine(string $sql, $type = PDO::FETCH_ASSOC)
+	final public static function getLine(string $sql, int $type = PDO::FETCH_ASSOC)
 	{
 		$rs = self::execute($sql, true);
 		return $rs ? $rs->fetch($type) : $rs;
 	}
 
-	final public static function getData(string $sql, $type = PDO::FETCH_ASSOC)
+	final public static function getData(string $sql, int $type = PDO::FETCH_ASSOC)
 	{
 		$rs = self::execute($sql, true);
 		return $rs ? $rs->fetchAll($type) : $rs;
@@ -608,40 +613,40 @@ class db
 		return self::execute($sql);
 	}
 
-	final public static function insert(array $data, $table = null, bool $ignore = false, bool $replace = false)
+	final public static function insert(array $data, string $table = '', bool $ignore = false, bool $replace = false)
 	{
 		$sql = sprintf('%s %sINTO %s %s', $replace ? 'REPLACE' : 'INSERT', $ignore ? 'IGNORE ' : '', $table ?: self::table(), self::values($data));
 		return self::exec($sql, $data);
 	}
 
-	final public static function replace(array $data, $table = null)
+	final public static function replace(array $data, string $table = '')
 	{
 		return self::insert($data, $table, false, true);
 	}
 
-	final public static function delete(array $where = [], $table = null)
+	final public static function delete(array $where = [], string $table = '')
 	{
 		$sql = sprintf('DELETE FROM %s%s', $table ?: self::table(), self::condition($where));
 		return self::exec($sql, $where);
 	}
 
-	final public static function find(array $where = [], $table = null, string $col = '*', array $orderLimit = null, $fetch = 'fetchAll')
+	final public static function find(array $where = [], string $table = '', string $col = '*', array $orderLimit = [], string $fetch = 'fetchAll')
 	{
-		$sql = sprintf('SELECT %s FROM %s%s%s', $col, $table ?: self::table(), self::condition($where), $orderLimit ? self::orderLimit($orderLimit) : null);
+		$sql = sprintf('SELECT %s FROM %s%s%s', $col, $table ?: self::table(), self::condition($where), $orderLimit ? self::orderLimit($orderLimit) : '');
 		return self::exec($sql, $where, $fetch);
 	}
 
-	final public static function findOne(array $where = [], $table = null, string $col = '*', array $orderLimit = [1], $fetch = 'fetch')
+	final public static function findOne(array $where = [], string $table = '', string $col = '*', array $orderLimit = [1], string $fetch = 'fetch')
 	{
 		return self::find($where, $table, $col, $orderLimit, $fetch);
 	}
 
-	final public static function findVar(array $where = [], $table = null, string $col = 'COUNT(1)', array $orderLimit = [1])
+	final public static function findVar(array $where = [], string $table = '', string $col = 'COUNT(1)', array $orderLimit = [1])
 	{
 		return self::find($where, $table, $col, $orderLimit, 'fetchColumn');
 	}
 
-	final public static function findPage(array $where = [], $table = null, string $col = '*', int $page = 1, int $limit = 20, array $order = [])
+	final public static function findPage(array $where = [], string $table = '', string $col = '*', int $page = 1, int $limit = 20, array $order = [])
 	{
 		$total = intval(self::findVar($where, $table));
 		$pages = ceil($total / $limit);
@@ -649,15 +654,9 @@ class db
 		return ['list' => $list, 'pages' => $pages, 'total' => $total, 'current' => $page, 'prev' => min($pages, max(1, $page - 1)), 'next' => min($pages, $page + 1)];
 	}
 
-	final public static function update(array $where, array $data, $table = null)
+	final public static function update(array $where, array $data, string $table = '')
 	{
 		$sql = sprintf('UPDATE %s SET %s%s', $table ?: self::table(), self::values($data, true), self::condition($where));
-		$intersect = array_keys(array_intersect_key($data, $where));
-		$sql = $intersect ? preg_replace(array_map(function ($x) use (&$data) {
-			$data["{$x}_"] = $data[$x];
-			unset($data[$x]);
-			return sprintf('/:%s/', $x);
-		}, $intersect), '\0_', $sql, 1) : $sql;
 		return self::exec($sql, $data + $where);
 	}
 
@@ -695,7 +694,7 @@ class db
 		return $_pdo;
 	}
 
-	final public static function exec(string $sql, array $bind = null, $fetch = null)
+	final public static function exec(string $sql, array $bind = [], $fetch = null)
 	{
 		$stm = self::execute($sql, false);
 		$rs = $stm->execute($bind);
@@ -707,70 +706,72 @@ class db
 		return static::class;
 	}
 
-	final public static function condition(array &$where, string $prefix = 'WHERE')
+	final public static function condition(array &$where, string $prefix = 'WHERE'): string
 	{
-		$keys = array_keys($where);
-		$condition = $keys ? implode(sprintf(' %s ', $where[0] ?? 'AND'), array_map(function ($v) use (&$where) {
-			$x = array_values(array_filter(explode(' ', $v)));
-			$n = null;
-			$k = trim(ltrim($x[0], '!'));
-			if (is_array($where[$v])) {
-				$marks = [];
-				$i = 0;
-				array_map(function ($t) use (&$marks, &$where, &$i) {
-					$q = '_' . $i++;
-					$marks[] = ":{$q}";
-					$where[$q] = $t;
-				}, $where[$v]);
+		$keys = [];
+		foreach (array_filter(array_keys($where)) as $item) {
+			$x = array_values(array_filter(explode(' ', $item)));
+			$n = $x[0];
+			$verb = array_slice($x, 1);
+			$a = is_array($where[$item]);
+			$marks = [];
+			if ($x[0] === '!') {
+				$n = $x[1];
+				$verb = array_slice($x, 2);
+				$v = $where[$item];
+				$marks = $v;
+			} elseif ($x[0][0] === '!') {
+				$n = substr($x[0], 1);
+				$v = $where[$item];
+				$marks = $v;
 			} else {
-				if ($k != $x[0]) {
-					$n = $where[$v];
-				} elseif ($x[0] != $v) {
-					$where[$x[0]] = $where[$v];
+				if ($a) {
+					$i = 0;
+					foreach ($where[$item] as $t) {
+						$q = "_{$n}_" . $i++;
+						$marks[] = ":{$q}";
+						$where[$q] = $t;
+					}
+				} else {
+					$t = $n . '_' . self::id();
+					$v = ":{$t}";
+					$where[$t] = $where[$item];
 				}
 			}
-			$str = sprintf('`%s` %s %s', $k, isset($x[1]) ? (isset($x[2]) ? "{$x[1]} {$x[2]}" : $x[1]) : (is_array($where[$v]) ? 'IN' : '='), is_array($where[$v]) ? sprintf('(%s)', implode(',', $marks)) : ($n ? $n : ":{$k}"));
-			if (is_array($where[$v]) || $n || $x[0] != $v) {
-				unset($where[$v]);
-			}
-			return $str;
-		}, array_filter($keys))) : null;
+			unset($where[$item]);
+			$keys[] = sprintf('`%s` %s %s', $n, $verb ? implode(' ', $verb) : ($a ? 'IN' : '='), $a ? sprintf('(%s)', implode(',', $marks)) : $v);
+		}
+		$condition = $keys ? implode(sprintf(' %s ', $where[0] ?? 'AND'), $keys) : '';
 		unset($where[0], $keys);
-		return $condition ? sprintf('%s(%s)', $prefix ? " {$prefix} " : null, $condition) : null;
+		return $condition ? sprintf('%s(%s)', $prefix ? " {$prefix} " : '', $condition) : '';
 	}
 
-	final public static function values(array &$data, bool $set = false, string $table = null): string
+	final public static function values(array &$data, bool $set = false, string $table = ''): string
 	{
-		$keys = array_keys($data);
-		return $set ? implode(',', array_map(function ($x) use (&$data) {
-			$k = trim($x);
-			if ($k != $x) {
-				$data[$k] = $data[$x];
-				unset($data[$x]);
-			}
+		$keys = [];
+		foreach (array_keys($data) as $item) {
+			$k = trim($item);
 			$n = ltrim($k, '!');
-			if ($n != $k) {
-				$n = $data[$k];
-				unset($data[$k]);
+			$v = trim($n);
+			if ($k !== $n) {
+				$keys[] = [$v, $data[$item]];
+			} else {
+				$v_ = "{$v}_" . self::id();
+				$keys[] = [$v, ":{$v_}"];
+				$data[$v_] = $data[$item];
 			}
-			return sprintf('`%s` = %s', trim(ltrim($k, '!')), $n == $k ? ":{$k}" : $n);
-		}, $keys)) : sprintf('%s(%s) VALUES (%s)', $table ? " `{$table}` " : null, implode(',', array_map(function ($x) {
-			return sprintf('`%s`', trim(ltrim(trim($x), '!')));
-		}, $keys)), implode(',', array_map(function ($x) use (&$data) {
-			$k = trim($x);
-			$n = trim(ltrim($k, '!'));
-			if ($n != $k) {
-				$n = $data[$x];
-				unset($data[$x]);
-			} elseif ($k != $x) {
-				$data[$k] = $data[$x];
-				unset($data[$x]);
-			}
-			return $n == $k ? ":{$k}" : $n;
+			unset($data[$item]);
+		}
+		return $set ? implode(',', array_map(function ($x) {
+			return sprintf('`%s` = %s', $x[0], $x[1]);
+		}, $keys)) : sprintf('%s(%s) VALUES (%s)', $table ? " `{$table}` " : '', implode(',', array_map(function ($x) {
+			return sprintf('`%s`', $x[0]);
+		}, $keys)), implode(',', array_map(function ($x) {
+			return $x[1];
 		}, $keys)));
 	}
 
-	final public static function orderLimit(array $orderLimit, $limit = []): string
+	final public static function orderLimit(array $orderLimit, array $limit = []): string
 	{
 		$orderLimit = array_filter($orderLimit, function ($x) use ($orderLimit, &$limit) {
 			if (is_int($x) || preg_match('/^\d+$/', $x)) {
@@ -781,11 +782,11 @@ class db
 				return true;
 			}
 		});
-		$limit = $limit ? " LIMIT " . implode(',', $limit) : null;
+		$limit = $limit ? " LIMIT " . implode(',', $limit) : '';
 		$orderLimit ? (array_walk($orderLimit, function (&$v, $k) {
 			$v = sprintf('%s %s', $k, is_string($v) ? $v : ($v ? 'ASC' : 'DESC'));
-		})) : null;
-		return sprintf('%s%s', $orderLimit ? ' ORDER BY ' . implode(',', $orderLimit) : null, $limit);
+		})) : '';
+		return sprintf('%s%s', $orderLimit ? ' ORDER BY ' . implode(',', $orderLimit) : '', $limit);
 	}
 
 	final public function __call($fn, $args = null)
@@ -835,14 +836,14 @@ function session($key, $val = null, bool $delete = false)
 	if (is_null($val)) {
 		return $delete ? (bool) array_map(function ($k) {
 			unset($_SESSION[$k]);
-		}, is_array($key) ? $key : [$key]) : request::session($key, null, false);
+		}, is_array($key) ? $key : [$key]) : request::session($key, null);
 	}
 	return $_SESSION[$key] = $val;
 }
 function cookie($key, $val = null)
 {
 	if (is_null($val)) {
-		return request::cookie($key, null, false);
+		return request::cookie($key, null);
 	}
 	return setcookie(...func_get_args());
 }
