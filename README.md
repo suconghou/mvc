@@ -544,16 +544,23 @@ orm::orderLimit(array $orderLimit,array $limit=[])
 
 例如`$data=['id'=>123,'name'=>'456'];` 其中`id`为主键
 
+注意`$data`将被改写,如果后面还需要使用`:name`绑定,可以复制一份数据
+
 ```php
+$v=$data;
 $sql=sprintf('INSERT INTO%s ON DUPLICATE KEY UPDATE id=:id,name=:name',self::values($data,false,static::table));
-return self::exec($sql,$data);
+return self::exec($sql,$data+$v);
 ```
 
 如果`$data`里的数据全部需要覆盖更新,可以直接使用`self::values($data,true)`
 
+
+注意: 同一个变量不可传入`values()`或`condition()`两次,因为这些方法会修改传入值,第二次执行时,用到的值已经被第一次修改了
+
 ```php
-$sql=sprintf('INSERT INTO%s ON DUPLICATE KEY UPDATE %s',self::values($data,false,static::table),self::values($data,true));
-return self::exec($sql,$data);
+$v=$data;
+$sql=sprintf('INSERT INTO%s ON DUPLICATE KEY UPDATE %s',self::values($data,false,static::table),self::values($v,true));
+return self::exec($sql,$data+$v);
 ```
 
 ### 使用 INSERT DELAYED
@@ -648,13 +655,6 @@ $holders=substr(str_repeat('(?'.str_repeat(',?',count(reset($data))-1).'),',coun
 $sql=sprintf('INSERT INTO%s %s',sprintf(' `%s` (%s) VALUES',self::table,implode(',',array_map(function($k){return "`{$k}`";},array_keys(reset($data))))),substr(str_repeat('(?'.str_repeat(',?',count(reset($data))-1).'),',count($data)),0,-1));
 ```
 
-如果你的 PHP 版本小于 PHP5.6
-
-将第一行替换为
-
-```php
-array_map(function($v)use(&$values){array_map(function($i)use(&$values){array_push($values,$i);},$v);},$data);
-```
 
 _批量插入中使用`ON DUPLICATE KEY UPDATE`_
 
@@ -687,7 +687,6 @@ $sql=sprintf('SELECT id FROM `%s`%s%s',static::table,self::condition($where1),se
 return self::exec($sql,$where1+$where2);
 ```
 
-> _如果你的条件中包含多个相同的字段,重复的需要使用原始值,否则绑定会引起混乱_
 
 ### 高级查询
 

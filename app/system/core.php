@@ -630,7 +630,7 @@ class db
 		return self::exec($sql, $where);
 	}
 
-	final public static function find(array $where = [], string $table = '', string $col = '*', array $orderLimit = [], string $fetch = 'fetchAll')
+	final public static function find(array $where = [], string $table = '', string $col = '*', array $orderLimit = [], $fetch = 'fetchAll')
 	{
 		$sql = sprintf('SELECT %s FROM %s%s%s', $col, $table ?: self::table(), self::condition($where), $orderLimit ? self::orderLimit($orderLimit) : '');
 		return self::exec($sql, $where, $fetch);
