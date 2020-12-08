@@ -602,14 +602,19 @@ $data=
 ```php
 try
 {
-	$example=reset($data);
+	$example = ['id' => 'id', 'name' => 'name'];
 	self::beginTransaction();
 	$sql=sprintf('INSERT INTO `%s` %s',static::table,self::values($example));
-	$stm=DB::execute($sql,false);
-	foreach($data as $row)
-	{
-		$stm->bindParam(':id',$row['id']);
-		$stm->bindParam(':name',$row['name']);
+	$stm=db::execute($sql,false);
+	$key_names =
+		[
+			'id' => array_search('id', $example, true),
+			'name' => array_search('name', $example, true)
+		];
+	$stm = db::execute($sql, false);
+	foreach ($data as $row) {
+		$stm->bindParam(":{$key_names['id']}", $row['id']);
+		$stm->bindParam(":{$key_names['name']}", $row['name']);
 		$stm->execute();
 	}
 	return self::commit();
@@ -626,7 +631,7 @@ catch(PDOExecption $e)
 ```php
 foreach ($row as $column => $value)
 {
-	$stm->bindParam(":{$column}",$value);
+	$stm->bindParam(":{$key_names[$column]}",$value);
 }
 $stm->execute();
 ```

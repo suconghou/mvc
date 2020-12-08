@@ -669,9 +669,8 @@ class db
 
 	final public static function init(array $dbConfig): PDO
 	{
-		list('dsn' => $dsn, 'user' => $user, 'pass' => $pass) = $dbConfig;
 		$options = [PDO::ATTR_PERSISTENT => true, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, PDO::ATTR_TIMEOUT => 3, PDO::ATTR_EMULATE_PREPARES => false, PDO::ATTR_STRINGIFY_FETCHES => false];
-		return new PDO($dsn, $user, $pass, $options);
+		return new PDO($dbConfig['dsn'], $dbConfig['user'] ?? '', $dbConfig['pass'] ?? '', $options);
 	}
 	// 所有SQL最终到此处执行,使用一个pdo实例,发送sql并执行, isQuery false:预处理,  true:查询,  其他'',null:执行SQL
 	final public static function execute(string $sql, $isQuery = null)
