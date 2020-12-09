@@ -394,7 +394,7 @@ orm::findPage(array $where=[],string $table='',string $col='*',int $page=1,int $
 
 如果你的一条 SQL 要查询大量数据,结果集往往超过几十万条,一次读取结果集会使得内存溢出,脚本终止.
 
-其实`find`和`findOne`的第五个参数可以帮助你.
+其实`find`的第五个参数可以帮助你.
 
 该参数为获取结果集的方法,`find`方法默认是一次性全部获取为数组,你可以传入参数`true`交由自己主动获取.
 
@@ -689,7 +689,7 @@ foreach(array_chunk($data,2e3) as $item)
 $where1=['age >'=>18,'sex'=>1];
 $where2=['id >'=>20,'!id <'=>40];
 $sql=sprintf('SELECT id FROM `%s`%s%s',static::table,self::condition($where1),self::condition($where2,'OR'));
-return self::exec($sql,$where1+$where2);
+return self::exec($sql,$where1+$where2,'fetchAll');
 ```
 
 
@@ -698,7 +698,7 @@ return self::exec($sql,$where1+$where2);
 ```php
 $where=['age >'=>1];
 $sql=sprintf('SELECT id FROM `%s` m%s',static::table,self::condition($where,'LEFT JOIN `user` u ON u.id=m.id WHERE'));
-return self::exec($sql,$where);
+return self::exec($sql,$where,'fetchAll');
 ```
 
 如果你需要非常复杂的 SQL 查询,可能不能一次就利用方法完成,需要多次操作
@@ -719,7 +719,7 @@ list($res1,$res2,$res3)=self::query([$sql1,$data1,'fetchAll'],[$sql2,$data2,'fet
 
 数组内部,第一个元素要批处理的$sql 语句,第二个参数绑定的参数,第三个参数获取方式.
 
-所有的 SQL 执行最终都会指向`orm::exec($sql,array $bind=[],$fetch=null)`
+所有的 SQL 执行最终都会指向`orm::exec($sql,array $params=[],$fetch='')`
 
 ## 扩展库
 

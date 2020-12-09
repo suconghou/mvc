@@ -684,15 +684,15 @@ class db
 		return $_pdo;
 	}
 
-	final public static function exec(string $sql, array $params = [], string $fetch = '')
+	final public static function exec(string $sql, array $params = [], $fetch = '')
 	{
 		$pdo = static::ready();
 		if (empty($params)) {
-			return $fetch ? $pdo->query($sql)->$fetch() : $pdo->exec($sql);
+			return $fetch ? (is_string($fetch) ? $pdo->query($sql)->$fetch() : $pdo->query($sql)) : $pdo->exec($sql);
 		}
 		$stm = $pdo->prepare($sql);
 		$rs = $stm->execute($params);
-		return $fetch ? $stm->$fetch() : $rs;
+		return $fetch ? (is_string($fetch) ? $stm->$fetch() : $stm) : $rs;
 	}
 
 	final public static function table(): string
