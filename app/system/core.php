@@ -592,25 +592,22 @@ class db
 
 	final public static function getVar(string $sql)
 	{
-		$rs = self::execute($sql, true);
-		return $rs ? $rs->fetchColumn() : $rs;
+		return self::exec($sql, [], 'fetchColumn');
 	}
 
-	final public static function getLine(string $sql, int $type = PDO::FETCH_ASSOC)
+	final public static function getLine(string $sql)
 	{
-		$rs = self::execute($sql, true);
-		return $rs ? $rs->fetch($type) : $rs;
+		return self::exec($sql, [], 'fetch');
 	}
 
-	final public static function getData(string $sql, int $type = PDO::FETCH_ASSOC)
+	final public static function getData(string $sql)
 	{
-		$rs = self::execute($sql, true);
-		return $rs ? $rs->fetchAll($type) : $rs;
+		return self::exec($sql, [], 'fetchAll');
 	}
 
 	final public static function runSql(string $sql)
 	{
-		return self::execute($sql);
+		return self::exec($sql, [], '');
 	}
 
 	final public static function insert(array $data, string $table = '', bool $ignore = false, bool $replace = false)
@@ -672,12 +669,6 @@ class db
 		$options = [PDO::ATTR_PERSISTENT => true, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, PDO::ATTR_TIMEOUT => 3, PDO::ATTR_EMULATE_PREPARES => false, PDO::ATTR_STRINGIFY_FETCHES => false];
 		return new PDO($dbConfig['dsn'], $dbConfig['user'] ?? '', $dbConfig['pass'] ?? '', $options);
 	}
-	// 所有SQL最终到此处执行,使用一个pdo实例,发送sql并执行, isQuery false:预处理,  true:查询,  其他'',null:执行SQL
-	final public static function execute(string $sql, $isQuery = null)
-	{
-		$pdo = static::ready();
-		return $isQuery === false ? ($pdo->prepare($sql)) : ($isQuery ? ($pdo->query($sql)) : ($pdo->exec($sql)));
-	}
 
 	final public static function lastId()
 	{
@@ -693,11 +684,15 @@ class db
 		return $_pdo;
 	}
 
-	final public static function exec(string $sql, array $bind = [], $fetch = null)
+	final public static function exec(string $sql, array $params = [], string $fetch = '')
 	{
-		$stm = self::execute($sql, false);
-		$rs = $stm->execute($bind);
-		return is_string($fetch) ? $stm->$fetch() : ($fetch ? $stm : $rs);
+		$pdo = static::ready();
+		if (empty($params)) {
+			return $fetch ? $pdo->query($sql)->$fetch() : $pdo->exec($sql);
+		}
+		$stm = $pdo->prepare($sql);
+		$rs = $stm->execute($params);
+		return $fetch ? $stm->$fetch() : $rs;
 	}
 
 	final public static function table(): string
