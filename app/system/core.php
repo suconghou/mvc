@@ -187,7 +187,7 @@ class app
 	}
 	public static function conf(string $key = '', $default = null, string $cfgfile = 'config.php')
 	{
-		$config = is_array($cfgfile) ? $cfgfile : (isset(self::$global[$cfgfile]) ? self::$global[$cfgfile] : (self::$global[$cfgfile] = include $cfgfile));
+		$config = isset(self::$global[$cfgfile]) ? self::$global[$cfgfile] : (self::$global[$cfgfile] = include $cfgfile);
 		if ($key = array_filter(explode('.', $key, 9), 'strlen')) {
 			foreach ($key as $item) {
 				if (is_array($config) && isset($config[$item])) {
@@ -253,31 +253,31 @@ class route
 	}
 	static function get(string $regex, $fn)
 	{
-		return self::add($regex, $fn, ['GET']);
+		self::add($regex, $fn, ['GET']);
 	}
 	static function post(string $regex, $fn)
 	{
-		return self::add($regex, $fn, ['POST']);
+		self::add($regex, $fn, ['POST']);
 	}
 	static function put(string $regex, $fn)
 	{
-		return self::add($regex, $fn, ['PUT']);
+		self::add($regex, $fn, ['PUT']);
 	}
 	static function delete(string $regex, $fn)
 	{
-		return self::add($regex, $fn, ['DELETE']);
+		self::add($regex, $fn, ['DELETE']);
 	}
 	static function head(string $regex, $fn)
 	{
-		return self::add($regex, $fn, ['HEAD']);
+		self::add($regex, $fn, ['HEAD']);
 	}
 	static function options(string $regex, $fn)
 	{
-		return self::add($regex, $fn, ['OPTIONS']);
+		self::add($regex, $fn, ['OPTIONS']);
 	}
 	static function any(string $regex, $fn, array $methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'])
 	{
-		return self::add($regex, $fn, $methods);
+		self::add($regex, $fn, $methods);
 	}
 	static function add(string $regex, $fn, array $methods)
 	{
