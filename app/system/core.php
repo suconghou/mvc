@@ -187,7 +187,7 @@ class app
 	}
 	public static function conf(string $key = '', $default = null, string $cfgfile = 'config.php')
 	{
-		$config = isset(self::$global[$cfgfile]) ? self::$global[$cfgfile] : (self::$global[$cfgfile] = include $cfgfile);
+		$config = self::$global[$cfgfile] ?? (self::$global[$cfgfile] = include $cfgfile);
 		if ($key = array_filter(explode('.', $key, 9), 'strlen')) {
 			foreach ($key as $item) {
 				if (is_array($config) && isset($config[$item])) {
@@ -211,7 +211,7 @@ class app
 	{
 		return empty(self::$global['event'][$event]) ?: call_user_func_array(self::$global['event'][$event], is_array($args) ? $args : [$args]);
 	}
-	public static function __callStatic($fn, $args = [])
+	public static function __callStatic(string $fn, array $args)
 	{
 		if (isset(self::$global['event'][$fn])) {
 			return call_user_func_array(self::$global['event'][$fn], $args);
@@ -783,12 +783,12 @@ class db
 		return sprintf('%s%s', $orderLimit ? ' ORDER BY ' . implode(',', $orderLimit) : '', $limit);
 	}
 
-	final public function __call($fn, $args = null)
+	final public function __call(string $fn, array $args)
 	{
 		return self::__callStatic($fn, $args);
 	}
 
-	final public static function __callStatic($fn, $args = null)
+	final public static function __callStatic(string $fn, array $args)
 	{
 		$pdo = static::ready();
 		if (method_exists($pdo, $fn)) {
