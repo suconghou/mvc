@@ -407,6 +407,11 @@ while($row=$stm->fetch())
 }
 ```
 
+> 注意: pdo->exec() 返回的是一个int值,代表被影响的行数, 例如runSql()函数
+>
+> stm->execute() 返回的是一个布尔值,代表是否操作成功,
+> 使用 stm->rowCount() 才能取到执行DELETE、 INSERT、或 UPDATE 语句受影响的行数。
+
 你可以修改方法`fetch`为`fetchObject`
 
 他们二者的不同是以数组还是对象的方式返回.
@@ -720,6 +725,49 @@ list($res1,$res2,$res3)=self::query([$sql1,$data1,'fetchAll'],[$sql2,$data2,'fet
 数组内部,第一个元素要批处理的$sql 语句,第二个参数绑定的参数,第三个参数获取方式.
 
 所有的 SQL 执行最终都会指向`orm::exec($sql,array $params=[],$fetch='')`
+
+
+>
+> 注意: params 为空则代表没有预处理参数,底层会直接调用 pdo->exec() 或 pdo->query()
+> 如果不为空,则会先预处理,然后stm->execute()
+>
+> pdo->exec() 返回的是一个int值,代表被影响的行数, 例如runSql()函数
+>
+> stm->execute() 返回的是一个布尔值,代表是否操作成功,
+> 使用 stm->rowCount() 才能取到执行DELETE、 INSERT、或 UPDATE 语句受影响的行数。
+>
+> 如果你关心受影响的行数,需要自己实现这一细节.
+
+```php
+
+class testdb extends db
+{
+
+    final public static function getUpdate(array $where, array $data, string $table = '')
+    {
+        $sql = sprintf('UPDATE %s SET %s%s', $table ?: self::table(), self::values($data, true), self::condition($where));
+        $params = $data + $where;
+        if (empty($params)) {
+            return self::exec($sql);
+        }
+        $res = self::exec($sql, $params, true);
+        return $res->rowCount();
+    }
+
+    final public static function getDelete(array $where = [], string $table = '')
+    {
+        $sql = sprintf('DELETE FROM %s%s', $table ?: self::table(), self::condition($where));
+        if (empty($where)) {
+            return self::exec($sql);
+        }
+        $res = self::exec($sql, $where, true);
+        return $res->rowCount();
+    }
+}
+
+```
+
+
 
 ## 扩展库
 
