@@ -19,10 +19,9 @@ class app
 		self::$global = $config;
 		error_reporting(self::get('debug') ? E_ALL : E_ALL & ~E_NOTICE);
 		try {
-			if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE'], $_SERVER['HTTP_IF_NONE_MATCH']) && (count($param = explode('-', ltrim($_SERVER['HTTP_IF_NONE_MATCH'], 'W/'))) === 2)) {
-				$last = strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']);
+			if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && (count($param = explode('-', ltrim($_SERVER['HTTP_IF_NONE_MATCH'], 'W/'))) === 2)) {
 				list($expire, $t) = $param;
-				if ($expire > $_SERVER['REQUEST_TIME'] || ($last + $t > $_SERVER['REQUEST_TIME'])) {
+				if ($expire > $_SERVER['REQUEST_TIME'] || (strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE'] ?? '') + intval($t) > $_SERVER['REQUEST_TIME'])) {
 					header('Cache-Control: public, max-age=' . ($expire - $_SERVER['REQUEST_TIME']));
 					return header('Expires: ' . gmdate('D, d M Y H:i:s', intval($expire)) . ' GMT', true, 304);
 				}
