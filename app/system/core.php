@@ -694,7 +694,7 @@ class db
 		return $fetch ? (is_string($fetch) ? $stm->$fetch() : $stm) : $rs;
 	}
 
-	final public static function table(): string
+	public static function table(): string
 	{
 		return static::class;
 	}

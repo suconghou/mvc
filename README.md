@@ -28,7 +28,7 @@
 对于`nginx`
 
 ```nginx
-try_files $uri $uri/ /index.php?$args;
+try_files $uri $uri/ /index.php$is_args$args;
 ```
 
 加入`location / {}`里面
@@ -726,6 +726,12 @@ list($res1,$res2,$res3)=self::query([$sql1,$data1,'fetchAll'],[$sql2,$data2,'fet
 
 所有的 SQL 执行最终都会指向`orm::exec($sql,array $params=[],$fetch='')`
 
+
+第三个参数`fetch`,如果为空,返回的是影响的行数(无预处理`exec()`)或者是否成功(有预处理`stm->execute()`)
+
+如果是个`string`,返回结果集(例如`fetchAll`,无论是否走了预处理)
+
+如果是`true`,返回一个`PDOStatement`(无论是否走了预处理),后续按何种方式获取结果集,自己任意操作.
 
 >
 > 注意: params 为空则代表没有预处理参数,底层会直接调用 pdo->exec() 或 pdo->query()
