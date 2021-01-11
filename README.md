@@ -758,8 +758,7 @@ class testdb extends db
         if (empty($params)) {
             return self::exec($sql);
         }
-        $res = self::exec($sql, $params, true);
-        return $res->rowCount();
+        return self::exec($sql, $params, 'rowCount');
     }
 
     final public static function getDelete(array $where = [], string $table = '')
@@ -768,8 +767,7 @@ class testdb extends db
         if (empty($where)) {
             return self::exec($sql);
         }
-        $res = self::exec($sql, $where, true);
-        return $res->rowCount();
+        return self::exec($sql, $where, 'rowCount');
     }
 }
 
