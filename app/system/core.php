@@ -611,7 +611,7 @@ class db
 
 	final public static function insert(array $data, string $table = '', bool $ignore = false, bool $replace = false)
 	{
-		$sql = sprintf('%s %sINTO %s %s', $replace ? 'REPLACE' : 'INSERT', $ignore ? 'IGNORE ' : '', $table ?: self::table(), self::values($data));
+		$sql = sprintf('%s %sINTO %s %s', $replace ? 'REPLACE' : 'INSERT', $ignore ? 'IGNORE ' : '', $table ?: static::table(), self::values($data));
 		return self::exec($sql, $data);
 	}
 
@@ -622,13 +622,13 @@ class db
 
 	final public static function delete(array $where = [], string $table = '')
 	{
-		$sql = sprintf('DELETE FROM %s%s', $table ?: self::table(), self::condition($where));
+		$sql = sprintf('DELETE FROM %s%s', $table ?: static::table(), self::condition($where));
 		return self::exec($sql, $where);
 	}
 
 	final public static function find(array $where = [], string $table = '', string $col = '*', array $orderLimit = [], $fetch = 'fetchAll')
 	{
-		$sql = sprintf('SELECT %s FROM %s%s%s', $col, $table ?: self::table(), self::condition($where), $orderLimit ? self::orderLimit($orderLimit) : '');
+		$sql = sprintf('SELECT %s FROM %s%s%s', $col, $table ?: static::table(), self::condition($where), $orderLimit ? self::orderLimit($orderLimit) : '');
 		return self::exec($sql, $where, $fetch);
 	}
 
@@ -652,7 +652,7 @@ class db
 
 	final public static function update(array $where, array $data, string $table = '')
 	{
-		$sql = sprintf('UPDATE %s SET %s%s', $table ?: self::table(), self::values($data, true), self::condition($where));
+		$sql = sprintf('UPDATE %s SET %s%s', $table ?: static::table(), self::values($data, true), self::condition($where));
 		return self::exec($sql, $data + $where);
 	}
 
