@@ -769,7 +769,7 @@ class db
 	final public static function orderLimit(array $orderLimit, array $limit = []): string
 	{
 		$orderLimit = array_filter($orderLimit, function ($x) use ($orderLimit, &$limit) {
-			if (is_int($x) || preg_match('/^\d+$/', $x)) {
+			if (is_int($x) || ctype_digit($x)) {
 				$k = array_search($x, $orderLimit, true);
 				$limit = [$k, $x];
 				return false;
