@@ -529,6 +529,8 @@ class validate
 					return filter_var($item, FILTER_VALIDATE_INT) !== false;
 				case 'number':
 					return is_numeric($item);
+				case 'scalar':
+					return is_scalar($item);
 				case 'email':
 					return self::email($item);
 				case 'username':
