@@ -269,7 +269,7 @@ $r =
 	];
 ```
 
-內建的验证类型有 `require` `required` `default` `int` `number` `email` `username` `password` `phone` `url` `ip` `idcard`
+內建的验证类型有 `require` `required` `default` `int` `number` `string` `bool` `array` `object` `scalar` `email` `username` `password` `phone` `url` `ip` `idcard`
 
 动态比较的类型有 `minlength` `maxlength` `length` `eq` `eqs` `set`
 
@@ -283,6 +283,8 @@ $r =
 > 注意:空数组,空格,空字符串被认为校验通过, 与`required`的区别在于数字0和字符串0,`required`更加严格
 
 > default 如果一个值,前端未传被置为默认值,则其他规则对他不生效,如果前端传了,则规则将会生效
+
+> int 既接受int型也接受字符串格式的整数;number 既接受float型也接受字符串格式的小数,容纳了int规则
 
 > set 规则只能针对值是string类型的值做判断,值为int类型的,一律判断不通过
 

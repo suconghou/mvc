@@ -529,6 +529,14 @@ class validate
 					return filter_var($item, FILTER_VALIDATE_INT) !== false;
 				case 'number':
 					return is_numeric($item);
+				case 'string':
+					return is_string($item);
+				case 'bool':
+					return is_bool($item);
+				case 'array':
+					return is_array($item);
+				case 'object':
+					return is_object($item);
 				case 'scalar':
 					return is_scalar($item);
 				case 'email':
