@@ -501,6 +501,27 @@ orm::condition(array &$where,string $prefix='WHERE')
 
 但`!time<` `! time<`是非法的,字段和操作符之间必须使用空格隔开
 
+**NULL处理**
+
+当条件的值为`null`时,自动构造为`IS NULL`语句.
+
+例如 `['name'=>null]` 转化为
+```sql
+`name` IS NULL
+```
+
+如果需要`IS NOT NULL`需要显示申明
+`['name IS NOT'=>null]`
+
+此时,使用原始值前缀`!`对此构造无任何影响
+
+`['!name'=>null]`
+
+`['!name IS NOT'=>null]`
+
+都是合法的.
+
+
 > _构造器一次不能生成包含`AND`和`OR`相互嵌套的复杂条件,若想使用,见下面说明_
 
 ### SET 构造器

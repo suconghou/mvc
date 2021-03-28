@@ -718,7 +718,16 @@ class db
 			$verb = array_slice($x, 1);
 			$a = is_array($where[$item]);
 			$marks = [];
-			if ($x[0] === '!') {
+			if (is_null($where[$item])) {
+				$v = 'NULL';
+				if ($x[0] === '!') {
+					$n = $x[1];
+					$verb = array_slice($x, 2);
+				} else if ($x[0][0] === '!') {
+					$n = substr($x[0], 1);
+				}
+				$verb = $verb ?: ['IS'];
+			} elseif ($x[0] === '!') {
 				$n = $x[1];
 				$verb = array_slice($x, 2);
 				$v = $where[$item];
