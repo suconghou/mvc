@@ -521,6 +521,12 @@ orm::condition(array &$where,string $prefix='WHERE')
 
 都是合法的.
 
+**WHERE NOT EXISTS**
+
+使用 `db::condition($where, 'WHERE NOT EXISTS')` 可以构造`WHERE NOT EXISTS`语句
+
+可以参考内部的`find` `delete`构造方法,修改其`condition`语句派生出更多构造函数.
+
 
 > _构造器一次不能生成包含`AND`和`OR`相互嵌套的复杂条件,若想使用,见下面说明_
 
