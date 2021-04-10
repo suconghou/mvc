@@ -528,6 +528,13 @@ orm::condition(array &$where,string $prefix='WHERE')
 可以参考内部的`find` `delete`构造方法,修改其`condition`语句派生出更多构造函数.
 
 
+
+**HAVING**
+
+简单的`HAVING`语句可以同上,修改condition后的参数,包含`GROUP BY`等复杂语句需要自己拼接
+
+
+
 > _构造器一次不能生成包含`AND`和`OR`相互嵌套的复杂条件,若想使用,见下面说明_
 
 ### SET 构造器
