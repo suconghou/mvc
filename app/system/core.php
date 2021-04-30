@@ -593,7 +593,7 @@ class validate
 
 class db
 {
-	final private static function id(): int
+	private static function id(): int
 	{
 		static $id = 0;
 		return ++$id;
