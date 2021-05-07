@@ -517,45 +517,44 @@ class validate
 				default:
 					return preg_match($type, $item);
 			}
-		} else {
-			switch ($type) {
-				case 'required':
-					return $item;
-				case 'require':
-					return $item === 0.0 || $item === 0 || $item === '0' || $item;
-				case 'default':
-					return true;
-				case 'int':
-					return filter_var($item, FILTER_VALIDATE_INT) !== false;
-				case 'number':
-					return is_numeric($item);
-				case 'string':
-					return is_string($item);
-				case 'bool':
-					return is_bool($item);
-				case 'array':
-					return is_array($item);
-				case 'object':
-					return is_object($item);
-				case 'scalar':
-					return is_scalar($item);
-				case 'email':
-					return self::email($item);
-				case 'username':
-					return self::username($item);
-				case 'password':
-					return self::password($item);
-				case 'phone':
-					return self::phone($item);
-				case 'url':
-					return self::url($item);
-				case 'ip':
-					return self::ip($item);
-				case 'idcard':
-					return self::idcard($item);
-				default:
-					return preg_match($type, $item);
-			}
+		}
+		switch ($type) {
+			case 'required':
+				return $item;
+			case 'require':
+				return $item === 0.0 || $item === 0 || $item === '0' || $item;
+			case 'default':
+				return true;
+			case 'int':
+				return filter_var($item, FILTER_VALIDATE_INT) !== false;
+			case 'number':
+				return is_numeric($item);
+			case 'string':
+				return is_string($item);
+			case 'bool':
+				return is_bool($item);
+			case 'array':
+				return is_array($item);
+			case 'object':
+				return is_object($item);
+			case 'scalar':
+				return is_scalar($item);
+			case 'email':
+				return self::email($item);
+			case 'username':
+				return self::username($item);
+			case 'password':
+				return self::password($item);
+			case 'phone':
+				return self::phone($item);
+			case 'url':
+				return self::url($item);
+			case 'ip':
+				return self::ip($item);
+			case 'idcard':
+				return self::idcard($item);
+			default:
+				return preg_match($type, $item);
 		}
 	}
 	public static function email(string $email)
