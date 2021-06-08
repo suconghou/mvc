@@ -815,9 +815,9 @@ class db
 	}
 }
 
-function template(string $v, array $_data_ = null, $callback = null, string $_path_ = '')
+function template(string $v, array $data = [], $callback = null, string $path = '')
 {
-	$_path_ = $_path_ ?: app::get('view_path', '');
+	$path = $path ?: app::get('view_path', '');
 	if (is_int($callback) && $callback > 1) {
 		$t = $callback;
 		$callback = function ($buffer) use ($t) {
@@ -829,16 +829,21 @@ function template(string $v, array $_data_ = null, $callback = null, string $_pa
 			}
 		};
 	}
-	if ((is_file($_v_ = $_path_ . $v . '.php')) || (is_file($_v_ = $_path_ . $v))) {
-		(is_array($_data_) && !empty($_data_)) && extract($_data_);
-		if ($callback) {
-			ob_start() && include $_v_;
-			$contents = ob_get_contents();
-			return (ob_end_clean() && ($callback instanceof closure)) ? $callback($contents) : $contents;
-		}
-		return include $_v_;
+	if ((is_file($__v__ = $path . $v . '.php')) || (is_file($__v__ = $path . $v))) {
+		$__render__props__ = ['v' => $__v__, 'callback' => $callback, 'data' => is_array($data) ? $data : []];
+		$render = function () use ($__render__props__) {
+			extract($__render__props__['data'], EXTR_SKIP);
+			unset($__render__props__['data']);
+			if ($__render__props__['callback']) {
+				ob_start() && include $__render__props__['v'];
+				$contents = ob_get_contents();
+				return (ob_end_clean() && ($__render__props__['callback'] instanceof closure)) ? $__render__props__['callback']($contents) : $contents;
+			}
+			return include $__render__props__['v'];
+		};
+		return $render();
 	}
-	throw new Exception("file {$_v_} not found", 404);
+	throw new Exception("file {$__v__} not found", 404);
 }
 
 function session($key, $val = null, bool $delete = false)
