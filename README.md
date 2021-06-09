@@ -533,7 +533,13 @@ orm::condition(array &$where,string $prefix='WHERE')
 
 简单的`HAVING`语句可以同上,修改condition后的参数,包含`GROUP BY`等复杂语句需要自己拼接
 
-
+```php
+final public static function findHaving(array $where = [], string $table = '', string $col = '*', array $orderLimit = [], $fetch = 'fetchAll')
+{
+	$sql = sprintf('SELECT %s FROM %s%s%s', $col, $table ?: static::table(), self::condition($where, "HAVING"), $orderLimit ? self::orderLimit($orderLimit) : '');
+	return self::exec($sql, $where, $fetch);
+}
+```
 
 > _构造器一次不能生成包含`AND`和`OR`相互嵌套的复杂条件,若想使用,见下面说明_
 
@@ -808,8 +814,22 @@ class testdb extends db
 }
 
 ```
+### SQLITE 差异
 
+insert ignore 和 replace 与MySQL的语法存在差异
 
+insert or replace：如果不存在就插入，存在就更新
+insert or ignore：如果不存在就插入，存在就忽略
+
+insert函数可以新增如下对SQLITE的改写版
+
+```php
+final public static function sqliteInsert(array $data, string $table = '', bool $ignore = false, bool $replace = false)
+{
+	$sql = sprintf('%s %sINTO %s %s', $replace ? 'INSERT OR REPLACE' : 'INSERT', $ignore ? 'OR IGNORE ' : '', $table ?: static::table(), self::values($data));
+	return self::exec($sql, $data);
+}
+```
 
 ## 扩展库
 
