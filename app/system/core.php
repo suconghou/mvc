@@ -799,20 +799,6 @@ class db
 		})) : '';
 		return sprintf('%s%s', $orderLimit ? ' ORDER BY ' . implode(',', $orderLimit) : '', $limit);
 	}
-
-	final public function __call(string $fn, array $args)
-	{
-		return self::__callStatic($fn, $args);
-	}
-
-	final public static function __callStatic(string $fn, array $args)
-	{
-		$pdo = static::ready();
-		if (method_exists($pdo, $fn)) {
-			return call_user_func_array([$pdo, $fn], $args);
-		}
-		throw new BadMethodCallException("method {$fn} not found in class " . static::class, 500);
-	}
 }
 
 function template(string $v, array $data = [], $callback = null, string $path = '')
