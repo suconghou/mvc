@@ -510,7 +510,7 @@ class validate
 					if (!is_scalar($item)) return false;
 					$l = strlen($item);
 					$arr = explode(',', $val);
-					return count($arr) >= 2 ? ($l <= $arr[0] && $l >= $arr[1]) : ($l == $val);
+					return count($arr) >= 2 ? ($l >= $arr[0] && $l <= $arr[1]) : ($l == $val);
 				case 'int':
 					$arr = explode(',', $val);
 					$n = filter_var($item, FILTER_VALIDATE_INT);
