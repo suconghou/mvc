@@ -5,7 +5,7 @@ declare(strict_types=1);
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.2.2
+ * @version 1.2.3
  */
 
 
@@ -503,19 +503,30 @@ class validate
 		if (strpos($type, '=') && (list($key, $val) = explode('=', $type, 2))) {
 			switch ($key) {
 				case 'minlength':
-					return strlen($item) >= $val;
+					return is_scalar($item) && strlen($item) >= $val;
 				case 'maxlength':
-					return strlen($item) <= $val;
+					return is_scalar($item) && strlen($item) <= $val;
 				case 'length':
-					return strlen($item) == $val;
+					if (!is_scalar($item)) return false;
+					$l = strlen($item);
+					$arr = explode(',', $val);
+					return count($arr) >= 2 ? ($l <= $arr[0] && $l >= $arr[1]) : ($l == $val);
+				case 'int':
+					$arr = explode(',', $val);
+					$n = filter_var($item, FILTER_VALIDATE_INT);
+					return $n !== false && ($n >= $arr[0] && $n <= ($arr[1] ?? $arr[0]));
+				case 'number':
+					$arr = explode(',', $val);
+					$ok = is_numeric($item);
+					return $ok && ($item >= floatval($arr[0]) && $item <= floatval($arr[1] ?? $arr[0]));
 				case 'eq':
-					return trim($item) === trim($val);
+					return is_scalar($item) && trim($item) === trim($val);
 				case 'eqs':
-					return strtolower(trim($item)) === strtolower(trim($val));
+					return is_scalar($item) && strtolower(trim($item)) === strtolower(trim($val));
 				case 'set':
 					return in_array($item, explode(',', $val), true);
 				default:
-					return preg_match($type, $item);
+					return is_scalar($item) && preg_match($type, $item);
 			}
 		}
 		switch ($type) {
@@ -540,21 +551,21 @@ class validate
 			case 'scalar':
 				return is_scalar($item);
 			case 'email':
-				return self::email($item);
+				return is_string($item) && self::email($item);
 			case 'username':
-				return self::username($item);
+				return is_scalar($item) && self::username($item);
 			case 'password':
-				return self::password($item);
+				return is_scalar($item) && self::password($item);
 			case 'phone':
-				return self::phone($item);
+				return is_scalar($item) && self::phone($item);
 			case 'url':
-				return self::url($item);
+				return is_string($item) && self::url($item);
 			case 'ip':
-				return self::ip($item);
+				return is_string($item) && self::ip($item);
 			case 'idcard':
-				return self::idcard($item);
+				return is_scalar($item) && self::idcard($item);
 			default:
-				return preg_match($type, $item);
+				return is_scalar($item) && preg_match($type, $item);
 		}
 	}
 	public static function email(string $email)
