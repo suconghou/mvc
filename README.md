@@ -258,12 +258,7 @@ $r =
 		'channelId' => ['/^[\w\-]{20,40}$/' => 'channelId为20-40位字母'],
 		'pageToken' => ['/^[\w\-]{4,14}$/' => 'pageToken为4-14位字母'],
 		'relatedToVideoId' => ['/^[\w\-]{4,14}$/' => 'relatedToVideoId为4-14位字母'],
-		'maxResults' => [function ($v) {
-			if (!is_numeric($v) || $v < 1 || $v > 50) {
-				throw new Exception("maxResults不合法", -5);
-			}
-			return intval($v);
-		}],
+		'maxResults' => ['int=1,50' => 'maxResults不合法'],
 		'regionCode' => ['set=HK,TW,US,KR,JP' => 'regionCode不合法'],
 		'part' => 'id,snippet',
 	];
@@ -271,7 +266,7 @@ $r =
 
 內建的验证类型有 `require` `required` `default` `int` `number` `string` `bool` `array` `object` `scalar` `email` `username` `password` `phone` `url` `ip` `idcard`
 
-动态比较的类型有 `minlength` `maxlength` `length` `eq` `eqs` `set`
+动态比较的类型有 `minlength` `maxlength` `length` `eq` `eqs` `set` `int` `number`
 
 注意 `maxResults` 的配置项为一个数组,元素可为闭包和其他规则,
 如果直接写一个闭包而不是数组,代表使用闭包的返回值,而不是对输入值校验.
@@ -285,6 +280,10 @@ $r =
 > default 如果一个值,前端未传被置为默认值,则其他规则对他不生效,如果前端传了,则规则将会生效
 
 > int 既接受int型也接受字符串格式的整数;number 既接受float型也接受字符串格式的小数,容纳了int规则
+
+> int,number,length 可以使用区间限定,`int=1,50`表示整数1和50之间,`length=10,20`表示string类型长度在10至20
+
+> `length=8` 表示string长度限定到8
 
 > set 规则只能针对值是string类型的值做判断,值为int类型的,一律判断不通过
 
@@ -473,7 +472,7 @@ orm::condition(array &$where,string $prefix='WHERE')
 
 键可以由三部分组成,以空格隔开
 
-第一段对应于数据库中的字段,第二段是修饰符,往往是`NOT`或空,第三段是操作符,可以是`>` , `<` , `>=` , `<=` , `!=` , `IN` , `LIKE` , `REGEXP`
+第一段对应于数据库中的字段,第二段是修饰符,往往是`NOT`或空,第三段是操作符,可以是`>` , `<` , `>=` , `<=` , `!=` , `<>` , `IN` , `LIKE` , `REGEXP`
 
 例如`$where=['age >'=>18,'name LIKE'=>'user%'];`
 
