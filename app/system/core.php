@@ -157,7 +157,7 @@ class app
 	public static function log($msg, string $type = 'DEBUG', string $file = '')
 	{
 		if (is_writable(VAR_PATH_LOG) && (self::get('debug') || (($type = strtoupper($type)) === 'ERROR'))) {
-			$path = VAR_PATH_LOG . ($file ? $file : date('Y-m-d')) . '.log';
+			$path = VAR_PATH_LOG . ($file ?: date('Y-m-d')) . '.log';
 			$msg = $type . '-' . date('Y-m-d H:i:s') . ' ==> ' . (is_scalar($msg) ? $msg : PHP_EOL . print_r($msg, true)) . PHP_EOL;
 			return error_log($msg, 3, $path);
 		}
