@@ -370,7 +370,7 @@ class request
 	public static function input(bool $json = true, $key = null, $default = null)
 	{
 		$str = file_get_contents('php://input');
-		$json ? ($data = json_decode($str, true)) : parse_str($str, $data);
+		$json ? ($data = json_decode($str, true, 32, JSON_THROW_ON_ERROR)) : parse_str($str, $data);
 		return $key ? ($data[$key] ?? $default) : $data;
 	}
 	public static function ip($default = null)
