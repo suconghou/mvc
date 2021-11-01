@@ -42,6 +42,24 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA,L]
 ```
 
+Web程序可将目录结构调整为
+
+```
+├── app
+│  ├── controller
+│  │  └── home.php
+│  ├── model
+│  │  └── util.php
+│  └── system
+│     └── core.php
+├── README.md
+├── var
+│  ├── html
+│  └── log
+└── www
+   └── index.php
+```
+
 ----
 
 ## 开始使用
