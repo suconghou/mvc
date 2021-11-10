@@ -776,7 +776,7 @@ $sql1="SELECT 1";
 $sql2="SELECT 2";
 $sql3="SELECT 3";
 $data1=$data2=$data3=[];
-list($res1,$res2,$res3)=self::query([$sql1,$data1,'fetchAll'],[$sql2,$data2,'fetch'],[$sql3,$data3,true]);
+[$res1,$res2,$res3]=self::query([$sql1,$data1,'fetchAll'],[$sql2,$data2,'fetch'],[$sql3,$data3,true]);
 ```
 
 每个参数都是数组

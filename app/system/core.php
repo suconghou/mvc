@@ -20,7 +20,7 @@ class app
 		error_reporting(self::get('debug') ? E_ALL : E_ALL & ~E_NOTICE);
 		try {
 			if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && (count($param = explode('-', ltrim($_SERVER['HTTP_IF_NONE_MATCH'], 'W/'))) === 2)) {
-				list($expire, $t) = $param;
+				[$expire, $t] = $param;
 				if ($expire > $_SERVER['REQUEST_TIME'] || (strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE'] ?? '') + intval($t) > $_SERVER['REQUEST_TIME'])) {
 					header('Cache-Control: public, max-age=' . ($expire - $_SERVER['REQUEST_TIME']));
 					return header('Expires: ' . gmdate('D, d M Y H:i:s', intval($expire)) . ' GMT', true, 304);
@@ -44,7 +44,7 @@ class app
 				}
 				$uri = implode('/', $GLOBALS['argv']);
 			} else {
-				list($uri) = explode('?', $_SERVER['REQUEST_URI'], 2);
+				[$uri] = explode('?', $_SERVER['REQUEST_URI'], 2);
 			}
 			if (stripos($uri, $_SERVER['SCRIPT_NAME']) === 0) {
 				$uri = substr($uri, strlen($_SERVER['SCRIPT_NAME']));
@@ -310,7 +310,7 @@ class route
 		$ret = self::match($uri, $m);
 		self::$routes = [];
 		if ($ret) {
-			list($url, $params, $fn) = $ret;
+			[$url, $params, $fn] = $ret;
 			return self::call($fn, [], $params);
 		}
 		if (!self::$notfound) {
@@ -322,7 +322,7 @@ class route
 	}
 	private static function match(string $uri, string $m)
 	{
-		foreach (self::$routes as list($regex, $fn, $methods)) {
+		foreach (self::$routes as [$regex, $fn, $methods]) {
 			if (in_array($m, $methods, true) && preg_match("/^{$regex}$/", $uri, $matches)) {
 				$url = array_shift($matches);
 				return [$url, $matches, $fn];
@@ -500,7 +500,7 @@ class validate
 	}
 	private static function check($item, string $type)
 	{
-		if (strpos($type, '=') && (list($key, $val) = explode('=', $type, 2))) {
+		if (strpos($type, '=') && ([$key, $val] = explode('=', $type, 2))) {
 			switch ($key) {
 				case 'minlength':
 					return is_scalar($item) && strlen($item) >= $val;
