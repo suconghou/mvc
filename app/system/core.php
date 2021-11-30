@@ -456,6 +456,7 @@ class validate
 				if (isset($data[$k])) {
 					if (is_array($item)) {
 						foreach ($item as $type => $msg) {
+							if ($type === 'default') continue;
 							if ($msg instanceof closure) {
 								$data[$k] = $msg($data[$k], $k);
 							} else if (is_array($msg)) {
