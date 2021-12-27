@@ -5,7 +5,7 @@ declare(strict_types=1);
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.2.3
+ * @version 1.2.4
  */
 
 
@@ -18,26 +18,15 @@ class app
 		$err = null;
 		self::$global = $config;
 		error_reporting(self::get('debug') ? E_ALL : E_ALL & ~E_NOTICE);
+		$cli = PHP_SAPI === 'cli';
 		try {
-			if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && (count($param = explode('-', ltrim($_SERVER['HTTP_IF_NONE_MATCH'], 'W/'))) === 2)) {
+			if (!$cli && isset($_SERVER['HTTP_IF_NONE_MATCH']) && (count($param = explode('-', ltrim($_SERVER['HTTP_IF_NONE_MATCH'], 'W/'))) === 2)) {
 				[$expire, $t] = $param;
 				if ($expire > $_SERVER['REQUEST_TIME'] || (strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE'] ?? '') + intval($t) > $_SERVER['REQUEST_TIME'])) {
 					header('Cache-Control: public, max-age=' . ($expire - $_SERVER['REQUEST_TIME']));
 					return header('Expires: ' . gmdate('D, d M Y H:i:s', intval($expire)) . ' GMT', true, 304);
 				}
 			}
-			$cli = PHP_SAPI === 'cli';
-			$errHandler = function (throwable $e) use ($cli) {
-				if ($cli) {
-					echo $e, PHP_EOL;
-				} else {
-					$err = $e->getTraceAsString();
-					$errMsg = $e->getMessage();
-					$errCode = $e->getCode();
-					$errs = str_replace(PHP_EOL, '</p><p>', $err);
-					echo "<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;font:italic 14px/20px Georgia,Times New Roman;word-wrap:break-word;'><p>ERROR({$errCode}) {$errMsg}</p><p>{$errs}</p></div>";
-				}
-			};
 			if ($cli) {
 				if (($name = getenv('name')) && ($entry = getenv('entry'))) {
 					return self::createPhar($name, $entry);
@@ -87,6 +76,17 @@ class app
 			$errfound = self::get('errfound');
 			$errno = $e->getCode();
 			$errstr = substr($err->getMessage(), 0, 200);
+			$errHandler = function (Throwable $e, bool $cli) {
+				if ($cli) {
+					echo $e, PHP_EOL;
+				} else {
+					$err = $e->getTraceAsString();
+					$errMsg = $e->getMessage();
+					$errCode = $e->getCode();
+					$errs = str_replace(PHP_EOL, '</p><p>', $err);
+					echo "<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;font:italic 14px/20px Georgia,Times New Roman;word-wrap:break-word;'><p>ERROR({$errCode}) {$errMsg}</p><p>{$errs}</p></div>";
+				}
+			};
 			try {
 				headers_sent() || header('Error-At:' . preg_replace('/\s+/', ' ', $errstr), true, in_array($errno, [400, 401, 403, 404, 500, 502, 503, 504], true) ? $errno : 500);
 				if ($errno === 404) {
@@ -116,7 +116,7 @@ class app
 		$phar = new Phar($path, FilesystemIterator::CURRENT_AS_FILEINFO | FilesystemIterator::KEY_AS_FILENAME | FilesystemIterator::SKIP_DOTS, $name);
 		$phar->startBuffering();
 		$dirObj = new RegexIterator(new RecursiveIteratorIterator(new RecursiveDirectoryIterator(ROOT)), '/^[\w\/\-\\\.:]+\.php$/i');
-		foreach ($dirObj as $file => $fileinfo) {
+		foreach ($dirObj as $file => $_) {
 			$phar->addFromString(substr($file, strlen(ROOT)), php_strip_whitespace($file));
 		}
 		$phar->setStub("#!/usr/bin/env php" . PHP_EOL . "<?php Phar::mapPhar('$name');require 'phar://{$name}/{$entry}';__HALT_COMPILER();");
@@ -198,7 +198,7 @@ class app
 		}
 		return $config;
 	}
-	public static function on(string $event, closure $task)
+	public static function on(string $event, Closure $task)
 	{
 		return self::$global['event'][$event] = $task;
 	}
@@ -223,11 +223,11 @@ class route
 {
 	private static $routes = [];
 	private static $notfound;
-	static function u(string $path = '', $query = null, $host = null): string
+	public static function u(string $path = '', $query = null, $host = null): string
 	{
 		$prefix = '';
 		if ($host === true) {
-			$protocol = (isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) != 'off')) ? "https" : "http";
+			$protocol = (isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) !== 'off')) ? "https" : "http";
 			$host =  $_SERVER['HTTP_HOST'] ?? '';
 			$prefix = "{$protocol}://{$host}";
 		} else if ($host) {
@@ -241,7 +241,7 @@ class route
 		}
 		return "{$prefix}{$path}";
 	}
-	static function to(string $url, int $timeout = 0)
+	public static function to(string $url, int $timeout = 0)
 	{
 		if (in_array($timeout, [0, 301, 302, 303, 307, 308], true)) {
 			header("Location:{$url}", true, $timeout);
@@ -250,39 +250,39 @@ class route
 		}
 		exit(header('Cache-Control:no-cache, no-store, max-age=0, must-revalidate'));
 	}
-	static function get(string $regex, $fn)
+	public static function get(string $regex, $fn)
 	{
 		self::add($regex, $fn, ['GET']);
 	}
-	static function post(string $regex, $fn)
+	public static function post(string $regex, $fn)
 	{
 		self::add($regex, $fn, ['POST']);
 	}
-	static function put(string $regex, $fn)
+	public static function put(string $regex, $fn)
 	{
 		self::add($regex, $fn, ['PUT']);
 	}
-	static function delete(string $regex, $fn)
+	public static function delete(string $regex, $fn)
 	{
 		self::add($regex, $fn, ['DELETE']);
 	}
-	static function head(string $regex, $fn)
+	public static function head(string $regex, $fn)
 	{
 		self::add($regex, $fn, ['HEAD']);
 	}
-	static function options(string $regex, $fn)
+	public static function options(string $regex, $fn)
 	{
 		self::add($regex, $fn, ['OPTIONS']);
 	}
-	static function any(string $regex, $fn, array $methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'])
+	public static function any(string $regex, $fn, array $methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'])
 	{
 		self::add($regex, $fn, $methods);
 	}
-	static function add(string $regex, $fn, array $methods)
+	public static function add(string $regex, $fn, array $methods)
 	{
 		self::$routes[] = [$regex, $fn, $methods];
 	}
-	static function notfound($fn)
+	public static function notfound($fn)
 	{
 		self::$notfound = $fn;
 	}
@@ -303,14 +303,14 @@ class route
 		});
 	}
 	// 调用此方法,上层需try
-	static function run(string $uri, string $m)
+	public static function run(string $uri, string $m)
 	{
 		$r = array_values(array_filter(explode('/', $uri, 9), 'strlen'));
 		$uri = '/' . implode('/', $r);
 		$ret = self::match($uri, $m);
 		self::$routes = [];
 		if ($ret) {
-			[$url, $params, $fn] = $ret;
+			[$_, $params, $fn] = $ret;
 			return self::call($fn, [], $params);
 		}
 		if (!self::$notfound) {
@@ -387,9 +387,9 @@ class request
 	}
 	public static function https()
 	{
-		return isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) != 'off');
+		return isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) !== 'off');
 	}
-	public static function is(string $m = null, closure $callback = null)
+	public static function is(string $m = null, Closure $callback = null)
 	{
 		$t = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 		return $m ? (($t === strtoupper($m)) ? ($callback ? $callback() : true) : false) : $t;
@@ -401,7 +401,7 @@ class request
 		foreach ($rule as $key => $value) {
 			$keys[] = is_int($key) ? $value : $key;
 		}
-		foreach ($data as $key => $value) {
+		foreach ($data as $key => $_) {
 			if (!in_array($key, $keys)) {
 				unset($data[$key]);
 			}
