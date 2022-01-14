@@ -434,8 +434,6 @@ class request
 				return floatval($val);
 			case 'string':
 				return trim(strval($val));
-			case 'xss':
-				return filter_var(htmlspecialchars(strip_tags($val), ENT_QUOTES), FILTER_SANITIZE_STRING);
 			case 'html':
 				return trim(strip_tags($val));
 			case 'en':
