@@ -5,7 +5,7 @@ declare(strict_types=1);
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.2.4
+ * @version 1.2.5
  */
 
 
@@ -718,7 +718,7 @@ class db
 		return static::class;
 	}
 
-	final public static function condition(array &$where, string $prefix = 'WHERE'): string
+	final public static function cond(array &$where, string $prefix = 'WHERE'): string
 	{
 		$keys = [];
 		foreach (array_filter(array_keys($where)) as $item) {
@@ -765,6 +765,27 @@ class db
 		$condition = $keys ? implode(sprintf(' %s ', $where[0] ?? 'AND'), $keys) : '';
 		unset($where[0], $keys);
 		return $condition ? sprintf('%s(%s)', $prefix ? " {$prefix} " : '', $condition) : '';
+	}
+
+	final public static function condition(array &$where, string $prefix = 'WHERE'): string
+	{
+		if (!array_is_list($where)) {
+			return self::cond($where, $prefix);
+		}
+		$parts = [];
+		$verb = 'OR';
+		foreach ($where as $key => $item) {
+			if (is_array($item)) {
+				$parts[] = self::cond($item, '');
+				foreach ($item as $k => $v) {
+					$where[$k] = $v;
+				}
+			} else if (is_string($item)) {
+				$verb = $item;
+			}
+			unset($where[$key]);
+		}
+		return sprintf('%s(%s)', $prefix ? " $prefix " : '', implode(" $verb ", $parts));
 	}
 
 	final public static function values(array &$data, bool $set = false, string $table = ''): string

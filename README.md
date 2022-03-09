@@ -19,7 +19,7 @@
 ## 安装配置
 
 - `index.php`入口文件即配置文件,`core.php`框架核心,外加一个处理请求的控制器文件
-- `PHP7.2`及以上
+- `PHP7.4`及以上
 - 使用PDO连接数据库,支持`MySQL`和`Sqlite`,需开启`PDO_MYSQL`
 - 定义配置文件的程序路径(一般不需改变)和其他参数,例如SMTP,数据库,即可完美使用
 - 需要URL REWRITE支持,否则链接中要添加`index.php`
@@ -749,12 +749,31 @@ foreach(array_chunk($data,2e3) as $item)
 
 ### 嵌套的`AND`和`OR`
 
+对WHERE 构造器传入二维数组，可以构造嵌套的`AND`或`OR`
+
+
 ```php
 $where1=['age >'=>18,'sex'=>1];
-$where2=['id >'=>20,'!id <'=>40];
-$sql=sprintf('SELECT id FROM `%s`%s%s',static::table,self::condition($where1),self::condition($where2,'OR'));
-return self::exec($sql,$where1+$where2,'fetchAll');
+$where2=['id >'=>20,'id <'=>40];
+db::find([$where1, $where2, 'OR'], 'users');
 ```
+构造出如下SQL
+```sql
+SELECT * FROM users WHERE ((`age` > :age_1 AND `sex` = :sex_2) OR (`id` > :id_3 AND `id` < :id_4))
+```
+
+
+对于低于8.1版本，需要实现`array_is_list`函数
+```php
+if (!function_exists('array_is_list'))
+{
+    function array_is_list(array $a)
+    {
+        return $a === [] || (array_keys($a) === range(0, count($a) - 1));
+    }
+}
+```
+
 
 
 ### 高级查询
