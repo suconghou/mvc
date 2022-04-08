@@ -769,7 +769,7 @@ class db
 
 	final public static function condition(array &$where, string $prefix = 'WHERE'): string
 	{
-		if (!array_is_list($where)) {
+		if (!array_is_list($where) || empty($where)) {
 			return self::cond($where, $prefix);
 		}
 		$parts = [];
