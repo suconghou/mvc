@@ -847,7 +847,7 @@ function template(string $v, array $data = [], $callback = null, string $path = 
 		};
 	}
 	if ((is_file($__v__ = $path . $v . '.php')) || (is_file($__v__ = $path . $v))) {
-		$__render__props__ = ['v' => $__v__, 'callback' => $callback, 'data' => is_array($data) ? $data : []];
+		$__render__props__ = ['v' => $__v__, 'callback' => $callback, 'data' => $data];
 		$render = function () use ($__render__props__) {
 			extract($__render__props__['data'], EXTR_SKIP);
 			unset($__render__props__['data']);
