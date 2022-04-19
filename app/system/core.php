@@ -754,13 +754,13 @@ class db
 						$where[$q] = $t;
 					}
 				} else {
-					$t = $n . '_' . self::id();
+					$t = str_replace(['.', '`'], '_', $n) . '_' . self::id();
 					$v = ":{$t}";
 					$where[$t] = $where[$item];
 				}
 			}
 			unset($where[$item]);
-			$keys[] = sprintf('`%s` %s %s', $n, $verb ? implode(' ', $verb) : ($a ? 'IN' : '='), $a ? sprintf('(%s)', implode(',', $marks)) : $v);
+			$keys[] = sprintf('%s %s %s', str_contains($n, '.') ? $n : "`$n`", $verb ? implode(' ', $verb) : ($a ? 'IN' : '='), $a ? sprintf('(%s)', implode(',', $marks)) : $v);
 		}
 		$condition = $keys ? implode(sprintf(' %s ', $where[0] ?? 'AND'), $keys) : '';
 		unset($where[0], $keys);

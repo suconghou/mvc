@@ -90,6 +90,28 @@ Web程序可将目录结构调整为
 - 所有的同名文件类都可以直接通过类名调用其静态方法,或new实例化
 
 
+对于低于8.1版本，需要实现`array_is_list`函数
+```php
+if (!function_exists('array_is_list'))
+{
+    function array_is_list(array $a)
+    {
+        return $a === [] || (array_keys($a) === range(0, count($a) - 1));
+    }
+}
+```
+对于低于8.0版本，需要实现`str_contains`函数
+```php
+if (!function_exists('str_contains'))
+{
+	function str_contains(string $haystack, string $needle)
+	{
+		return empty($needle) || strpos($haystack, $needle) !== false;
+	}
+}
+```
+
+
 ## DEBUG 
 
 配置文件`debug`字段用于开启debug模式,其值可为`0/1` 或者 `false/true`
@@ -762,17 +784,6 @@ db::find([$where1, $where2, 'OR'], 'users');
 SELECT * FROM users WHERE ((`age` > :age_1 AND `sex` = :sex_2) OR (`id` > :id_3 AND `id` < :id_4))
 ```
 
-
-对于低于8.1版本，需要实现`array_is_list`函数
-```php
-if (!function_exists('array_is_list'))
-{
-    function array_is_list(array $a)
-    {
-        return $a === [] || (array_keys($a) === range(0, count($a) - 1));
-    }
-}
-```
 
 
 
