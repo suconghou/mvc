@@ -566,6 +566,36 @@ orm::condition(array &$where,string $prefix='WHERE')
 
 可以参考内部的`find` `delete`构造方法,修改其`condition`语句派生出更多构造函数.
 
+**FIND_IN_SET**
+
+例如：查找ids字段中包含3的数据
+
+当且仅当`Where`条件已有两条约束时，我们可以使用where数组构造
+
+```php
+$where = ['enable' => 1, 'id >' => 0, "AND FIND_IN_SET('3',ids) AND"];
+var_dump(db::find($where, 'iplog'));
+```
+构造出
+```sql
+SELECT * FROM iplog WHERE (`enable` = :enable_1 AND FIND_IN_SET('3',ids) AND `id` > :id_2)
+```
+数组的第三个元素是作为连接符连接多个条件的
+
+或者更通用的，我们可以单独写个函数处理
+
+```php
+final public static function findInSet(array $where = [], string $table = '', string $col = '*', array $orderLimit = [], $fetch = 'fetchAll')
+{
+	$sql = sprintf('SELECT %s FROM %s%s%s', $col, $table ?: static::table(), self::condition($where, "WHERE FIND_IN_SET('3',ids) AND"), $orderLimit ? self::orderLimit($orderLimit) : '');
+	return self::exec($sql, $where, $fetch);
+}
+```
+构造出
+```sql
+SELECT * FROM iplog WHERE FIND_IN_SET('3',ids) AND (`enable` = :enable_1)
+```
+
 
 
 **HAVING**

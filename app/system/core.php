@@ -608,24 +608,24 @@ class db
 		return ++$id;
 	}
 
-	final public static function getVar(string $sql)
+	final public static function getVar(string $sql, array $params = [])
 	{
-		return self::exec($sql, [], 'fetchColumn');
+		return self::exec($sql, $params, 'fetchColumn');
 	}
 
-	final public static function getLine(string $sql)
+	final public static function getLine(string $sql, array $params = [])
 	{
-		return self::exec($sql, [], 'fetch');
+		return self::exec($sql, $params, 'fetch');
 	}
 
-	final public static function getData(string $sql)
+	final public static function getData(string $sql, array $params = [])
 	{
-		return self::exec($sql, [], 'fetchAll');
+		return self::exec($sql, $params, 'fetchAll');
 	}
 
-	final public static function runSql(string $sql)
+	final public static function runSql(string $sql, array $params = [])
 	{
-		return self::exec($sql, [], '');
+		return self::exec($sql, $params, '');
 	}
 
 	final public static function insert(array $data, string $table = '', bool $ignore = false, bool $replace = false)
