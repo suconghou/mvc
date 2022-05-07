@@ -561,8 +561,8 @@ class validate
 				return is_string($item) && self::url($item);
 			case 'ip':
 				return is_string($item) && self::ip($item);
-			case 'idcard':
-				return is_scalar($item) && self::idcard($item);
+			case 'json':
+				return is_string($item) && self::json($item);
 			default:
 				return is_scalar($item) && preg_match($type, $item);
 		}
@@ -583,10 +583,10 @@ class validate
 	{
 		return filter_var($ip, FILTER_VALIDATE_IP);
 	}
-	//中国大陆身份证号(15位或18位)
-	public static function idcard(string $id)
+	//字符串是合法的JSON数组或对象
+	public static function json(string $s)
 	{
-		return preg_match('/^\d{15}(\d\d[0-9xX])?$/', $id);
+		return in_array(substr(trim($s), 0, 1), ['[', '{'], true) && !is_null(json_decode($s));
 	}
 	//字母数字汉字,不能全是数字
 	public static function username(string $username)
