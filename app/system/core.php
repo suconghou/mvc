@@ -502,11 +502,11 @@ class validate
 		if (strpos($type, '=') && ([$key, $val] = explode('=', $type, 2))) {
 			switch ($key) {
 				case 'minlength':
-					return is_scalar($item) && strlen($item) >= $val;
+					return is_string($item) && strlen($item) >= $val;
 				case 'maxlength':
-					return is_scalar($item) && strlen($item) <= $val;
+					return is_string($item) && strlen($item) <= $val;
 				case 'length':
-					if (!is_scalar($item)) return false;
+					if (!is_string($item)) return false;
 					$l = strlen($item);
 					$arr = explode(',', $val);
 					return count($arr) >= 2 ? ($l >= $arr[0] && $l <= $arr[1]) : ($l == $val);
