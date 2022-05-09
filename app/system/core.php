@@ -206,9 +206,9 @@ class app
 	{
 		unset(self::$global['event'][$event]);
 	}
-	public static function emit(string $event, $args = [])
+	public static function emit(string $event, array $args = [])
 	{
-		return empty(self::$global['event'][$event]) ?: call_user_func_array(self::$global['event'][$event], is_array($args) ? $args : [$args]);
+		return empty(self::$global['event'][$event]) ?: call_user_func_array(self::$global['event'][$event], $args);
 	}
 	public static function __callStatic(string $fn, array $args)
 	{
@@ -228,7 +228,7 @@ class route
 		$prefix = '';
 		if ($host === true) {
 			$protocol = (isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) !== 'off')) ? "https" : "http";
-			$host =  $_SERVER['HTTP_HOST'] ?? '';
+			$host = $_SERVER['HTTP_HOST'] ?? '';
 			$prefix = "{$protocol}://{$host}";
 		} else if ($host) {
 			$prefix = $host;
@@ -375,15 +375,15 @@ class request
 	}
 	public static function ip($default = null)
 	{
-		return  $_SERVER['REMOTE_ADDR'] ?? $default;
+		return $_SERVER['REMOTE_ADDR'] ?? $default;
 	}
 	public static function ua($default = null)
 	{
-		return  $_SERVER['HTTP_USER_AGENT'] ?? $default;
+		return $_SERVER['HTTP_USER_AGENT'] ?? $default;
 	}
 	public static function refer($default = null)
 	{
-		return  $_SERVER['HTTP_REFERER'] ?? $default;
+		return $_SERVER['HTTP_REFERER'] ?? $default;
 	}
 	public static function https()
 	{
@@ -407,7 +407,7 @@ class request
 			}
 		}
 		foreach ($keys as $key) {
-			$data[$key] =  $data[$key] ?? null;
+			$data[$key] = $data[$key] ?? null;
 		}
 		return validate::verify($rule, $data, $callback);
 	}
