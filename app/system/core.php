@@ -497,7 +497,7 @@ class validate
 		}
 		return $data;
 	}
-	private static function check($item, string $type)
+	public static function check($item, string $type)
 	{
 		if (strpos($type, '=') && ([$key, $val] = explode('=', $type, 2))) {
 			switch ($key) {
