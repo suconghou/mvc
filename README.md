@@ -637,10 +637,8 @@ orm::values(array &$data,bool $set=false,string $table='')
 ### ORDERLIMIT 构造器
 
 ```php
-orm::orderLimit(array $orderLimit,array $limit=[])
+orm::orderLimit(array $orderLimit)
 ```
-
-只需一个参数,`$limit`参数无需设置
 
 `$orderLimit`使用关联数组,键为数据库字段,键值为排序规则,`ASC`或`DESC`,也可以使用布尔值代替,`true`为`ASC`,`false`为`DESC`
 

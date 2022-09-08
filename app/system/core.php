@@ -813,17 +813,17 @@ class db
 		}, $keys)));
 	}
 
-	final public static function orderLimit(array $orderLimit, array $limit = []): string
+	final public static function orderLimit(array $orderLimit): string
 	{
-		$orderLimit = array_filter($orderLimit, function ($x) use ($orderLimit, &$limit) {
-			if (is_int($x) || ctype_digit($x)) {
-				$k = array_search($x, $orderLimit, true);
+		$limit = [];
+		$orderLimit = array_filter($orderLimit, function ($x, $k) use (&$limit) {
+			if ((is_int($x) || ctype_digit($x)) && (is_int($k) || ctype_digit($k))) {
 				$limit = [$k, $x];
 				return false;
 			} else {
 				return true;
 			}
-		});
+		}, ARRAY_FILTER_USE_BOTH);
 		$limit = $limit ? " LIMIT " . implode(',', $limit) : '';
 		$orderLimit ? (array_walk($orderLimit, function (&$v, $k) {
 			$v = sprintf('%s %s', $k, is_string($v) ? $v : ($v ? 'ASC' : 'DESC'));
