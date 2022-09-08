@@ -815,20 +815,18 @@ class db
 
 	final public static function orderLimit(array $orderLimit): string
 	{
-		$limit = [];
+		$limit = '';
 		$orderLimit = array_filter($orderLimit, function ($x, $k) use (&$limit) {
-			if ((is_int($x) || ctype_digit($x)) && (is_int($k) || ctype_digit($k))) {
-				$limit = [$k, $x];
+			if ((is_int($x) || ctype_digit(strval($x))) && (is_int($k) || ctype_digit(strval($k)))) {
+				$limit = "$k,$x";
 				return false;
-			} else {
-				return true;
 			}
+			return true;
 		}, ARRAY_FILTER_USE_BOTH);
-		$limit = $limit ? " LIMIT " . implode(',', $limit) : '';
 		$orderLimit ? (array_walk($orderLimit, function (&$v, $k) {
 			$v = sprintf('%s %s', $k, is_string($v) ? $v : ($v ? 'ASC' : 'DESC'));
 		})) : '';
-		return sprintf('%s%s', $orderLimit ? ' ORDER BY ' . implode(',', $orderLimit) : '', $limit);
+		return sprintf('%s%s', $orderLimit ? ' ORDER BY ' . implode(',', $orderLimit) : '', $limit ? " LIMIT $limit" : '');
 	}
 }
 
