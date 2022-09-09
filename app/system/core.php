@@ -61,15 +61,10 @@ class app
 				unlink($file);
 			}
 			// 普通路由执行器,交由app::run执行,app::run只能执行普通路由
-			$execHandler = function (array $r) {
-				return self::run($r);
-			};
-			set_error_handler(function (int $errno, string $errstr, string $errfile, int $errline) {
-				throw new Exception(sprintf('%s%s', $errstr, $errfile ? (' in file ' . $errfile . ($errline ? "({$errline})" : '')) : ''), $errno);
-			});
+			set_error_handler(fn (int $errno, string $errstr, string $errfile, int $errline) => throw new Exception(sprintf('%s%s', $errstr, $errfile ? (' in file ' . $errfile . ($errline ? "({$errline})" : '')) : ''), $errno));
 			route::register(...$config['lib_path'] ?? [__DIR__ . DIRECTORY_SEPARATOR]);
 			// 进行正则路由匹配,未匹配到fallback到普通路由
-			route::notfound($execHandler);
+			route::notfound(fn (array $r) => self::run($r));
 			return route::run($uri, $request_method);
 		} catch (Throwable $e) {
 			$err = $e;
@@ -314,9 +309,7 @@ class route
 			return self::call($fn, [], $params);
 		}
 		if (!self::$notfound) {
-			self::$notfound = function () {
-				throw new Exception('Not Found', 404);
-			};
+			self::$notfound = fn () => throw new Exception('Not Found', 404);
 		}
 		return self::call(self::$notfound, [$r], []);
 	}
@@ -677,9 +670,7 @@ class db
 
 	final public static function query(array ...$v)
 	{
-		return array_map(function ($item) {
-			return self::exec(...$item);
-		}, $v);
+		return array_map(fn ($item) => self::exec(...$item), $v);
 	}
 
 	final public static function init(array $dbConfig): PDO
@@ -804,13 +795,7 @@ class db
 			}
 			unset($data[$item]);
 		}
-		return $set ? implode(',', array_map(function ($x) {
-			return sprintf('`%s` = %s', $x[0], $x[1]);
-		}, $keys)) : sprintf('%s(%s) VALUES (%s)', $table ? " `{$table}` " : '', implode(',', array_map(function ($x) {
-			return sprintf('`%s`', $x[0]);
-		}, $keys)), implode(',', array_map(function ($x) {
-			return $x[1];
-		}, $keys)));
+		return $set ? implode(',', array_map(fn ($x) => sprintf('`%s` = %s', $x[0], $x[1]), $keys)) : sprintf('%s(%s) VALUES (%s)', $table ? " `{$table}` " : '', implode(',', array_map(fn ($x) => sprintf('`%s`', $x[0]), $keys)), implode(',', array_map(fn ($x) => $x[1], $keys)));
 	}
 
 	final public static function orderLimit(array $orderLimit): string
@@ -865,9 +850,9 @@ function session($key, $val = null, bool $delete = false)
 {
 	isset($_SESSION) || session_start();
 	if (is_null($val)) {
-		return $delete ? (bool) array_map(function ($k) {
+		return $delete ? array_filter(is_array($key) ? $key : [$key], function ($k) {
 			unset($_SESSION[$k]);
-		}, is_array($key) ? $key : [$key]) : request::session($key, null);
+		}) : request::session($key, null);
 	}
 	return $_SESSION[$key] = $val;
 }
