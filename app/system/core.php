@@ -61,7 +61,9 @@ class app
 				unlink($file);
 			}
 			// 普通路由执行器,交由app::run执行,app::run只能执行普通路由
-			set_error_handler(fn (int $errno, string $errstr, string $errfile, int $errline) => throw new Exception(sprintf('%s%s', $errstr, $errfile ? (' in file ' . $errfile . ($errline ? "({$errline})" : '')) : ''), $errno));
+			set_error_handler(function (int $errno, string $errstr, string $errfile, int $errline) {
+				throw new Exception(sprintf('%s%s', $errstr, $errfile ? (' in file ' . $errfile . ($errline ? "({$errline})" : '')) : ''), $errno);
+			});
 			route::register(...$config['lib_path'] ?? [__DIR__ . DIRECTORY_SEPARATOR]);
 			// 进行正则路由匹配,未匹配到fallback到普通路由
 			route::notfound(fn (array $r) => self::run($r));
@@ -309,7 +311,9 @@ class route
 			return self::call($fn, [], $params);
 		}
 		if (!self::$notfound) {
-			self::$notfound = fn () => throw new Exception('Not Found', 404);
+			self::$notfound = function () {
+				throw new Exception('Not Found', 404);
+			};
 		}
 		return self::call(self::$notfound, [$r], []);
 	}
