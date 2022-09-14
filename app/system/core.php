@@ -193,7 +193,7 @@ class app
 		}
 		return $config;
 	}
-	public static function on(string $event, Closure $task)
+	public static function on(string $event, closure $task)
 	{
 		return self::$global['event'][$event] = $task;
 	}
@@ -382,7 +382,7 @@ class request
 	{
 		return isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) !== 'off');
 	}
-	public static function is(string $m = null, Closure $callback = null)
+	public static function is(string $m = null, closure $callback = null)
 	{
 		$t = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 		return $m ? (($t === strtoupper($m)) ? ($callback ? $callback() : true) : false) : $t;
