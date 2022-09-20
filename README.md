@@ -484,9 +484,9 @@ $where=['!id IN'=>'(SELECT `id` FROM `user` WHERE fid=1)','age >'=>18]
 orm::update(array $where,array $data,string $table='')
 ```
 
-`$where`的具体形式见**_WHERE 构造器_**
+`$where`的具体形式见*WHERE 构造器*
 
-`$data`的具体形式见**_SET 构造器_**
+`$data`的具体形式见*SET 构造器*
 
 ### WHERE 构造器
 
@@ -723,27 +723,27 @@ $data = [
 class test extends db
 {
 
-    static function insert_many(string $table, array $column, array $data)
-    {
-        $column = array_combine($column, $column);
-        $pdo = self::ready();
-        $pdo->beginTransaction();
-        try {
-            $sql = sprintf('INSERT INTO `%s` %s', $table, self::values($column));
-            $stm = $pdo->prepare($sql);
-            $key_names = array_keys($column);
-            foreach ($data as $row) {
-                foreach ($row as $i => $value) {
-                    $stm->bindValue(":{$key_names[$i]}", $value);
-                }
-                $stm->execute();
-            }
-            return $pdo->commit();
-        } catch (Throwable $e) {
-            $pdo->rollBack();
-            throw $e;
-        }
-    }
+	final public static function insert_many(string $table, array $column, array $data)
+	{
+		$column = array_combine($column, $column);
+		$pdo = self::ready();
+		$pdo->beginTransaction();
+		try {
+			$sql = sprintf('INSERT INTO `%s` %s', $table, self::values($column));
+			$stm = $pdo->prepare($sql);
+			$key_names = array_keys($column);
+			foreach ($data as $row) {
+				foreach ($row as $i => $value) {
+					$stm->bindValue(":{$key_names[$i]}", $value);
+				}
+				$stm->execute();
+			}
+			return $pdo->commit();
+		} catch (Throwable $e) {
+			$pdo->rollBack();
+			throw $e;
+		}
+	}
 }
 ```
 
@@ -760,38 +760,38 @@ class test extends db
 class test extends db
 {
 
-    static function insert_many(string $table, array $column, array $data)
-    {
-        $column = array_combine($column, $column);
-        $pdo = self::ready();
-        $pdo->beginTransaction();
-        try {
-            $sql = sprintf('INSERT INTO `%s` %s', $table, self::values($column));
-            $stm = $pdo->prepare($sql);
-            $key_names = array_keys($column);
-            foreach ($data as $row) {
-                foreach ($row as $i => $value) {
-                    $stm->bindValue(":{$key_names[$i]}", $value);
-                }
-                $stm->execute();
-            }
-            return $pdo->commit();
-        } catch (Throwable $e) {
-            $pdo->rollBack();
-            throw $e;
-        }
-    }
+	final public static function insert_many(string $table, array $column, array $data)
+	{
+		$column = array_combine($column, $column);
+		$pdo = self::ready();
+		$pdo->beginTransaction();
+		try {
+			$sql = sprintf('INSERT INTO `%s` %s', $table, self::values($column));
+			$stm = $pdo->prepare($sql);
+			$key_names = array_keys($column);
+			foreach ($data as $row) {
+				foreach ($row as $i => $value) {
+					$stm->bindValue(":{$key_names[$i]}", $value);
+				}
+				$stm->execute();
+			}
+			return $pdo->commit();
+		} catch (Throwable $e) {
+			$pdo->rollBack();
+			throw $e;
+		}
+	}
 
-    static function insert_once_many(string $table, array $column, array $data, bool $duplicateKeyUpdate = false)
-    {
-        $values = array_merge(...$data);
-        $holders = substr(str_repeat('(?' . str_repeat(',?', count(reset($data)) - 1) . '),', count($data)), 0, -1);
-        $sql = sprintf('INSERT INTO%s %s', sprintf(' `%s` (%s) VALUES', $table, implode(',', array_map(fn ($k) =>  "`{$k}`", $column))), $holders);
-        if ($duplicateKeyUpdate) {
-            $sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', array_map(fn ($v) => "`{$v}`=VALUES({$v})", $column));
-        }
-        return self::exec($sql, $values);
-    }
+	final public static function insert_once_many(string $table, array $column, array $data, bool $duplicateKeyUpdate = false)
+	{
+		$values = array_merge(...$data);
+		$holders = substr(str_repeat('(?' . str_repeat(',?', count(reset($data)) - 1) . '),', count($data)), 0, -1);
+		$sql = sprintf('INSERT INTO `%s` (%s) VALUES %s', $table, implode(',', array_map(fn ($k) => "`$k`", $column)), $holders);
+		if ($duplicateKeyUpdate) {
+			$sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', array_map(fn ($v) => "`$v`=VALUES($v)", $column));
+		}
+		return self::exec($sql, $values);
+	}
 }
 ```
 
