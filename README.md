@@ -702,100 +702,104 @@ $sql=sprintf('INSERT DELAYED IGNORE INTO `%s` %s',static::table,self::values($da
 
 因为`InnoDB`默认是`auto-commit mode`,每条 SQL 都会当做一个事务自动提交,会带来额外开销.
 
-数据源
-
-```php
-$data=
-[
-	['id'=>11,'name'=>'name11']
-];
-```
 
 `INSERT INTO`也可以使用`IGNORE`,`REPLACE`,`ON DUPLICATE KEY UPDATE`
 
+
+数据源
+
 ```php
-try
+$column = ['title', 'text', 'ids', 'enable'];
+$data = [
+	['title1', 'text1', 'a,b', 1],
+	['title2', 'text2', 'a,b', 1],
+	['title3', 'text3', 'b,c', 0],
+	['title4', 'text4', 'b,c', 0]
+];
+```
+
+```php
+
+class test extends db
 {
-	$example = ['id' => 'id', 'name' => 'name'];
-	self::beginTransaction();
-	$sql=sprintf('INSERT INTO `%s` %s',static::table,self::values($example));
-	$stm=db::execute($sql,false);
-	$key_names =
-		[
-			'id' => array_search('id', $example, true),
-			'name' => array_search('name', $example, true)
-		];
-	$stm = db::execute($sql, false);
-	foreach ($data as $row) {
-		$stm->bindParam(":{$key_names['id']}", $row['id']);
-		$stm->bindParam(":{$key_names['name']}", $row['name']);
-		$stm->execute();
-	}
-	return self::commit();
-}
-catch(PDOExecption $e)
-{
-	self::rollBack();
-	return false;
+
+    static function insert_many(string $table, array $column, array $data)
+    {
+        $column = array_combine($column, $column);
+        $pdo = self::ready();
+        $pdo->beginTransaction();
+        try {
+            $sql = sprintf('INSERT INTO `%s` %s', $table, self::values($column));
+            $stm = $pdo->prepare($sql);
+            $key_names = array_keys($column);
+            foreach ($data as $row) {
+                foreach ($row as $i => $value) {
+                    $stm->bindValue(":{$key_names[$i]}", $value);
+                }
+                $stm->execute();
+            }
+            return $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
 }
 ```
 
-如果字段与数组的键相同,还可以简化变量绑定
-
-```php
-foreach ($row as $column => $value)
-{
-	$stm->bindParam(":{$key_names[$column]}",$value);
-}
-$stm->execute();
-```
 
 ### 更快的批量插入
 
 使用单条 SQL 代替循环插入速度将会更快
 
-数据源
+数据源和参数同上
+
 
 ```php
-$data=
-[
-	6=>['id'=>11,'name'=>'name1','age'=>22],
-	8=>['id'=>12,'name'=>'name2','age'=>23],
-	9=>['id'=>13,'name'=>'name3','age'=>24],
-	3=>['id'=>14,'name'=>'name4','age'=>25],
-];
-```
 
-设置`$values=[]`
-
-```php
-array_map(function($v)use(&$values){array_push($values,...array_values($v));},$data);
-$holders=substr(str_repeat('(?'.str_repeat(',?',count(reset($data))-1).'),',count($data)),0,-1);
-$sql=sprintf('INSERT INTO%s %s',sprintf(' `%s` (%s) VALUES',self::table,implode(',',array_map(function($k){return "`{$k}`";},array_keys(reset($data))))),substr(str_repeat('(?'.str_repeat(',?',count(reset($data))-1).'),',count($data)),0,-1));
-```
-
-
-_批量插入中使用`ON DUPLICATE KEY UPDATE`_
-
-在最后面添加一行
-
-```php
-$sql.=' ON DUPLICATE KEY UPDATE '.implode(',',array_map(function($v){return "`{$v}`=VALUES({$v})";},array_keys(reset($data))));
-```
-
-完成以后最好`unset($data,$holders);`释放内存,
-然后`self::exec($sql,$values);`
-
-如果`$data`太大,超过 1W 个元素,或者字段太大,建议分块插入
-
-2000 个一批,速度并不会有明显影响,内存会较为节省
-
-```Php
-foreach(array_chunk($data,2e3) as $item)
+class test extends db
 {
-	self::dobatchinsert($item);
+
+    static function insert_many(string $table, array $column, array $data)
+    {
+        $column = array_combine($column, $column);
+        $pdo = self::ready();
+        $pdo->beginTransaction();
+        try {
+            $sql = sprintf('INSERT INTO `%s` %s', $table, self::values($column));
+            $stm = $pdo->prepare($sql);
+            $key_names = array_keys($column);
+            foreach ($data as $row) {
+                foreach ($row as $i => $value) {
+                    $stm->bindValue(":{$key_names[$i]}", $value);
+                }
+                $stm->execute();
+            }
+            return $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    static function insert_once_many(string $table, array $column, array $data, bool $duplicateKeyUpdate = false)
+    {
+        $values = array_merge(...$data);
+        $holders = substr(str_repeat('(?' . str_repeat(',?', count(reset($data)) - 1) . '),', count($data)), 0, -1);
+        $sql = sprintf('INSERT INTO%s %s', sprintf(' `%s` (%s) VALUES', $table, implode(',', array_map(fn ($k) =>  "`{$k}`", $column))), $holders);
+        if ($duplicateKeyUpdate) {
+            $sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', array_map(fn ($v) => "`{$v}`=VALUES({$v})", $column));
+        }
+        return self::exec($sql, $values);
+    }
 }
 ```
+
+
+_批量插入中使用`ON DUPLICATE KEY UPDATE`仅需配置第四个参数_
+
+如果数据量巨大，可能造成SQL语句太长，可以使用`array_chunk`切割`$data`分批调用
+
 
 ### 嵌套的`AND`和`OR`
 
