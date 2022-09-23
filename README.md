@@ -782,6 +782,7 @@ class test extends db
 		}
 	}
 
+	// 返回受影响的行数
 	final public static function insert_once_many(string $table, array $column, array $data, bool $duplicateKeyUpdate = false)
 	{
 		$values = array_merge(...$data);
@@ -790,7 +791,7 @@ class test extends db
 		if ($duplicateKeyUpdate) {
 			$sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', array_map(fn ($v) => "`$v`=VALUES($v)", $column));
 		}
-		return self::exec($sql, $values);
+		return self::exec($sql, $values, 'rowCount');
 	}
 }
 ```
