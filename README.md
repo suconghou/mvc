@@ -787,7 +787,7 @@ class test extends db
 	{
 		$values = array_merge(...$data);
 		$holders = substr(str_repeat('(?' . str_repeat(',?', count(reset($data)) - 1) . '),', count($data)), 0, -1);
-		$sql = sprintf('INSERT INTO `%s` (%s) VALUES %s', $table, implode(',', array_map(fn ($k) => "`$k`", $column)), $holders);
+		$sql = sprintf('INSERT INTO %s (%s) VALUES %s', str_contains($table, '.') ? $table : "`$table`", implode(',', array_map(fn ($k) => "`$k`", $column)), $holders);
 		if ($duplicateKeyUpdate) {
 			$sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', array_map(fn ($v) => "`$v`=VALUES($v)", $column));
 		}
