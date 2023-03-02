@@ -27,10 +27,10 @@ class app
 					return header('Expires: ' . gmdate('D, d M Y H:i:s', intval($expire)) . ' GMT', true, 304);
 				}
 			}
+			$varPath = $config['var_path'] ?? (__DIR__ . DIRECTORY_SEPARATOR);
+			define('VAR_PATH_LOG', $varPath . 'log' . DIRECTORY_SEPARATOR);
+			define('VAR_PATH_HTML', $varPath . 'html' . DIRECTORY_SEPARATOR);
 			if ($cli) {
-				if (($name = getenv('name')) && ($entry = getenv('entry'))) {
-					return self::createPhar($name, $entry);
-				}
 				$uri = implode('/', $GLOBALS['argv']);
 			} else {
 				[$uri] = explode('?', $_SERVER['REQUEST_URI'], 2);
@@ -38,12 +38,6 @@ class app
 			if (stripos($uri, $_SERVER['SCRIPT_NAME']) === 0) {
 				$uri = substr($uri, strlen($_SERVER['SCRIPT_NAME']));
 			}
-			$varPath = $config['var_path'] ?? (__DIR__ . DIRECTORY_SEPARATOR);
-			if (substr($varPath, 0, 7) === 'phar://') {
-				$varPath = str_replace('/' . $_SERVER['SCRIPT_NAME'], '', substr($varPath, 7));
-			}
-			define('VAR_PATH_LOG', $varPath . 'log' . DIRECTORY_SEPARATOR);
-			define('VAR_PATH_HTML', $varPath . 'html' . DIRECTORY_SEPARATOR);
 			$request_method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 			$file = self::file($request_method . $uri);
 			self::$global['sys.cachefile'] = $file;
@@ -61,9 +55,7 @@ class app
 				unlink($file);
 			}
 			// 普通路由执行器,交由app::run执行,app::run只能执行普通路由
-			set_error_handler(function (int $errno, string $errstr, string $errfile, int $errline) {
-				throw new Exception(sprintf('%s%s', $errstr, $errfile ? (' in file ' . $errfile . ($errline ? "({$errline})" : '')) : ''), $errno);
-			});
+			set_error_handler(fn (int $errno, string $errstr, string $errfile, int $errline) => throw new ErrorException(sprintf('%s%s', $errstr, $errfile ? (' in file ' . $errfile . ($errline ? "({$errline})" : '')) : ''), $errno));
 			route::register(...$config['lib_path'] ?? [__DIR__ . DIRECTORY_SEPARATOR]);
 			// 进行正则路由匹配,未匹配到fallback到普通路由
 			route::notfound(fn (array $r) => self::run($r));
@@ -107,42 +99,28 @@ class app
 		}
 	}
 
-	private static function createPhar(string $name, string $entry)
-	{
-		$path = ROOT . $name;
-		$phar = new Phar($path, FilesystemIterator::CURRENT_AS_FILEINFO | FilesystemIterator::KEY_AS_FILENAME | FilesystemIterator::SKIP_DOTS, $name);
-		$phar->startBuffering();
-		$dirObj = new RegexIterator(new RecursiveIteratorIterator(new RecursiveDirectoryIterator(ROOT)), '/^[\w\/\-\\\.:]+\.php$/i');
-		foreach ($dirObj as $file => $_) {
-			$phar->addFromString(substr($file, strlen(ROOT)), php_strip_whitespace($file));
-		}
-		$phar->setStub("#!/usr/bin/env php" . PHP_EOL . "<?php Phar::mapPhar('$name');require 'phar://{$name}/{$entry}';__HALT_COMPILER();");
-		$phar->stopBuffering();
-		echo "{$phar->count()} files stored in {$path}" . PHP_EOL;
-	}
-
 	//参数必须是数组,第一个为控制器,第二个为方法,后面的为参数,他确保了被调用的控制器是单例的,不重复实例化
 	public static function run(array $r)
 	{
 		if (empty($r[0])) {
 			$r[0] = 'home';
 		} else if (!preg_match('/^[a-z][\w\\\-]{0,20}$/i', $r[0])) {
-			throw new Exception(sprintf('request controller %s error', $r[0]), 404);
+			throw new InvalidArgumentException(sprintf('request controller %s error', $r[0]), 404);
 		}
 		if (empty($r[1])) {
 			$r[1] = 'index';
 		} else if (!preg_match('/^[a-z][\w\\\-]{0,20}$/i', $r[1])) {
-			throw new Exception(sprintf('request action %s:%s error', $r[0], $r[1]), 404);
+			throw new InvalidArgumentException(sprintf('request action %s:%s error', $r[0], $r[1]), 404);
 		}
 		if (!method_exists($r[0], $r[1]) || !method_exists($r[0], '__invoke')) {
-			throw new Exception(sprintf('request action %s:%s not exist', $r[0], $r[1]), 404);
+			throw new InvalidArgumentException(sprintf('request action %s:%s not exist', $r[0], $r[1]), 404);
 		}
 		if (empty(self::$global['sys.' . $r[0]])) {
 			self::$global['sys.' . $r[0]] = new $r[0]($r);
 		}
 		$instance = self::$global['sys.' . $r[0]];
 		if (!is_callable([$instance, $r[1]])) {
-			throw new Exception(sprintf('request action %s:%s not callable', $r[0], $r[1]), 404);
+			throw new InvalidArgumentException(sprintf('request action %s:%s not callable', $r[0], $r[1]), 404);
 		}
 		try {
 			return call_user_func_array([$instance, $r[1]], array_slice($r, 2));
@@ -195,7 +173,7 @@ class app
 		}
 		return $config;
 	}
-	public static function on(string $event, closure $task)
+	public static function on(string $event, callable $task)
 	{
 		return self::$global['event'][$event] = $task;
 	}
@@ -209,10 +187,7 @@ class app
 	}
 	public static function __callStatic(string $fn, array $args)
 	{
-		if (isset(self::$global['event'][$fn])) {
-			return call_user_func_array(self::$global['event'][$fn], $args);
-		}
-		throw new BadMethodCallException("call error static method {$fn}", 500);
+		return call_user_func_array(self::$global['event'][$fn] ?? fn () => throw new BadMethodCallException($fn, 500), $args);
 	}
 }
 
@@ -220,7 +195,7 @@ class route
 {
 	private static $routes = [];
 	private static $notfound;
-	public static function u(string $path = '', $query = null, $host = null): string
+	public static function u(string $path = '', array|string $query = null, bool|string $host = null): string
 	{
 		$prefix = '';
 		if ($host === true) {
@@ -247,39 +222,39 @@ class route
 		}
 		exit(header('Cache-Control:no-cache, no-store, max-age=0, must-revalidate'));
 	}
-	public static function get(string $regex, $fn)
+	public static function get(string $regex, array|string|callable $fn)
 	{
 		self::add($regex, $fn, ['GET']);
 	}
-	public static function post(string $regex, $fn)
+	public static function post(string $regex, array|string|callable $fn)
 	{
 		self::add($regex, $fn, ['POST']);
 	}
-	public static function put(string $regex, $fn)
+	public static function put(string $regex, array|string|callable $fn)
 	{
 		self::add($regex, $fn, ['PUT']);
 	}
-	public static function delete(string $regex, $fn)
+	public static function delete(string $regex, array|string|callable $fn)
 	{
 		self::add($regex, $fn, ['DELETE']);
 	}
-	public static function head(string $regex, $fn)
+	public static function head(string $regex, array|string|callable $fn)
 	{
 		self::add($regex, $fn, ['HEAD']);
 	}
-	public static function options(string $regex, $fn)
+	public static function options(string $regex, array|string|callable $fn)
 	{
 		self::add($regex, $fn, ['OPTIONS']);
 	}
-	public static function any(string $regex, $fn, array $methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'])
+	public static function any(string $regex, array|string|callable $fn, array $methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'])
 	{
 		self::add($regex, $fn, $methods);
 	}
-	public static function add(string $regex, $fn, array $methods)
+	public static function add(string $regex, array|string|callable $fn, array $methods)
 	{
 		self::$routes[] = [$regex, $fn, $methods];
 	}
-	public static function notfound($fn)
+	public static function notfound(array|string|callable $fn)
 	{
 		self::$notfound = $fn;
 	}
@@ -311,9 +286,7 @@ class route
 			return self::call($fn, [], $params);
 		}
 		if (!self::$notfound) {
-			self::$notfound = function () {
-				throw new Exception('Not Found', 404);
-			};
+			self::$notfound = fn () => throw new BadFunctionCallException('Not Found', 404);
 		}
 		return self::call(self::$notfound, [$r], []);
 	}
@@ -328,7 +301,7 @@ class route
 		return false;
 	}
 	// fn 可能是个字符串函数名,可能是个closure,可能是个数组
-	private static function call($fn, array $ctx, array $params)
+	private static function call(array|string|callable $fn, array $ctx, array $params)
 	{
 		if (is_array($fn)) {
 			return app::run(array_merge($fn, $ctx, $params));
@@ -339,27 +312,27 @@ class route
 
 class request
 {
-	public static function post($key = null, $default = null, string $clean = '')
+	public static function post(array|string $key = null, $default = null, string $clean = '')
 	{
 		return self::getVar($_POST, $key, $default, $clean);
 	}
-	public static function get($key = null, $default = null, string $clean = '')
+	public static function get(array|string $key = null, $default = null, string $clean = '')
 	{
 		return self::getVar($_GET, $key, $default, $clean);
 	}
-	public static function param($key = null, $default = null, string $clean = '')
+	public static function param(array|string $key = null, $default = null, string $clean = '')
 	{
 		return self::getVar($_REQUEST, $key, $default, $clean);
 	}
-	public static function server($key = null, $default = null, string $clean = '')
+	public static function server(array|string $key = null, $default = null, string $clean = '')
 	{
 		return self::getVar($_SERVER, $key, $default, $clean);
 	}
-	public static function cookie($key = null, $default = null, string $clean = '')
+	public static function cookie(array|string $key = null, $default = null, string $clean = '')
 	{
 		return self::getVar($_COOKIE, $key, $default, $clean);
 	}
-	public static function session($key = null, $default = null, string $clean = '')
+	public static function session(array|string $key = null, $default = null, string $clean = '')
 	{
 		isset($_SESSION) || session_start();
 		return self::getVar($_SESSION, $key, $default, $clean);
@@ -386,12 +359,12 @@ class request
 	{
 		return isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) !== 'off');
 	}
-	public static function is(string $m = null, closure $callback = null)
+	public static function is(string $m = null, callable $callback = null)
 	{
 		$t = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 		return $m ? (($t === strtoupper($m)) ? ($callback ? $callback() : true) : false) : $t;
 	}
-	public static function verify(array $rule, $callback = false, $post = true)
+	public static function verify(array $rule, bool|callable $callback = false, array|bool $post = true)
 	{
 		$keys = [];
 		$data = $post === true ? $_POST : (is_array($post) ? $post : $_REQUEST);
@@ -408,7 +381,7 @@ class request
 		}
 		return validate::verify($rule, $data, $callback);
 	}
-	public static function getVar(&$origin, $var, $default = null, string $clean = '')
+	public static function getVar(array &$origin, array|string $var = null, $default = null, string $clean = '')
 	{
 		if ($var) {
 			if (is_array($var)) {
@@ -443,7 +416,7 @@ class request
 
 class validate
 {
-	public static function verify(array $rule, array $data, $callback = false)
+	public static function verify(array $rule, array $data, bool|callable $callback = false)
 	{
 		try {
 			$switch = [];
@@ -456,12 +429,12 @@ class validate
 								$data[$k] = $msg($data[$k], $k);
 							} else if (is_array($msg)) {
 								if (!in_array($data[$k], $msg, true)) {
-									throw new Exception($type ?: "{$k} error", -22);
+									throw new InvalidArgumentException($type ?: "{$k} error", -22);
 								}
 							} else if (is_int($type)) {
 								$switch[$k] = $msg;
 							} else if (!self::check($data[$k], $type)) {
-								throw new Exception($msg ?: "{$k} error", -23);
+								throw new InvalidArgumentException($msg ?: "{$k} error", -23);
 							}
 						}
 					} else if ($item instanceof closure) {
@@ -474,9 +447,9 @@ class validate
 				} else if (!is_array($item)) {
 					$data[$k] = $item;
 				} else if (isset($item['require'])) {
-					throw new Exception($item['require'] ?: "{$k} is required", -20);
+					throw new InvalidArgumentException($item['require'] ?: "{$k} is required", -20);
 				} else if (isset($item['required'])) {
-					throw new Exception($item['required'] ?: "{$k} is required", -21);
+					throw new InvalidArgumentException($item['required'] ?: "{$k} is required", -21);
 				} else if (isset($item['default'])) {
 					$data[$k] = $item['default'] instanceof closure ? $item['default']() : $item['default'];
 				}
@@ -486,7 +459,7 @@ class validate
 				throw $e;
 			}
 			$data = ['code' => $e->getCode(), 'msg' => $e->getMessage()];
-			return $callback ? (($callback instanceof closure) ? $callback($data, $e) : json($data)) : false;
+			return $callback ? (is_callable($callback) ? $callback($data, $e) : json($data)) : false;
 		}
 		foreach ($switch as $from => $to) {
 			$data[$to] = $data[$from];
@@ -583,7 +556,7 @@ class validate
 	//字符串是合法的JSON数组或对象
 	public static function json(string $s)
 	{
-		return in_array(substr(trim($s), 0, 1), ['[', '{'], true) && !is_null(json_decode($s));
+		return in_array(trim($s)[0] ?? '', ['[', '{'], true) && !is_null(json_decode($s));
 	}
 	//字母数字汉字,不能全是数字
 	public static function username(string $username)
@@ -642,7 +615,7 @@ class db
 		return self::exec($sql, $where);
 	}
 
-	final public static function find(array $where = [], string $table = '', string $col = '*', array $orderLimit = [], $fetch = 'fetchAll')
+	final public static function find(array $where = [], string $table = '', string $col = '*', array $orderLimit = [], string $fetch = 'fetchAll')
 	{
 		$sql = sprintf('SELECT %s FROM %s%s%s', $col, $table ?: static::table(), self::condition($where), $orderLimit ? self::orderLimit($orderLimit) : '');
 		return self::exec($sql, $where, $fetch);
@@ -697,7 +670,7 @@ class db
 		return $_pdo;
 	}
 
-	final public static function exec(string $sql, array $params = [], $fetch = '')
+	final public static function exec(string $sql, array $params = [], bool|string $fetch = '')
 	{
 		$pdo = static::ready();
 		if (empty($params)) {
@@ -819,7 +792,7 @@ class db
 	}
 }
 
-function template(string $v, array $data = [], $callback = null, string $path = '')
+function template(string $v, array $data = [], callable|int $callback = null, string $path = '')
 {
 	$path = $path ?: app::get('view_path', '');
 	if (is_int($callback) && $callback > 1) {
@@ -847,10 +820,10 @@ function template(string $v, array $data = [], $callback = null, string $path = 
 		};
 		return $render();
 	}
-	throw new Exception("file {$__v__} not found", 404);
+	throw new InvalidArgumentException("file {$__v__} not found", 404);
 }
 
-function session($key, $val = null, bool $delete = false)
+function session(array|string $key, $val = null, bool $delete = false)
 {
 	isset($_SESSION) || session_start();
 	if (is_null($val)) {
@@ -860,7 +833,7 @@ function session($key, $val = null, bool $delete = false)
 	}
 	return $_SESSION[$key] = $val;
 }
-function cookie($key, $val = null)
+function cookie(array|string $key, $val = null)
 {
 	if (is_null($val)) {
 		return request::cookie($key, null);
