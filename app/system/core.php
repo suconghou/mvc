@@ -426,15 +426,17 @@ class validate
 						foreach ($item as $type => $msg) {
 							if ($type === 'default') continue;
 							if ($msg instanceof closure) {
-								$data[$k] = $msg($data[$k], $k);
+								$data[$k] = $msg($data[$k], $type, $k);
 							} else if (is_array($msg)) {
 								if (!in_array($data[$k], $msg, true)) {
-									throw new InvalidArgumentException($type ?: "{$k} error", -22);
+									throw new InvalidArgumentException($type, -22);
 								}
-							} else if (is_int($type)) {
+							} else if (is_int($type) && is_string($msg)) {
 								$switch[$k] = $msg;
-							} else if (!self::check($data[$k], $type)) {
-								throw new InvalidArgumentException($msg ?: "{$k} error", -23);
+							} else { // $type是string,$msg是int/bool/string/object或$type是int,$msg是int/bool/object
+								if (!self::check($data[$k], $type)) {
+									throw new InvalidArgumentException($msg, -23);
+								}
 							}
 						}
 					} else if ($item instanceof closure) {
@@ -446,20 +448,18 @@ class validate
 					$data[$k] = $item();
 				} else if (!is_array($item)) {
 					$data[$k] = $item;
-				} else if (isset($item['require'])) {
-					throw new InvalidArgumentException($item['require'] ?: "{$k} is required", -20);
-				} else if (isset($item['required'])) {
-					throw new InvalidArgumentException($item['required'] ?: "{$k} is required", -21);
-				} else if (isset($item['default'])) {
+				} else if (!empty($item['require']) || !empty($item['required'])) {
+					throw new InvalidArgumentException($item['require'] ?? $item['required'], -20);
+				} else if (array_key_exists('default', $item)) {
 					$data[$k] = $item['default'] instanceof closure ? $item['default']() : $item['default'];
-				}
+				} // else 其他情况：有规则，但是不存在值，规则$item是数组，应该按照校验规则解析，但是没要求必填，没配置默认值，则忽略校验
 			}
 		} catch (Throwable $e) {
 			if ($callback === false) {
 				throw $e;
 			}
 			$data = ['code' => $e->getCode(), 'msg' => $e->getMessage()];
-			return $callback ? (is_callable($callback) ? $callback($data, $e) : json($data)) : false;
+			return is_callable($callback) ? $callback($data, $e) : json($data);
 		}
 		foreach ($switch as $from => $to) {
 			$data[$to] = $data[$from];
