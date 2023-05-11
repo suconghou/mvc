@@ -55,7 +55,7 @@ class app
 				unlink($file);
 			}
 			// 普通路由执行器,交由app::run执行,app::run只能执行普通路由
-			set_error_handler(fn (int $errno, string $errstr, string $errfile, int $errline) => throw new ErrorException(sprintf('%s%s', $errstr, $errfile ? (' in file ' . $errfile . ($errline ? "({$errline})" : '')) : ''), $errno));
+			set_error_handler(fn (int $errno, string $errstr, string $errfile, int $errline) => throw new ErrorException($errstr, $errno, 1, $errfile, $errline));
 			route::register(...$config['lib_path'] ?? [__DIR__ . DIRECTORY_SEPARATOR]);
 			// 进行正则路由匹配,未匹配到fallback到普通路由
 			route::notfound(fn (array $r) => self::run($r));
