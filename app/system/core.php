@@ -55,17 +55,17 @@ class app
 				unlink($file);
 			}
 			// 普通路由执行器,交由app::run执行,app::run只能执行普通路由
-			set_error_handler(fn (int $errno, string $errstr, string $errfile, int $errline) => throw new ErrorException($errstr, $errno, 1, $errfile, $errline));
+			set_error_handler(static fn (int $errno, string $errstr, string $errfile, int $errline) => throw new ErrorException($errstr, $errno, 1, $errfile, $errline));
 			route::register(...$config['lib_path'] ?? [__DIR__ . DIRECTORY_SEPARATOR]);
 			// 进行正则路由匹配,未匹配到fallback到普通路由
-			route::notfound(fn (array $r) => self::run($r));
+			route::notfound(static fn (array $r) => self::run($r));
 			return route::run($uri, $request_method);
 		} catch (Throwable $e) {
 			$err = $e;
 			$errfound = self::get('errfound');
 			$errno = $e->getCode();
 			$errstr = substr($err->getMessage(), 0, 200);
-			$errHandler = function (Throwable $e, bool $cli) {
+			$errHandler = static function (Throwable $e, bool $cli) {
 				if ($cli) {
 					echo $e, PHP_EOL;
 				} else {
@@ -187,7 +187,7 @@ class app
 	}
 	public static function __callStatic(string $fn, array $args)
 	{
-		return call_user_func_array(self::$global['event'][$fn] ?? fn () => throw new BadMethodCallException($fn, 500), $args);
+		return call_user_func_array(self::$global['event'][$fn] ?? static fn () => throw new BadMethodCallException($fn, 500), $args);
 	}
 }
 
@@ -260,7 +260,7 @@ class route
 	}
 	public static function register(string ...$dirs)
 	{
-		spl_autoload_register(function ($name) use ($dirs) {
+		spl_autoload_register(static function ($name) use ($dirs) {
 			$name = str_replace('\\', DIRECTORY_SEPARATOR, $name);
 			foreach ($dirs as $dir) {
 				$file = "{$dir}{$name}.php";
@@ -286,7 +286,7 @@ class route
 			return self::call($fn, [], $params);
 		}
 		if (!self::$notfound) {
-			self::$notfound = fn () => throw new BadFunctionCallException('Not Found', 404);
+			self::$notfound = static fn () => throw new BadFunctionCallException('Not Found', 404);
 		}
 		return self::call(self::$notfound, [$r], []);
 	}
@@ -647,7 +647,7 @@ class db
 
 	final public static function query(array ...$v)
 	{
-		return array_map(fn ($item) => self::exec(...$item), $v);
+		return array_map(static fn ($item) => self::exec(...$item), $v);
 	}
 
 	final public static function init(array $dbConfig): PDO
@@ -772,20 +772,20 @@ class db
 			}
 			unset($data[$item]);
 		}
-		return $set ? implode(',', array_map(fn ($x) => sprintf('`%s` = %s', $x[0], $x[1]), $keys)) : sprintf('%s(%s) VALUES (%s)', $table ? " `{$table}` " : '', implode(',', array_map(fn ($x) => sprintf('`%s`', $x[0]), $keys)), implode(',', array_map(fn ($x) => $x[1], $keys)));
+		return $set ? implode(',', array_map(static fn ($x) => sprintf('`%s` = %s', $x[0], $x[1]), $keys)) : sprintf('%s(%s) VALUES (%s)', $table ? " `{$table}` " : '', implode(',', array_map(static fn ($x) => sprintf('`%s`', $x[0]), $keys)), implode(',', array_map(static fn ($x) => $x[1], $keys)));
 	}
 
 	final public static function orderLimit(array $orderLimit): string
 	{
 		$limit = '';
-		$orderLimit = array_filter($orderLimit, function ($x, $k) use (&$limit) {
+		$orderLimit = array_filter($orderLimit, static function ($x, $k) use (&$limit) {
 			if ((is_int($x) || ctype_digit(strval($x))) && (is_int($k) || ctype_digit(strval($k)))) {
 				$limit = "$k,$x";
 				return false;
 			}
 			return true;
 		}, ARRAY_FILTER_USE_BOTH);
-		$orderLimit ? (array_walk($orderLimit, function (&$v, $k) {
+		$orderLimit ? (array_walk($orderLimit, static function (&$v, $k) {
 			$v = sprintf('%s %s', $k, is_string($v) ? $v : ($v ? 'ASC' : 'DESC'));
 		})) : '';
 		return sprintf('%s%s', $orderLimit ? ' ORDER BY ' . implode(',', $orderLimit) : '', $limit ? " LIMIT $limit" : '');
@@ -797,7 +797,7 @@ function template(string $v, array $data = [], callable|int $callback = null, st
 	$path = $path ?: app::get('view_path', '');
 	if (is_int($callback) && $callback > 1) {
 		$t = $callback;
-		$callback = function ($buffer) use ($t) {
+		$callback = static function ($buffer) use ($t) {
 			echo $buffer;
 			if (is_writable(VAR_PATH_HTML)) {
 				if ($file = app::get('sys.cachefile')) {
@@ -808,7 +808,7 @@ function template(string $v, array $data = [], callable|int $callback = null, st
 	}
 	if ((is_file($__v__ = $path . $v . '.php')) || (is_file($__v__ = $path . $v))) {
 		$__render__props__ = ['v' => $__v__, 'callback' => $callback, 'data' => $data];
-		$render = function () use ($__render__props__) {
+		$render = static function () use ($__render__props__) {
 			extract($__render__props__['data'], EXTR_SKIP);
 			unset($__render__props__['data']);
 			if ($__render__props__['callback']) {
@@ -827,7 +827,7 @@ function session(array|string $key, $val = null, bool $delete = false)
 {
 	isset($_SESSION) || session_start();
 	if (is_null($val)) {
-		return $delete ? array_filter(is_array($key) ? $key : [$key], function ($k) {
+		return $delete ? array_filter(is_array($key) ? $key : [$key], static function ($k) {
 			unset($_SESSION[$k]);
 		}) : request::session($key, null);
 	}
