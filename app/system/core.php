@@ -109,7 +109,7 @@ class app
 		}
 		if (empty($r[1])) {
 			$r[1] = 'index';
-		} else if (!preg_match('/^[a-z][\w\\\-]{0,20}$/i', $r[1])) {
+		} else if (!preg_match('/^[a-z][\w\-]{0,20}$/i', $r[1])) {
 			throw new InvalidArgumentException(sprintf('request action %s:%s error', $r[0], $r[1]), 404);
 		}
 		if (!method_exists($r[0], $r[1]) || !method_exists($r[0], '__invoke')) {
@@ -195,7 +195,7 @@ class route
 {
 	private static $routes = [];
 	private static $notfound;
-	public static function u(string $path = '', array|string $query = null, bool|string $host = null): string
+	public static function u(string $path = '', array|string $query = '', bool|string $host = ''): string
 	{
 		$prefix = '';
 		if ($host === true) {
