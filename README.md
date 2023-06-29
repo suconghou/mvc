@@ -621,6 +621,14 @@ orm::values(array &$data,bool $set=false,string $table='')
 
 原始值没有引号包裹,也不是预处理字段,随意使用将会带来安全隐患.
 
+
+**注意**
+
+同一个变量不可传入`values()`或`condition()`两次,因为这些方法会修改传入值,第二次执行时,用到的值已经被第一次修改了
+
+可以使用`$update=$insert`,两个变量各自修改不会影响另一个
+
+
 ### ORDERLIMIT 构造器
 
 ```php
@@ -643,26 +651,20 @@ orm::orderLimit(array $orderLimit)
 
 ### 使用 ON DUPLICATE KEY UPDATE
 
-例如`$data=['id'=>123,'name'=>'456'];` 其中`id`为主键
-
-注意`$data`将被改写,如果后面还需要使用`:name`绑定,可以复制一份数据
-
 ```php
-$v=$data;
-$sql=sprintf('INSERT INTO%s ON DUPLICATE KEY UPDATE id=:id,name=:name',self::values($data,false,static::table));
-return self::exec($sql,$data+$v);
+final public static function insert_or_update(string $table, array $insert, array $update)
+{
+	$sql = sprintf('INSERT INTO%s ON DUPLICATE KEY UPDATE %s', self::values($insert, false, $table), self::values($update, true));
+	return self::exec($sql, $insert + $update);
+}
 ```
-
-如果`$data`里的数据全部需要覆盖更新,可以直接使用`self::values($data,true)`
-
-
-注意: 同一个变量不可传入`values()`或`condition()`两次,因为这些方法会修改传入值,第二次执行时,用到的值已经被第一次修改了
-
+自己拼接的话
 ```php
-$v=$data;
-$sql=sprintf('INSERT INTO%s ON DUPLICATE KEY UPDATE %s',self::values($data,false,static::table),self::values($v,true));
-return self::exec($sql,$data+$v);
+$sql = sprintf('INSERT INTO%s ON DUPLICATE KEY UPDATE id=:id,name=:name', self::values($insert, false, static::table));
+return self::exec($sql, $insert + $update);
 ```
+需要`$update=['id'=>1,'name'=>2];`与自己写的SQL对应
+
 
 ### 使用 INSERT DELAYED
 
@@ -770,13 +772,13 @@ class test extends db
 	}
 
 	// 返回受影响的行数
-	final public static function insert_once_many(string $table, array $column, array $data, bool $duplicateKeyUpdate = false)
+	final public static function insert_once_many(string $table, array $column, array $data, array $duplicateKeyUpdate = [])
 	{
 		$values = array_merge(...$data);
 		$holders = substr(str_repeat('(?' . str_repeat(',?', count(reset($data)) - 1) . '),', count($data)), 0, -1);
-		$sql = sprintf('INSERT INTO %s (%s) VALUES %s', str_contains($table, '.') ? $table : "`$table`", implode(',', array_map(fn ($k) => "`$k`", $column)), $holders);
+		$sql = sprintf('INSERT INTO %s (%s) VALUES %s', str_contains($table, '.') ? $table : "`$table`", implode(',', array_map(static fn ($k) => "`$k`", $column)), $holders);
 		if ($duplicateKeyUpdate) {
-			$sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', array_map(fn ($v) => "`$v`=VALUES($v)", $column));
+			$sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', array_map(static fn ($v) => "`$v`=VALUES($v)", $duplicateKeyUpdate));
 		}
 		return self::exec($sql, $values, 'rowCount');
 	}
@@ -860,24 +862,24 @@ $data1=$data2=$data3=[];
 class testdb extends db
 {
 
-    final public static function getUpdate(array $where, array $data, string $table = '')
-    {
-        $sql = sprintf('UPDATE %s SET %s%s', $table ?: self::table(), self::values($data, true), self::condition($where));
-        $params = $data + $where;
-        if (empty($params)) {
-            return self::exec($sql);
-        }
-        return self::exec($sql, $params, 'rowCount');
-    }
+	final public static function getUpdate(array $where, array $data, string $table = '')
+	{
+		$sql = sprintf('UPDATE %s SET %s%s', $table ?: self::table(), self::values($data, true), self::condition($where));
+		$params = $data + $where;
+		if (empty($params)) {
+			return self::exec($sql);
+		}
+		return self::exec($sql, $params, 'rowCount');
+	}
 
-    final public static function getDelete(array $where = [], string $table = '')
-    {
-        $sql = sprintf('DELETE FROM %s%s', $table ?: self::table(), self::condition($where));
-        if (empty($where)) {
-            return self::exec($sql);
-        }
-        return self::exec($sql, $where, 'rowCount');
-    }
+	final public static function getDelete(array $where = [], string $table = '')
+	{
+		$sql = sprintf('DELETE FROM %s%s', $table ?: self::table(), self::condition($where));
+		if (empty($where)) {
+			return self::exec($sql);
+		}
+		return self::exec($sql, $where, 'rowCount');
+	}
 }
 
 ```
