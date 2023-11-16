@@ -234,23 +234,17 @@ class route
 	{
 		self::add($regex, $fn, 'PUT');
 	}
+	public static function patch(string $regex, array|string|callable $fn)
+	{
+		self::add($regex, $fn, 'PATCH');
+	}
 	public static function delete(string $regex, array|string|callable $fn)
 	{
 		self::add($regex, $fn, 'DELETE');
 	}
-	public static function head(string $regex, array|string|callable $fn)
-	{
-		self::add($regex, $fn, 'HEAD');
-	}
-	public static function options(string $regex, array|string|callable $fn)
-	{
-		self::add($regex, $fn, 'OPTIONS');
-	}
 	public static function any(string $regex, array|string|callable $fn, array $methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'])
 	{
-		foreach ($methods as $m) {
-			self::add($regex, $fn, $m);
-		}
+		array_walk($methods, static fn (string $m) => self::add($regex, $fn, $m));
 	}
 	public static function add(string $regex, array|string|callable $fn, string $method)
 	{
@@ -266,8 +260,7 @@ class route
 		spl_autoload_register(static function ($name) use ($dirs) {
 			$name = str_replace('\\', DIRECTORY_SEPARATOR, $name);
 			foreach ($dirs as $dir) {
-				$file = "{$dir}{$name}.php";
-				if (is_file($file)) {
+				if (is_file($file = "{$dir}{$name}.php")) {
 					require_once $file;
 					if (class_exists($name, false)) {
 						return true;
@@ -650,7 +643,7 @@ class db
 
 	final public static function query(array ...$v)
 	{
-		return array_map(static fn ($item) => self::exec(...$item), $v);
+		return array_map(static fn (array $item) => self::exec(...$item), $v);
 	}
 
 	final public static function init(array $dbConfig): PDO
@@ -775,7 +768,7 @@ class db
 			}
 			unset($data[$item]);
 		}
-		return $set ? implode(',', array_map(static fn ($x) => sprintf('`%s` = %s', $x[0], $x[1]), $keys)) : sprintf('%s(%s) VALUES (%s)', $table ? " `{$table}` " : '', implode(',', array_map(static fn ($x) => sprintf('`%s`', $x[0]), $keys)), implode(',', array_map(static fn ($x) => $x[1], $keys)));
+		return $set ? implode(',', array_map(static fn (array $x) => sprintf('`%s` = %s', $x[0], $x[1]), $keys)) : sprintf('%s(%s) VALUES (%s)', $table ? " `{$table}` " : '', implode(',', array_map(static fn (array $x) => sprintf('`%s`', $x[0]), $keys)), implode(',', array_map(static fn (array $x) => $x[1], $keys)));
 	}
 
 	final public static function orderLimit(array $orderLimit): string
