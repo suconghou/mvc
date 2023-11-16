@@ -224,35 +224,38 @@ class route
 	}
 	public static function get(string $regex, array|string|callable $fn)
 	{
-		self::add($regex, $fn, ['GET']);
+		self::add($regex, $fn, 'GET');
 	}
 	public static function post(string $regex, array|string|callable $fn)
 	{
-		self::add($regex, $fn, ['POST']);
+		self::add($regex, $fn, 'POST');
 	}
 	public static function put(string $regex, array|string|callable $fn)
 	{
-		self::add($regex, $fn, ['PUT']);
+		self::add($regex, $fn, 'PUT');
 	}
 	public static function delete(string $regex, array|string|callable $fn)
 	{
-		self::add($regex, $fn, ['DELETE']);
+		self::add($regex, $fn, 'DELETE');
 	}
 	public static function head(string $regex, array|string|callable $fn)
 	{
-		self::add($regex, $fn, ['HEAD']);
+		self::add($regex, $fn, 'HEAD');
 	}
 	public static function options(string $regex, array|string|callable $fn)
 	{
-		self::add($regex, $fn, ['OPTIONS']);
+		self::add($regex, $fn, 'OPTIONS');
 	}
-	public static function any(string $regex, array|string|callable $fn, array $methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'])
+	public static function any(string $regex, array|string|callable $fn, array $methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'])
 	{
-		self::add($regex, $fn, $methods);
+		foreach ($methods as $m) {
+			self::add($regex, $fn, $m);
+		}
 	}
-	public static function add(string $regex, array|string|callable $fn, array $methods)
+	public static function add(string $regex, array|string|callable $fn, string $method)
 	{
-		self::$routes[] = [$regex, $fn, $methods];
+		self::$routes[$method] ??= [];
+		self::$routes[$method][] = [$regex, $fn];
 	}
 	public static function notfound(array|string|callable $fn)
 	{
@@ -292,8 +295,8 @@ class route
 	}
 	private static function match(string $uri, string $m)
 	{
-		foreach (self::$routes as [$regex, $fn, $methods]) {
-			if (in_array($m, $methods, true) && preg_match("/^{$regex}$/", $uri, $matches)) {
+		foreach (self::$routes[$m] ?? [] as [$regex, $fn]) {
+			if (preg_match("/^{$regex}$/", $uri, $matches)) {
 				$url = array_shift($matches);
 				return [$url, $matches, $fn];
 			}
