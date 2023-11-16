@@ -776,9 +776,9 @@ class test extends db
 	{
 		$values = array_merge(...$data);
 		$holders = substr(str_repeat('(?' . str_repeat(',?', count(reset($data)) - 1) . '),', count($data)), 0, -1);
-		$sql = sprintf('INSERT INTO %s (%s) VALUES %s', str_contains($table, '.') ? $table : "`$table`", implode(',', array_map(static fn ($k) => "`$k`", $column)), $holders);
+		$sql = sprintf('INSERT INTO %s (%s) VALUES %s', str_contains($table, '.') ? $table : "`$table`", implode(',', array_map(static fn (string $k) => "`$k`", $column)), $holders);
 		if ($duplicateKeyUpdate) {
-			$sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', array_map(static fn ($v) => "`$v`=VALUES($v)", $duplicateKeyUpdate));
+			$sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', array_map(static fn (string $v) => "`$v`=VALUES($v)", $duplicateKeyUpdate));
 		}
 		return self::exec($sql, $values, 'rowCount');
 	}
@@ -899,40 +899,3 @@ final public static function sqliteInsert(array $data, string $table = '', bool 
 	return self::exec($sql, $data);
 }
 ```
-
-## 扩展库
-
-其他库存放于单独文件夹,与此框架无关,且部分库可以单独使用,使用框架仅需复制`index.php`和`core.php`
-
-### SMTP
-
-一个简单的smtp邮件发送函数，使用此功能前需配置配置文件的`mail`字段
-
-```
-'mail' =>
-[
-	'server' => 'smtp.yeah.net',
-	'user' => 'suconghou@yeah.net',
-	'pass' => 'password',
-	'name' => '消息通知',
-	'port' => 25,
-	'auth' => true,
-],
-```
-
-例如配置QQ企业邮箱
-
-**不使用ssl加密通信**
-```
-$mail=['server'=>'smtp.exmail.qq.com','port'=>25,'user'=>'support@xx.com','pass'=>'password'];
-```
-在阿里云上,禁止了所有对外的25端口流量，所以在阿里云服务器上需使用ssl加密方式通信，采用465端口。
-
-**使用ssl加密通信**
-```
-$mail=['server'=>'ssl://smtp.exmail.qq.com','port'=>465,'user'=>'support@xx.com','pass'=>'password'];
-```
-
-> 此函数支持批量发送邮件，多个接收人使用分号隔开
-
-> 此函数不支持抄送、密送、携带附件
