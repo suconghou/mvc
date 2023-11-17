@@ -5,7 +5,7 @@ declare(strict_types=1);
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.2.5
+ * @version 1.2.6
  */
 
 
@@ -89,11 +89,10 @@ class app
 			}
 		} finally {
 			if ($err) {
-				$errstr = $err->getMessage();
 				$errfile = $err->getFile();
 				$errline = $err->getLine();
 				$errno = $err->getCode();
-				$errormsg = sprintf('ERROR(%d) %s%s%s', $errno, $errstr, $errfile ? " in {$errfile}" : '', $errline ? " on line {$errline}" : '');
+				$errormsg = sprintf('ERROR(%d) %s%s%s', $errno, $err->getMessage(), $errfile ? " in {$errfile}" : '', $errline ? " on line {$errline}" : '');
 				$errno === 404 ? self::log($errormsg, 'DEBUG', strval($errno)) : self::log($errormsg, 'ERROR');
 			}
 		}
@@ -289,7 +288,7 @@ class route
 	private static function match(string $uri, string $m)
 	{
 		foreach (self::$routes[$m] ?? [] as [$regex, $fn]) {
-			if (preg_match("/^{$regex}$/", $uri, $matches)) {
+			if (preg_match("#^{$regex}$#", $uri, $matches)) {
 				$url = array_shift($matches);
 				return [$url, $matches, $fn];
 			}
@@ -308,32 +307,32 @@ class route
 
 class request
 {
-	public static function post(array|string $key = null, $default = null, string $clean = '')
+	public static function post(array|string $key = '', $default = null, string $clean = '')
 	{
 		return self::getVar($_POST, $key, $default, $clean);
 	}
-	public static function get(array|string $key = null, $default = null, string $clean = '')
+	public static function get(array|string $key = '', $default = null, string $clean = '')
 	{
 		return self::getVar($_GET, $key, $default, $clean);
 	}
-	public static function param(array|string $key = null, $default = null, string $clean = '')
+	public static function param(array|string $key = '', $default = null, string $clean = '')
 	{
 		return self::getVar($_REQUEST, $key, $default, $clean);
 	}
-	public static function server(array|string $key = null, $default = null, string $clean = '')
+	public static function server(array|string $key = '', $default = null, string $clean = '')
 	{
 		return self::getVar($_SERVER, $key, $default, $clean);
 	}
-	public static function cookie(array|string $key = null, $default = null, string $clean = '')
+	public static function cookie(array|string $key = '', $default = null, string $clean = '')
 	{
 		return self::getVar($_COOKIE, $key, $default, $clean);
 	}
-	public static function session(array|string $key = null, $default = null, string $clean = '')
+	public static function session(array|string $key = '', $default = null, string $clean = '')
 	{
 		isset($_SESSION) || session_start();
 		return self::getVar($_SESSION, $key, $default, $clean);
 	}
-	public static function input(bool $json = true, $key = null, $default = null)
+	public static function input(bool $json = true, string|int $key = '', $default = null)
 	{
 		$str = file_get_contents('php://input');
 		$json ? ($data = $str ? json_decode($str, true, 32, JSON_THROW_ON_ERROR) : []) : parse_str($str, $data);
@@ -355,29 +354,17 @@ class request
 	{
 		return isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) !== 'off');
 	}
-	public static function is(string $m = null, callable $callback = null)
+	public static function is(string $m = '', callable $callback = null)
 	{
 		$t = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 		return $m ? (($t === strtoupper($m)) ? ($callback ? $callback() : true) : false) : $t;
 	}
-	public static function verify(array $rule, bool|callable $callback = false, array|bool $post = true)
+	public static function verify(array $rule, array|bool $post = true, bool|callable $callback = false)
 	{
-		$keys = [];
 		$data = $post === true ? $_POST : (is_array($post) ? $post : $_REQUEST);
-		foreach ($rule as $key => $value) {
-			$keys[] = is_int($key) ? $value : $key;
-		}
-		foreach ($data as $key => $_) {
-			if (!in_array($key, $keys)) {
-				unset($data[$key]);
-			}
-		}
-		foreach ($keys as $key) {
-			$data[$key] ??= null;
-		}
 		return validate::verify($rule, $data, $callback);
 	}
-	public static function getVar(array &$origin, array|string $var = null, $default = null, string $clean = '')
+	public static function getVar(array &$origin, array|string $var = '', $default = null, string $clean = '')
 	{
 		if ($var) {
 			if (is_array($var)) {
@@ -412,11 +399,13 @@ class request
 
 class validate
 {
-	public static function verify(array $rule, array $data, bool|callable $callback = false)
+	public static function verify(array $rule, array &$data, bool|callable $callback = false)
 	{
 		try {
+			$data = array_intersect_key($data, $rule);
+			array_walk($rule, static fn ($_, $k) => $data[$k] ??= null);
 			$switch = [];
-			foreach ($rule as $k => &$item) {
+			foreach ($rule as $k => $item) {
 				if (isset($data[$k])) {
 					if (is_array($item)) {
 						foreach ($item as $type => $msg) {
@@ -424,21 +413,17 @@ class validate
 							if ($msg instanceof closure) {
 								$data[$k] = $msg($data[$k], $type, $k);
 							} else if (is_array($msg)) {
-								if (!in_array($data[$k], $msg, true)) {
-									throw new InvalidArgumentException($type, -22);
-								}
+								array_is_list($msg) ? (in_array($data[$k], $msg, true) or throw new InvalidArgumentException($type, -22)) : (is_array($data[$k]) ? self::verify($msg, $data[$k], $callback) : throw new InvalidArgumentException($type, -23));
 							} else if (is_int($type) && is_string($msg)) {
 								$switch[$k] = $msg;
-							} else { // $type是string,$msg是int/bool/string/object或$type是int,$msg是int/bool/object
-								if (!self::check($data[$k], $type)) {
-									throw new InvalidArgumentException($msg, -23);
-								}
+							} else if (is_scalar($msg)) {
+								(is_string($type) && self::check($data[$k], $type)) or throw new InvalidArgumentException(strval($msg), -24);
+							} else if (is_callable($msg)) {
+								$data[$k] = $msg($data[$k], $type, $k);
 							}
 						}
-					} else if ($item instanceof closure) {
-						$data[$k] = $item();
 					} else {
-						$data[$k] = $item;
+						$data[$k] = $item instanceof closure ? $item() : $item;
 					}
 				} else if ($item instanceof closure) {
 					$data[$k] = $item();
@@ -455,7 +440,7 @@ class validate
 				throw $e;
 			}
 			$data = ['code' => $e->getCode(), 'msg' => $e->getMessage()];
-			return is_callable($callback) ? $callback($data, $e) : json($data);
+			return is_callable($callback) ? $callback($e, $data) : json($data);
 		}
 		foreach ($switch as $from => $to) {
 			$data[$to] = $data[$from];
@@ -465,104 +450,47 @@ class validate
 	}
 	public static function check($item, string $type)
 	{
-		if (strpos($type, '=') && ([$key, $val] = explode('=', $type, 2))) {
+		if (($a = explode('=', $type)) && (count($a) === 2) && ([$key, $val] = $a)) {
 			switch ($key) {
 				case 'minlength':
-					return is_string($item) && strlen($item) >= $val;
+					return is_string($item) && is_numeric($val) && strlen($item) >= intval($val);
 				case 'maxlength':
-					return is_string($item) && strlen($item) <= $val;
+					return is_string($item) && is_numeric($val) && strlen($item) <= intval($val);
 				case 'length':
-					if (!is_string($item)) return false;
-					$l = strlen($item);
-					$arr = explode(',', $val);
-					return count($arr) >= 2 ? ($l >= $arr[0] && $l <= $arr[1]) : ($l == $val);
+					return is_string($item) && ([$l, $a] = [strlen($item), explode(',', $val, 2)]) && is_numeric($a[0]) && (count($a) == 2 ? (is_numeric($a[1]) && $l >= intval($a[0]) && $l <= intval($a[1])) : ($l == intval($a[0])));
 				case 'int':
-					$arr = explode(',', $val);
-					$n = filter_var($item, FILTER_VALIDATE_INT);
-					return $n !== false && ($n >= $arr[0] && $n <= ($arr[1] ?? $arr[0]));
+					return is_int($item) && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) == 2 ? (is_numeric($a[1]) && $item >= intval($a[0]) && $item <= intval($a[1])) : ($item === intval($a[0])));
 				case 'number':
-					$arr = explode(',', $val);
-					$ok = is_numeric($item);
-					return $ok && ($item >= floatval($arr[0]) && $item <= floatval($arr[1] ?? $arr[0]));
+					return filter_var($item, FILTER_VALIDATE_INT) !== false && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) == 2 ? (is_numeric($a[1]) && $item >= intval($a[0]) && $item <= intval($a[1])) : ($item == intval($a[0])));
+				case 'numeric':
+					return is_numeric($item) && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) == 2 ? (is_numeric($a[1]) && $item >= floatval($a[0]) && $item <= floatval($a[1])) : ($item <= floatval($a[0])));
 				case 'eq':
-					return is_scalar($item) && trim($item) === trim($val);
+					return is_string($item) && $item === $val;
 				case 'eqs':
-					return is_scalar($item) && strtolower(trim($item)) === strtolower(trim($val));
+					return is_string($item) && strtolower($item) === strtolower($val);
 				case 'set':
 					return in_array($item, explode(',', $val), true);
-				default:
-					return is_scalar($item) && preg_match($type, $item);
 			}
 		}
-		switch ($type) {
-			case 'required':
-				return $item;
-			case 'require':
-				return $item === 0.0 || $item === 0 || $item === '0' || $item;
-			case 'default':
-				return true;
-			case 'int':
-				return filter_var($item, FILTER_VALIDATE_INT) !== false;
-			case 'number':
-				return is_numeric($item);
-			case 'string':
-				return is_string($item);
-			case 'bool':
-				return is_bool($item);
-			case 'array':
-				return is_array($item);
-			case 'object':
-				return is_object($item);
-			case 'scalar':
-				return is_scalar($item);
-			case 'email':
-				return is_string($item) && self::email($item);
-			case 'username':
-				return is_scalar($item) && self::username($item);
-			case 'password':
-				return is_scalar($item) && self::password($item);
-			case 'phone':
-				return is_scalar($item) && self::phone($item);
-			case 'url':
-				return is_string($item) && self::url($item);
-			case 'ip':
-				return is_string($item) && self::ip($item);
-			case 'json':
-				return is_string($item) && self::json($item);
-			default:
-				return is_scalar($item) && preg_match($type, $item);
+		if (($a = explode('::', $type)) && (count($a) >= 2) && is_callable("$a[0]::$a[1]", false, $c)) {
+			return call_user_func_array($c, array_merge([$item], array_slice($a, 2)));
 		}
-	}
-	public static function email(string $email)
-	{
-		return filter_var($email, FILTER_VALIDATE_EMAIL);
-	}
-	public static function phone(string $phone)
-	{
-		return preg_match("/^1\d{10}$/", $phone);
-	}
-	public static function url(string $url)
-	{
-		return filter_var($url, FILTER_VALIDATE_URL);
-	}
-	public static function ip(string $ip)
-	{
-		return filter_var($ip, FILTER_VALIDATE_IP);
-	}
-	//字符串是合法的JSON数组或对象
-	public static function json(string $s)
-	{
-		return in_array(trim($s)[0] ?? '', ['[', '{'], true) && !is_null(json_decode($s));
-	}
-	//字母数字汉字,不能全是数字
-	public static function username(string $username)
-	{
-		return is_numeric($username) ? false : preg_match('/^[\w\x{4e00}-\x{9fa5}]{3,20}$/u', $username);
-	}
-	//数字/大写字母/小写字母/标点符号组成，四种都必有，8位以上
-	public static function password(string $pass)
-	{
-		return preg_match('/^(?=^.{8,}$)(?=.*\d)(?=.*\W+)(?=.*[A-Z])(?=.*[a-z])(?!.*\n).*$/', $pass);
+		return match ($type) {
+			'array', 'bool', 'float', 'int', 'null', 'numeric', 'object', 'scalar', 'string' => "is_$type"($item),
+			'alnum', 'alpha', 'cntrl', 'digit', 'graph', 'lower', 'print', 'punct', 'space', 'upper', 'xdigit' => is_string($item) && "ctype_$type"($item),
+			'ip' => filter_var($item, FILTER_VALIDATE_IP) !== false,
+			'url' => filter_var($item, FILTER_VALIDATE_URL) !== false,
+			'number' => filter_var($item, FILTER_VALIDATE_INT) !== false,
+			'email' => filter_var($item, FILTER_VALIDATE_EMAIL) !== false,
+			'default' => true,
+			'required' => $item,
+			'require' => $item === 0.0 || $item === 0 || $item === '0' || $item,
+			'phone' => (is_string($item) || is_int($item)) && preg_match("/^1\d{10}$/", $item),
+			'username' => is_numeric($item) ? false : (is_string($item) && preg_match('/^[\w\x{4e00}-\x{9fa5}]{3,20}$/u', $item)), //字母数字汉字,不能全是数字
+			'password' => is_string($item) && preg_match('/^(?=^.{8,}$)(?=.*\d)(?=.*\W+)(?=.*[A-Z])(?=.*[a-z])(?!.*\n).*$/', $item), //数字/大写字母/小写字母/标点符号组成，四种都必有，8位以上
+			'json' => is_string($item) && in_array(trim($item)[0] ?? '', ['[', '{'], true) && !is_null(json_decode($item)), //字符串是合法的JSON数组或对象
+			default => is_string($item) && (strlen($type) > 2) && (ctype_punct($type[0]) && (str_ends_with(rtrim($type, 'ADJSUXimnsux'), $type[0]))) && preg_match($type, $item)
+		};
 	}
 }
 
@@ -788,7 +716,7 @@ class db
 	}
 }
 
-function template(string $v, array $data = [], callable|int $callback = null, string $path = '')
+function template(string $v, array $data = [], callable|int $callback = 0, string $path = '')
 {
 	$path = $path ?: app::get('view_path', '');
 	if (is_int($callback) && $callback > 1) {
