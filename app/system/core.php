@@ -39,7 +39,7 @@ class app
 				$uri = substr($uri, strlen($_SERVER['SCRIPT_NAME']));
 			}
 			$request_method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-			$file = self::file($request_method . $uri);
+			[$file, $s] = self::file($request_method . $uri);
 			self::$global['sys.cachefile'] = $file;
 			if (is_file($file)) {
 				$expire = filemtime($file);
@@ -47,7 +47,7 @@ class app
 					$t = $expire - $_SERVER['REQUEST_TIME'];
 					header('Expires: ' . gmdate('D, d M Y H:i:s', $expire) . ' GMT');
 					header('Cache-Control: public, max-age=' . $t);
-					header('X-Cache: Hit');
+					header('X-Cache: ' . substr($s, 0, 6));
 					header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME']) . ' GMT');
 					header('ETag: W/' . ($_SERVER['REQUEST_TIME'] + $t) . '-' . $t);
 					return readfile($file);
@@ -130,17 +130,17 @@ class app
 
 	public static function log($msg, string $type = 'DEBUG', string $file = '')
 	{
-		if (is_writable(VAR_PATH_LOG) && (self::get('debug') || (($type = strtoupper($type)) === 'ERROR'))) {
-			$path = VAR_PATH_LOG . ($file ?: date('Y-m-d')) . '.log';
+		if (($l = (self::$global['var_path'] ?? (__DIR__ . DIRECTORY_SEPARATOR)) . 'log' . DIRECTORY_SEPARATOR) && is_writable($l) && (self::get('debug') || (($type = strtoupper($type)) === 'ERROR'))) {
+			$path = $l . ($file ?: date('Y-m-d')) . '.log';
 			$msg = $type . '-' . date('Y-m-d H:i:s') . ' ==> ' . (is_scalar($msg) ? $msg : PHP_EOL . print_r($msg, true)) . PHP_EOL;
 			return error_log($msg, 3, $path);
 		}
 	}
 
-	public static function file(string $r = "", bool $delete = false)
+	public static function file(string $r = ""): array
 	{
-		$file = sprintf('%s%u.html', VAR_PATH_HTML, crc32(strtolower($r)));
-		return $delete ? (is_file($file) && unlink($file)) : $file;
+		$m = md5(strtolower($r));
+		return [sprintf('%shtml%s%s.html', (self::$global['var_path'] ?? (__DIR__ . DIRECTORY_SEPARATOR)),  DIRECTORY_SEPARATOR, $m), $m];
 	}
 	public static function cache(int $s = 0)
 	{
@@ -714,10 +714,8 @@ function template(string $v, array $data = [], callable|int $callback = 0, strin
 		$t = $callback;
 		$callback = static function ($buffer) use ($t) {
 			echo $buffer;
-			if (is_writable(VAR_PATH_HTML)) {
-				if ($file = app::get('sys.cachefile')) {
-					file_put_contents($file, $buffer) && touch($file, $_SERVER['REQUEST_TIME'] + $t);
-				}
+			if ($file = app::get('sys.cachefile')) {
+				is_writable(dirname($file)) && file_put_contents($file, $buffer) && touch($file, $_SERVER['REQUEST_TIME'] + $t);
 			}
 		};
 	}
