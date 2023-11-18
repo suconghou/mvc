@@ -380,20 +380,11 @@ class request
 	}
 	public static function clean($val, string $type = '')
 	{
-		switch ($type) {
-			case 'int':
-				return intval($val);
-			case 'float':
-				return floatval($val);
-			case 'string':
-				return trim(strval($val));
-			case 'html':
-				return trim(strip_tags($val));
-			case 'en':
-				return preg_replace('/[\x80-\xff]/', '', $val);
-			default:
-				return $type ? sprintf($type, $val) : trim($val);
-		}
+		return match ($type) {
+			'int', 'float', 'str', 'bool' => "{$type}val"($val),
+			'string' => trim(strval($val)),
+			'strip_tags' => trim(strip_tags($val)),
+		};
 	}
 }
 
@@ -404,7 +395,7 @@ class validate
 		try {
 			$data = array_intersect_key($data, $rule);
 			array_walk($rule, static fn ($_, $k) => $data[$k] ??= null);
-			$switch = [];
+			$rename = [];
 			foreach ($rule as $k => $item) {
 				if (isset($data[$k])) {
 					if (is_array($item)) {
@@ -415,7 +406,7 @@ class validate
 							} else if (is_array($msg)) {
 								array_is_list($msg) ? (in_array($data[$k], $msg, true) or throw new InvalidArgumentException($type, -22)) : (is_array($data[$k]) ? self::verify($msg, $data[$k], $callback) : throw new InvalidArgumentException($type, -23));
 							} else if (is_int($type) && is_string($msg)) {
-								$switch[$k] = $msg;
+								$rename[$k] = $msg;
 							} else if (is_scalar($msg)) {
 								(is_string($type) && self::check($data[$k], $type)) or throw new InvalidArgumentException(strval($msg), -24);
 							} else if (is_callable($msg)) {
@@ -442,7 +433,7 @@ class validate
 			$data = ['code' => $e->getCode(), 'msg' => $e->getMessage()];
 			return is_callable($callback) ? $callback($e, $data) : json($data);
 		}
-		foreach ($switch as $from => $to) {
+		foreach ($rename as $from => $to) {
 			$data[$to] = $data[$from];
 			unset($data[$from]);
 		}

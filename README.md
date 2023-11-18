@@ -253,7 +253,7 @@ HTTP 缓存使用 `app::cache(int $second)`开启
 
 ### 页面缓存
 
-模板函数`template(string $tpl,array $_data_,$callback=null,string $_path_ = '')`实现了页面缓存
+模板函数`template(string $v, array $data = [], callable|int $callback = 0, string $path = '')`实现了页面缓存
 
 设置`$callback`为一个大于1的秒数,即可开启页面自动缓存
 
@@ -267,15 +267,18 @@ HTTP 缓存使用 `app::cache(int $second)`开启
 
 命中时释放缓存,缓存失效时删除缓存
 
+配置`$callback`为1，则返回模板渲染的数据而不是直接输出，配置为闭包可以获取渲染结果，手动处理后续逻辑
+
 
 ## 验证器
 
-`request::verify($rule,$callback,$data)`
+`request::verify(array $rule, array|bool $post = true, bool|callable $callback = false)`
 
-`$data`为要验证的数据,默认$_POST
+`$post`为要验证的数据,若非数组，则true代表$_POST,false代表$_REQUEST
 
 `$rule`
 
+例:
 ```php
 $r =
 	[
@@ -285,40 +288,52 @@ $r =
 		'channelId' => ['/^[\w\-]{20,40}$/' => 'channelId为20-40位字母'],
 		'pageToken' => ['/^[\w\-]{4,14}$/' => 'pageToken为4-14位字母'],
 		'relatedToVideoId' => ['/^[\w\-]{4,14}$/' => 'relatedToVideoId为4-14位字母'],
-		'maxResults' => ['int=1,50' => 'maxResults不合法'],
+		'maxResults' => ['number=1,50' => 'maxResults不合法'],
 		'regionCode' => ['set=HK,TW,US,KR,JP' => 'regionCode不合法'],
 		'part' => 'id,snippet',
 	];
+
 ```
-
-內建的验证类型有 `require` `required` `default` `int` `number` `string` `bool` `array` `object` `scalar` `email` `username` `password` `phone` `url` `ip` `idcard`
-
-动态比较的类型有 `minlength` `maxlength` `length` `eq` `eqs` `set` `int` `number`
-
 注意 `maxResults` 的配置项为一个数组,元素可为闭包和其他规则,
 如果直接写一个闭包而不是数组,代表使用闭包的返回值,而不是对输入值校验.
 
 
-> required 数字0,字符串0, 空数组,空格,空字符串被认为校验不通过,其他true值,被认为通过校验
+內建的验证类型有
 
-> require 数字0,字符串0,和其他true值,被认为通过校验; 
-> 注意:空数组,空格,空字符串被认为校验通过, 与`required`的区别在于数字0和字符串0,`required`更加严格
+类型限定
+```
+'array', 'bool', 'float', 'int', 'null', 'numeric', 'object', 'scalar', 'string'
+```
+ctype类型
+```
+'alnum', 'alpha', 'cntrl', 'digit', 'graph', 'lower', 'print', 'punct', 'space', 'upper', 'xdigit'
+```
+其他 `require` `required` `default` `number` `json` `url` `ip` `email` `username` `password` `phone`
 
-> default 如果一个值,前端未传被置为默认值,则其他规则对他不生效,如果前端传了,则规则将会生效
+动态比较的类型有 `minlength` `maxlength` `length` `eq` `eqs` `set` `int` `number` `numeric`
 
-> int 既接受int型也接受字符串格式的整数;number 既接受float型也接受字符串格式的小数,容纳了int规则
+> required 数字0,字符串0,空数组,空字符串等被认为校验不通过,其他true值,被认为通过校验
 
-> int,number,length 可以使用区间限定,`int=1,50`表示整数1和50之间,`length=10,20`表示string类型长度在10至20
+> require 在required的基础上允许数字0和字符串0校验通过
+> 注意:空数组,空字符串,被认为校验不通过, 与`required`的区别在于数字0和字符串0,`required`更加严格
 
-> `length=8` 表示string长度限定到8
+> default 如果值不存在则使用此默认值并忽略规则校验,如果有值,则规则将会生效
+
+> int,float等为强类型规则, number可以既接受int型也接受字符串格式的整数
+
+> numeric可以既接受float型也接受字符串格式的小数,也可以既接受int型也接受字符串格式的整数
+
+> int,number,numeric,length 可以使用区间限定,`int=1,50`表示int型1和50之间,`length=10,20`表示string类型长度在10至20
+
+> `minlength=8` 表示string长度最小8
 
 > set 规则只能针对值是string类型的值做判断,值为int类型的,一律判断不通过
 
 > 直接使用数组语法来判断更加复杂的是否在集合中, 此比较方法是强类型的比较
 
-> eqs为不区分大小写,eq为区分大小写,都会自动去空格
+> eqs为不区分大小写,eq为区分大小写
 
-> require,required Value值可以为空,为空时自动填充错误提示
+> 键可扩展为一种静态方法模式校验规则,例 r::domain 表示使用r类中的静态方法domain来校验，实现复杂校验
 
 定义`callback`值,用于检验不通过时的动作
 
@@ -326,9 +341,7 @@ $r =
 
 > 闭包函数, 异常将传递给此闭包函数处理
 
-> null或空字符串,0值等, 将静默返回false
-
-> true和其他非0值,则立即响应json并中断
+> true 立即响应json并中断
 
 
 
