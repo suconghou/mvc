@@ -27,9 +27,6 @@ class app
 					return header('Expires: ' . gmdate('D, d M Y H:i:s', intval($expire)) . ' GMT', true, 304);
 				}
 			}
-			$varPath = $config['var_path'] ?? (__DIR__ . DIRECTORY_SEPARATOR);
-			define('VAR_PATH_LOG', $varPath . 'log' . DIRECTORY_SEPARATOR);
-			define('VAR_PATH_HTML', $varPath . 'html' . DIRECTORY_SEPARATOR);
 			if ($cli) {
 				$uri = implode('/', $GLOBALS['argv']);
 			} else {
