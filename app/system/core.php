@@ -195,17 +195,12 @@ class route
 	{
 		$prefix = '';
 		if ($host === true) {
-			$protocol = (isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) !== 'off')) ? "https" : "http";
-			$host = $_SERVER['HTTP_HOST'] ?? '';
-			$prefix = "{$protocol}://{$host}";
+			$prefix = sprintf("%s://%s", (isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) !== 'off')) ? "https" : "http", $_SERVER['HTTP_HOST'] ?? '');
 		} else if ($host) {
 			$prefix = $host;
 		}
-		if (is_array($query)) {
-			$query = http_build_query($query);
-		}
 		if ($query) {
-			return "{$prefix}{$path}?{$query}";
+			return sprintf("%s%s?%s", $prefix, $path, is_array($query) ? http_build_query($query) : $query);
 		}
 		return "{$prefix}{$path}";
 	}
@@ -326,7 +321,7 @@ class request
 	}
 	public static function session(array|string $key = '', $default = null, string $clean = '')
 	{
-		isset($_SESSION) || session_start();
+		session_status() === PHP_SESSION_ACTIVE or session_start(['name' => 'sid', 'cookie_lifetime' => 86400]);
 		return self::getVar($_SESSION, $key, $default, $clean);
 	}
 	public static function input(bool $json = true, string|int $key = '', $default = null)
@@ -735,7 +730,7 @@ function template(string $v, array $data = [], callable|int $callback = 0, strin
 
 function session(array|string $key, $val = null, bool $delete = false)
 {
-	isset($_SESSION) || session_start();
+	session_status() === PHP_SESSION_ACTIVE or session_start(['name' => 'sid', 'cookie_lifetime' => 86400]);
 	if (is_null($val)) {
 		return $delete ? array_filter(is_array($key) ? $key : [$key], static function ($k) {
 			unset($_SESSION[$k]);
