@@ -61,7 +61,6 @@ class app
 			$err = $e;
 			$errfound = self::get('errfound');
 			$errno = $e->getCode();
-			$errstr = substr($err->getMessage(), 0, 200);
 			$errHandler = static function (Throwable $e, bool $cli) {
 				if ($cli) {
 					echo $e, PHP_EOL;
@@ -69,15 +68,13 @@ class app
 					$err = $e->getTraceAsString();
 					$errMsg = $e->getMessage();
 					$errCode = $e->getCode();
-					$errs = str_replace(PHP_EOL, '</p><p>', $err);
-					echo "<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;font:italic 14px/20px Georgia,Times New Roman;word-wrap:break-word;'><p>ERROR({$errCode}) {$errMsg}</p><p>{$errs}</p></div>";
+					echo "<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;font:italic 14px/20px Georgia,Times New Roman;word-wrap:break-word;'><p>ERROR({$errCode}) {$errMsg}</p><p style='white-space: pre-wrap;line-height: 2.2;'>{$err}</p></div>";
 				}
 			};
 			try {
-				headers_sent() || header('Error-At:' . preg_replace('/\s+/', ' ', $errstr), true, in_array($errno, [400, 401, 403, 404, 500, 502, 503, 504], true) ? $errno : 500);
+				headers_sent() || header('Error-At:' . preg_replace('/\s+/', ' ', substr($err->getMessage(), 0, 200)), true, in_array($errno, [400, 401, 403, 404, 500, 502, 503, 504], true) ? $errno : 500);
 				if ($errno === 404) {
-					$notfound = self::get('notfound');
-					return ($notfound ?? $errfound ?? $errHandler)($e, $cli);
+					return (self::get('notfound') ?? $errfound ?? $errHandler)($e, $cli);
 				}
 				return ($errfound ?? $errHandler)($e, $cli);
 			} catch (Throwable $e) {
