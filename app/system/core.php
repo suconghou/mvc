@@ -134,7 +134,7 @@ class app
 	public static function file(string $r = ""): array
 	{
 		$m = md5(strtolower($r));
-		return [sprintf('%shtml%s%s.html', (self::$global['var_path'] ?? (__DIR__ . DIRECTORY_SEPARATOR)),  DIRECTORY_SEPARATOR, $m), $m];
+		return [sprintf('%shtml%s%s.html', (self::$global['var_path'] ?? (__DIR__ . DIRECTORY_SEPARATOR)), DIRECTORY_SEPARATOR, $m), $m];
 	}
 	public static function cache(int $s = 0)
 	{
@@ -236,7 +236,6 @@ class route
 	}
 	public static function add(string $regex, array|string|callable $fn, string $method)
 	{
-		self::$routes[$method] ??= [];
 		self::$routes[$method][] = [$regex, $fn];
 	}
 	public static function notfound(array|string|callable $fn)
