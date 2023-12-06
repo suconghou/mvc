@@ -108,9 +108,7 @@ class app
 		if (!method_exists($r[0], $r[1]) || !method_exists($r[0], '__invoke')) {
 			throw new InvalidArgumentException(sprintf('request action %s:%s not exist', $r[0], $r[1]), 404);
 		}
-		if (empty(self::$global['sys.' . $r[0]])) {
-			self::$global['sys.' . $r[0]] = new $r[0]($r);
-		}
+		self::$global['sys.' . $r[0]] ??= new $r[0]($r);
 		$instance = self::$global['sys.' . $r[0]];
 		if (!is_callable([$instance, $r[1]])) {
 			throw new InvalidArgumentException(sprintf('request action %s:%s not callable', $r[0], $r[1]), 404);
@@ -268,9 +266,7 @@ class route
 			[$_, $params, $fn] = $ret;
 			return self::call($fn, [], $params);
 		}
-		if (!self::$notfound) {
-			self::$notfound = static fn () => throw new BadFunctionCallException('Not Found', 404);
-		}
+		self::$notfound ??= static fn () => throw new BadFunctionCallException('Not Found', 404);
 		return self::call(self::$notfound, [$r], []);
 	}
 	private static function match(string $uri, string $m)
@@ -567,9 +563,7 @@ class db
 	public static function ready(): PDO
 	{
 		static $_pdo;
-		if (empty($_pdo)) {
-			$_pdo = self::init(app::get('db'));
-		}
+		$_pdo ??= self::init(app::get('db'));
 		return $_pdo;
 	}
 
