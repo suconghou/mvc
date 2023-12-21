@@ -353,9 +353,7 @@ ctype类型
 public static function ready(): PDO
 {
 	static $_pdo;
-	if (empty($_pdo)) {
-		$_pdo = self::init(app::get('dbdev'));
-	}
+	$_pdo ??= self::init(app::get('dbdev'));
 	return $_pdo;
 }
 ```
