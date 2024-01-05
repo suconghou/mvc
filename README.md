@@ -145,12 +145,12 @@ if (!function_exists('str_contains'))
 字符串函数
 
 ```php
-route::get('\/print','print_r');
+route::get('/print','print_r');
 ```
 
 闭包
 ```php
-route::get('\/dump',function(...$a){
+route::get('/dump',function(...$a){
 	var_dump($a);
 });
 
@@ -161,8 +161,8 @@ route::get('\/dump',function(...$a){
 控制器类将被自动实例化,然后执行
 
 ```php
-route::get('\/hello',['home','hello'])
-route::get('\/hello',['home','hello','world'])
+route::get('/hello',['home','hello'])
+route::get('/hello',['home','hello','world'])
 ```
 
 静态化控制器
@@ -171,26 +171,32 @@ route::get('\/hello',['home','hello','world'])
 
 ```php
 
-route::post('\/static','home::echo');
+route::post('/static','home::echo');
 
 ```
 
 捕获参数
 ```php
-route::get('\/userinfo\/(\d+)',['home','userinfo'])
+route::get('/userinfo/(\d+)',['home','userinfo'])
 ```
 
 
-带命名空间的静态调用,可调度到子文件夹,自己再次分发路由
+带命名空间的静态调用,可调度到子文件夹,自己再次分发路由,`admin`为`namespace`,`form`类无实例化，直接调用
 ```php
-route::get('\/admin','\admin\form::index')
+route::get('/hi/index','admin\form::index')
 ```
 
+
+带命名空间的动态调用,可调度到子文件夹,`form`类校验，并实例化
+```php
+route::get('/hello/hi',['admin\form','hi'])
+```
+二级，三级，文件夹同类
 
 
 闭包模式
 ```php
-route::get('\/about',function(){echo 'about';})
+route::get('/about',function(){echo 'about';})
 ```
 
 
