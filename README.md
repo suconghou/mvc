@@ -879,9 +879,9 @@ $data1=$data2=$data3=[];
 class testdb extends db
 {
 
-	final public static function getUpdate(array $where, array $data, string $table = '')
+	final public static function getUpdate(array $where, array $data, string $table = ''): int
 	{
-		$sql = sprintf('UPDATE %s SET %s%s', $table ?: self::table(), self::values($data, true), self::condition($where));
+		$sql = sprintf('UPDATE %s SET %s%s', $table ?: static::table(), self::values($data, true), self::condition($where));
 		$params = $data + $where;
 		if (empty($params)) {
 			return self::exec($sql);
@@ -889,9 +889,9 @@ class testdb extends db
 		return self::exec($sql, $params, 'rowCount');
 	}
 
-	final public static function getDelete(array $where = [], string $table = '')
+	final public static function getDelete(array $where = [], string $table = ''): int
 	{
-		$sql = sprintf('DELETE FROM %s%s', $table ?: self::table(), self::condition($where));
+		$sql = sprintf('DELETE FROM %s%s', $table ?: static::table(), self::condition($where));
 		if (empty($where)) {
 			return self::exec($sql);
 		}
