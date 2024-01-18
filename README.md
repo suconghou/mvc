@@ -789,7 +789,7 @@ class test extends db
 	}
 
 	// 返回受影响的行数
-	final public static function insert_once_many(string $table, array $column, array $data, array $duplicateKeyUpdate = [])
+	final public static function insert_once_many(string $table, array $column, array $data, array $duplicateKeyUpdate = []): int
 	{
 		$values = array_merge(...$data);
 		$holders = substr(str_repeat('(?' . str_repeat(',?', count(reset($data)) - 1) . '),', count($data)), 0, -1);
