@@ -116,7 +116,7 @@ class app
 		try {
 			return call_user_func_array([$instance, $r[1]], array_slice($r, 2));
 		} catch (Throwable $e) {
-			return $instance($e);
+			return $instance($e, $r[1]);
 		}
 	}
 
@@ -432,7 +432,7 @@ class validate
 				case 'maxlength':
 					return is_string($item) && is_numeric($val) && strlen($item) <= intval($val);
 				case 'length':
-					return is_string($item) && ([$l, $a] = [strlen($item), explode(',', $val, 2)]) && is_numeric($a[0]) && (count($a) == 2 ? (is_numeric($a[1]) && $l >= intval($a[0]) && $l <= intval($a[1])) : ($l == intval($a[0])));
+					return is_string($item) && ([$l, $a] = [strlen($item), explode(',', $val, 2)]) && is_numeric($a[0]) && (count($a) == 2 ? (is_numeric($a[1]) && $l >= intval($a[0]) && $l <= intval($a[1])) : ($l === intval($a[0])));
 				case 'int':
 					return is_int($item) && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) == 2 ? (is_numeric($a[1]) && $item >= intval($a[0]) && $item <= intval($a[1])) : ($item === intval($a[0])));
 				case 'number':
