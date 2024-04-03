@@ -803,7 +803,7 @@ class test extends db
 ```
 
 
-_批量插入中使用`ON DUPLICATE KEY UPDATE`仅需配置第四个参数_
+_批量插入中使用`ON DUPLICATE KEY UPDATE`仅需配置第四个参数_ ， `$duplicateKeyUpdate`格式同`$column`，需要是其子集
 
 如果数据量巨大，可能造成SQL语句太长，可以使用`array_chunk`切割`$data`分批调用
 
