@@ -479,7 +479,7 @@ self::setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY,false);
 使用原始值可以实现子查询
 
 ```php
-$where=['!id IN'=>'(SELECT `id` FROM `user` WHERE fid=1)','age >'=>18]
+$where=['!id IN'=>'(SELECT `id` FROM `user` WHERE fid=1)','age >'=>18];
 ```
 
 ### 更新
@@ -564,17 +564,17 @@ orm::condition(array &$where,string $prefix='WHERE')
 
 都是合法的.
 
-**WHERE NOT EXISTS**
+**EXISTS**
 
-使用 `db::condition($where, 'WHERE NOT EXISTS')` 可以构造`WHERE NOT EXISTS`语句
+参考下面的FIND_IN_SET，当且仅当`WHERE`条件已有两条约束时，可以使用where数组构造;或更通用的`db::condition`函数处理
 
-可以参考内部的`find` `delete`构造方法,修改其`condition`语句派生出更多构造函数.
+性能比较：当子查询的表比较大时，使用`EXISTS`可能比使用`IN`性能更好
 
 **FIND_IN_SET**
 
 例如：查找ids字段中包含3的数据
 
-当且仅当`Where`条件已有两条约束时，我们可以使用where数组构造
+当且仅当`WHERE`条件已有两条约束时，我们可以使用where数组构造
 
 ```php
 $where = ['enable' => 1, 'id >' => 0, "AND FIND_IN_SET('3',ids) AND"];
