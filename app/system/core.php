@@ -199,12 +199,12 @@ class route
 		}
 		return "{$prefix}{$path}";
 	}
-	public static function to(string $url, int $timeout = 0)
+	public static function to(string $url, int $s = 302)
 	{
-		if (in_array($timeout, [0, 301, 302, 303, 307, 308], true)) {
-			header("Location:{$url}", true, $timeout);
+		if (in_array($s, [301, 302, 303, 307, 308], true)) {
+			header("Location:{$url}", true, $s);
 		} else {
-			header("Refresh:{$timeout};url={$url}", true, 302);
+			header("Refresh:{$s};url={$url}", true, 302);
 		}
 		exit(header('Cache-Control:no-cache, no-store, max-age=0, must-revalidate'));
 	}
