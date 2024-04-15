@@ -72,7 +72,7 @@ class app
 				}
 			};
 			try {
-				headers_sent() || header('Error-At:' . preg_replace('/\s+/', ' ', substr($err->getMessage(), 0, 200)), true, in_array($errno, [400, 401, 403, 404, 500, 502, 503, 504], true) ? $errno : 500);
+				headers_sent() || header('Error-At:' . preg_replace('/\s+/', ' ', substr($err->getMessage(), 0, 200)), true, in_array($errno, [400, 401, 403, 404, 405, 500, 502, 503, 504], true) ? $errno : 500);
 				if ($errno === 404) {
 					return (self::get('notfound') ?? $errfound ?? $errHandler)($e, $cli);
 				}
