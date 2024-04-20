@@ -32,7 +32,7 @@ class app
 			} else {
 				[$uri] = explode('?', $_SERVER['REQUEST_URI'], 2);
 			}
-			if (stripos($uri, $_SERVER['SCRIPT_NAME']) === 0) {
+			if (str_starts_with($uri, $_SERVER['SCRIPT_NAME'])) {
 				$uri = substr($uri, strlen($_SERVER['SCRIPT_NAME']));
 			}
 			$request_method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
