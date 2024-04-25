@@ -377,8 +377,7 @@ class validate
 	public static function verify(array $rule, array &$data, bool|callable $callback = false)
 	{
 		try {
-			$data = array_intersect_key($data, $rule);
-			array_walk($rule, static fn ($_, $k) => $data[$k] ??= null);
+			$data = array_intersect_key($data, $rule) + array_fill_keys(array_keys($rule), null);
 			$rename = [];
 			foreach ($rule as $k => $item) {
 				if (isset($data[$k])) {
