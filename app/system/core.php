@@ -433,11 +433,11 @@ class validate
 				case 'length':
 					return is_string($item) && ([$l, $a] = [strlen($item), explode(',', $val, 2)]) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $l >= intval($a[0]) && $l <= intval($a[1])) : ($l === intval($a[0])));
 				case 'int':
-					return is_int($item) && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $item >= intval($a[0]) && $item <= intval($a[1])) : ($item === intval($a[0])));
+					return is_int($item) && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $item >= intval($a[0]) && $item <= intval($a[1])) : ($item >= intval($a[0])));
 				case 'number':
-					return filter_var($item, FILTER_VALIDATE_INT) !== false && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $item >= intval($a[0]) && $item <= intval($a[1])) : ($item == intval($a[0])));
+					return filter_var($item, FILTER_VALIDATE_INT) !== false && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $item >= intval($a[0]) && $item <= intval($a[1])) : ($item >= intval($a[0])));
 				case 'numeric':
-					return is_numeric($item) && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $item >= floatval($a[0]) && $item <= floatval($a[1])) : ($item <= floatval($a[0])));
+					return is_numeric($item) && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $item >= floatval($a[0]) && $item <= floatval($a[1])) : ($item >= floatval($a[0])));
 				case 'eq':
 					return is_string($item) && $item === $val;
 				case 'eqs':
