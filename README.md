@@ -329,7 +329,9 @@ ctype类型
 
 > numeric可以既接受float型也接受字符串格式的小数,也可以既接受int型也接受字符串格式的整数
 
-> int,number,numeric,length 可以使用区间限定,`int=1,50`表示int型1和50之间,`length=10,20`表示string类型长度在10至20
+> int,number,numeric,length 可以使用区间限定,使用`,`连接两个区间,`int=1,50`表示int型1和50之间,`length=10,20`表示string类型长度在10至20
+
+> 无`,`时,表示需大于等于此起始值,`number=1` 表示int或字符串整数，值大于等于1,即除0外的正整数
 
 > `minlength=8` 表示string长度最小8
 
