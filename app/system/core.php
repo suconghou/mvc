@@ -624,7 +624,7 @@ class db
 				}
 			}
 			unset($where[$item]);
-			$keys[] = sprintf('%s %s %s', str_contains($n, '.') ? $n : "`$n`", $verb ? implode(' ', $verb) : ($a ? 'IN' : '='), $a ? sprintf('(%s)', implode(',', $marks)) : $v);
+			$keys[] = sprintf('%s %s %s', (str_contains($n, '.') || str_contains($n, '`')) ? $n : "`$n`", $verb ? implode(' ', $verb) : ($a ? 'IN' : '='), $a ? sprintf('(%s)', implode(',', $marks)) : $v);
 		}
 		$condition = $keys ? implode(sprintf(' %s ', $where[0] ?? 'AND'), $keys) : '';
 		unset($where[0], $keys);
@@ -682,7 +682,7 @@ class db
 			return true;
 		}, ARRAY_FILTER_USE_BOTH);
 		$orderLimit ? (array_walk($orderLimit, static function (&$v, $k) {
-			$v = sprintf('%s %s', $k, is_string($v) ? $v : ($v ? 'ASC' : 'DESC'));
+			$v = sprintf('%s %s', (str_contains($k, '.') || str_contains($k, '`')) ? $k : "`$k`", is_string($v) ? $v : ($v ? 'ASC' : 'DESC'));
 		})) : '';
 		return sprintf('%s%s', $orderLimit ? ' ORDER BY ' . implode(',', $orderLimit) : '', $limit ? " LIMIT $limit" : '');
 	}
