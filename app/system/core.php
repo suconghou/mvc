@@ -681,9 +681,9 @@ class db
 			}
 			return true;
 		}, ARRAY_FILTER_USE_BOTH);
-		$orderLimit ? (array_walk($orderLimit, static function (&$v, $k) {
-			$v = sprintf('%s %s', (str_contains($k, '.') || str_contains($k, '`')) ? $k : "`$k`", is_string($v) ? $v : ($v ? 'ASC' : 'DESC'));
-		})) : '';
+		$orderLimit ? array_walk($orderLimit, static function (&$v, $k) {
+			$v = sprintf('%s %s', (trim($k) === '' || str_contains($k, '.') || str_contains($k, '`')) ? $k : "`$k`", is_string($v) ? $v : ($v ? 'ASC' : 'DESC'));
+		}) : '';
 		return sprintf('%s%s', $orderLimit ? ' ORDER BY ' . implode(',', $orderLimit) : '', $limit ? " LIMIT $limit" : '');
 	}
 }

@@ -668,6 +668,11 @@ orm::orderLimit(array $orderLimit)
 
 代表`LIMIT 0,5`
 
+如果要使用`ORDER BY RAND()`
+
+可使用`$orderLimit=[''=>'RAND()']`构造
+
+
 ### 使用 ON DUPLICATE KEY UPDATE
 
 ```php
