@@ -593,7 +593,7 @@ SELECT * FROM iplog WHERE (`enable` = :enable_1 AND FIND_IN_SET('3',ids) AND `id
 ```php
 final public static function findInSet(array $where = [], string $table = '', string $col = '*', array $orderLimit = [], $fetch = 'fetchAll')
 {
-	$sql = sprintf('SELECT %s FROM %s%s%s', $col, $table ?: static::table(), self::condition($where, "WHERE FIND_IN_SET('3',ids) AND"), $orderLimit ? self::orderLimit($orderLimit) : '');
+	$sql = sprintf('SELECT %s FROM %s%s%s', $col, static::table($table), self::condition($where, "WHERE FIND_IN_SET('3',ids) AND"), $orderLimit ? self::orderLimit($orderLimit) : '');
 	return self::exec($sql, $where, $fetch);
 }
 ```
@@ -611,7 +611,7 @@ SELECT * FROM iplog WHERE FIND_IN_SET('3',ids) AND (`enable` = :enable_1)
 ```php
 final public static function findHaving(array $where = [], string $table = '', string $col = '*', array $orderLimit = [], $fetch = 'fetchAll')
 {
-	$sql = sprintf('SELECT %s FROM %s%s%s', $col, $table ?: static::table(), self::condition($where, "HAVING"), $orderLimit ? self::orderLimit($orderLimit) : '');
+	$sql = sprintf('SELECT %s FROM %s%s%s', $col, static::table($table), self::condition($where, "HAVING"), $orderLimit ? self::orderLimit($orderLimit) : '');
 	return self::exec($sql, $where, $fetch);
 }
 ```
@@ -678,13 +678,13 @@ orm::orderLimit(array $orderLimit)
 ```php
 final public static function insert_or_update(string $table, array $insert, array $update)
 {
-	$sql = sprintf('INSERT INTO%s ON DUPLICATE KEY UPDATE %s', self::values($insert, false, $table), self::values($update, true));
+	$sql = sprintf('INSERT INTO %s ON DUPLICATE KEY UPDATE %s', self::values($insert, false, $table), self::values($update, true));
 	return self::exec($sql, $insert + $update);
 }
 ```
 自己拼接的话
 ```php
-$sql = sprintf('INSERT INTO%s ON DUPLICATE KEY UPDATE id=:id,name=:name', self::values($insert, false, static::table));
+$sql = sprintf('INSERT INTO %s ON DUPLICATE KEY UPDATE id=:id,name=:name', self::values($insert, false, static::table));
 return self::exec($sql, $insert + $update);
 ```
 需要`$update=['id'=>1,'name'=>2];`与自己写的SQL对应
@@ -697,9 +697,9 @@ return self::exec($sql, $insert + $update);
 可采用如下方式构造
 
 ```php
-$sql=sprintf('REPLACE DELAYED INTO `%s` %s',static::table,self::values($data));
-$sql=sprintf('INSERT DELAYED INTO `%s` %s',static::table,self::values($data));
-$sql=sprintf('INSERT DELAYED IGNORE INTO `%s` %s',static::table,self::values($data));
+$sql=sprintf('REPLACE DELAYED INTO %s',self::values($data,false,static::table));
+$sql=sprintf('INSERT DELAYED INTO %s',self::values($data,false,static::table));
+$sql=sprintf('INSERT DELAYED IGNORE INTO %s',self::values($data,false,static::table));
 ```
 
 ### 使用`CASE WHEN`
@@ -736,13 +736,13 @@ $data = [
 class test extends db
 {
 
-	final public static function insert_many(string $table, array $column, array $data)
+	final public static function insert_many(string $table, array $column, array $data): bool
 	{
 		$column = array_combine($column, $column);
 		$pdo = self::ready();
 		$pdo->beginTransaction();
 		try {
-			$sql = sprintf('INSERT INTO `%s` %s', $table, self::values($column));
+			$sql = sprintf('INSERT INTO %s', self::values($column, false, $table));
 			$stm = $pdo->prepare($sql);
 			$key_names = array_keys($column);
 			foreach ($data as $row) {
@@ -773,13 +773,13 @@ class test extends db
 class test extends db
 {
 
-	final public static function insert_many(string $table, array $column, array $data)
+	final public static function insert_many(string $table, array $column, array $data): bool
 	{
 		$column = array_combine($column, $column);
 		$pdo = self::ready();
 		$pdo->beginTransaction();
 		try {
-			$sql = sprintf('INSERT INTO `%s` %s', $table, self::values($column));
+			$sql = sprintf('INSERT INTO %s', self::values($column, false, $table));
 			$stm = $pdo->prepare($sql);
 			$key_names = array_keys($column);
 			foreach ($data as $row) {
@@ -888,7 +888,7 @@ class testdb extends db
 
 	final public static function getUpdate(array $where, array $data, string $table = ''): int
 	{
-		$sql = sprintf('UPDATE %s SET %s%s', $table ?: static::table(), self::values($data, true), self::condition($where));
+		$sql = sprintf('UPDATE %s SET %s%s', static::table($table), self::values($data, true), self::condition($where));
 		$params = $data + $where;
 		if (empty($params)) {
 			return self::exec($sql);
@@ -898,7 +898,7 @@ class testdb extends db
 
 	final public static function getDelete(array $where = [], string $table = ''): int
 	{
-		$sql = sprintf('DELETE FROM %s%s', $table ?: static::table(), self::condition($where));
+		$sql = sprintf('DELETE FROM %s%s', static::table($table), self::condition($where));
 		if (empty($where)) {
 			return self::exec($sql);
 		}
@@ -919,7 +919,7 @@ insert函数可以新增如下对SQLITE的改写版
 ```php
 final public static function sqliteInsert(array $data, string $table = '', bool $ignore = false, bool $replace = false)
 {
-	$sql = sprintf('%s %sINTO %s %s', $replace ? 'INSERT OR REPLACE' : 'INSERT', $ignore ? 'OR IGNORE ' : '', $table ?: static::table(), self::values($data));
+	$sql = sprintf('%s %sINTO %s', $replace ? 'INSERT OR REPLACE' : 'INSERT', $ignore ? 'OR IGNORE ' : '', self::values($data, false, $table));
 	return self::exec($sql, $data);
 }
 ```

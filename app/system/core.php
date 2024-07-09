@@ -498,7 +498,7 @@ class db
 
 	final public static function insert(array $data, string $table = '', bool $ignore = false, bool $replace = false)
 	{
-		$sql = sprintf('%s %sINTO %s %s', $replace ? 'REPLACE' : 'INSERT', $ignore ? 'IGNORE ' : '', $table ?: static::table(), self::values($data));
+		$sql = sprintf('%s %sINTO %s', $replace ? 'REPLACE' : 'INSERT', $ignore ? 'IGNORE ' : '', self::values($data, false, $table));
 		return self::exec($sql, $data);
 	}
 
@@ -509,13 +509,13 @@ class db
 
 	final public static function delete(array $where = [], string $table = '')
 	{
-		$sql = sprintf('DELETE FROM %s%s', $table ?: static::table(), self::condition($where));
+		$sql = sprintf('DELETE FROM %s%s', static::table($table), self::condition($where));
 		return self::exec($sql, $where);
 	}
 
 	final public static function find(array $where = [], string $table = '', string $col = '*', array $orderLimit = [], string $fetch = 'fetchAll')
 	{
-		$sql = sprintf('SELECT %s FROM %s%s%s', $col, $table ?: static::table(), self::condition($where), $orderLimit ? self::orderLimit($orderLimit) : '');
+		$sql = sprintf('SELECT %s FROM %s%s%s', $col, static::table($table), self::condition($where), $orderLimit ? self::orderLimit($orderLimit) : '');
 		return self::exec($sql, $where, $fetch);
 	}
 
@@ -539,7 +539,7 @@ class db
 
 	final public static function update(array $where, array $data, string $table = '')
 	{
-		$sql = sprintf('UPDATE %s SET %s%s', $table ?: static::table(), self::values($data, true), self::condition($where));
+		$sql = sprintf('UPDATE %s SET %s%s', static::table($table), self::values($data, true), self::condition($where));
 		return self::exec($sql, $data + $where);
 	}
 
@@ -577,9 +577,10 @@ class db
 		return $fetch ? (is_string($fetch) ? $stm->$fetch() : $stm) : $rs;
 	}
 
-	public static function table(): string
+	public static function table(string $table = ''): string
 	{
-		return static::class;
+		$t = $table ?: static::class;
+		return (str_contains($t, '.') || str_contains($t, '`')) ? $t : "`{$t}`";
 	}
 
 	final public static function cond(array &$where, string $prefix = 'WHERE'): string
@@ -668,7 +669,7 @@ class db
 			}
 			unset($data[$item]);
 		}
-		return $set ? implode(',', array_map(static fn (array $x) => sprintf('`%s` = %s', $x[0], $x[1]), $keys)) : sprintf('%s(%s) VALUES (%s)', $table ? " `{$table}` " : '', implode(',', array_map(static fn (array $x) => sprintf('`%s`', $x[0]), $keys)), implode(',', array_map(static fn (array $x) => $x[1], $keys)));
+		return $set ? implode(',', array_map(static fn (array $x) => sprintf('`%s` = %s', $x[0], $x[1]), $keys)) : sprintf('%s (%s) VALUES (%s)', self::table($table), implode(',', array_map(static fn (array $x) => sprintf('`%s`', $x[0]), $keys)), implode(',', array_map(static fn (array $x) => $x[1], $keys)));
 	}
 
 	final public static function orderLimit(array $orderLimit): string
