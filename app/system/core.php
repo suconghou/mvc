@@ -45,17 +45,17 @@ class app
 					header('Expires: ' . gmdate('D, d M Y H:i:s', $expire) . ' GMT');
 					header('Cache-Control: public, max-age=' . $t);
 					header('X-Cache: ' . substr($s, 0, 6));
-					header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME']) . ' GMT');
+					header('Last-Modified: ' . gmdate('D, d M Y H:i:s', (int)$_SERVER['REQUEST_TIME']) . ' GMT');
 					header('ETag: W/' . ($_SERVER['REQUEST_TIME'] + $t) . '-' . $t);
 					return readfile($file);
 				}
 				unlink($file);
 			}
 			// 普通路由执行器,交由app::run执行,app::run只能执行普通路由
-			set_error_handler(static fn (int $errno, string $errstr, string $errfile, int $errline) => throw new ErrorException($errstr, $errno, 1, $errfile, $errline));
+			set_error_handler(static fn(int $errno, string $errstr, string $errfile, int $errline) => throw new ErrorException($errstr, $errno, 1, $errfile, $errline));
 			route::register(...$config['lib_path'] ?? [__DIR__ . DIRECTORY_SEPARATOR]);
 			// 进行正则路由匹配,未匹配到fallback到普通路由
-			route::notfound(static fn (array $r) => self::run($r));
+			route::notfound(static fn(array $r) => self::run($r));
 			return route::run($uri, $request_method);
 		} catch (Throwable $e) {
 			$err = $e;
@@ -138,7 +138,7 @@ class app
 	{
 		header('Expires: ' . gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME'] + $s) . ' GMT');
 		header("Cache-Control: public, max-age={$s}");
-		header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME']) . ' GMT');
+		header('Last-Modified: ' . gmdate('D, d M Y H:i:s', (int)$_SERVER['REQUEST_TIME']) . ' GMT');
 		return header('ETag: W/' . ($_SERVER['REQUEST_TIME'] + $s) . '-' . $s);
 	}
 	public static function get(string $key, $default = null)
@@ -178,7 +178,7 @@ class app
 	}
 	public static function __callStatic(string $fn, array $args)
 	{
-		return call_user_func_array(self::$global['event'][$fn] ?? static fn () => throw new BadMethodCallException($fn, 500), $args);
+		return call_user_func_array(self::$global['event'][$fn] ?? static fn() => throw new BadMethodCallException($fn, 500), $args);
 	}
 }
 
@@ -230,7 +230,7 @@ class route
 	}
 	public static function any(string $regex, array|string|callable $fn, array $methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'])
 	{
-		array_walk($methods, static fn (string $m) => self::add($regex, $fn, $m));
+		array_walk($methods, static fn(string $m) => self::add($regex, $fn, $m));
 	}
 	public static function add(string $regex, array|string|callable $fn, string $method)
 	{
@@ -266,7 +266,7 @@ class route
 			[$_, $params, $fn] = $ret;
 			return self::call($fn, [], $params);
 		}
-		self::$notfound ??= static fn () => throw new BadFunctionCallException('Not Found', 404);
+		self::$notfound ??= static fn() => throw new BadFunctionCallException('Not Found', 404);
 		return self::call(self::$notfound, [$r], []);
 	}
 	private static function match(string $uri, string $m)
@@ -446,8 +446,8 @@ class validate
 					return in_array($item, explode(',', $val), true);
 			}
 		}
-		if (($a = explode('::', $type)) && (count($a) >= 2) && is_callable("$a[0]::$a[1]", false, $c)) {
-			return call_user_func_array($c, array_merge([$item], array_slice($a, 2)));
+		if (($a = explode('::', $type)) && (count($a) >= 2) && is_callable("$a[0]::$a[1]", false, $type)) {
+			return call_user_func_array($type, array_merge([$item], array_slice($a, 2)));
 		}
 		return match ($type) {
 			'array', 'bool', 'float', 'int', 'null', 'numeric', 'object', 'scalar', 'string' => "is_$type"($item),
@@ -545,7 +545,7 @@ class db
 
 	final public static function query(array ...$v)
 	{
-		return array_map(static fn (array $item) => self::exec(...$item), $v);
+		return array_map(static fn(array $item) => self::exec(...$item), $v);
 	}
 
 	final public static function init(array $dbConfig): PDO
@@ -669,7 +669,7 @@ class db
 			}
 			unset($data[$item]);
 		}
-		return $set ? implode(',', array_map(static fn (array $x) => sprintf('`%s` = %s', $x[0], $x[1]), $keys)) : sprintf('%s (%s) VALUES (%s)', self::table($table), implode(',', array_map(static fn (array $x) => sprintf('`%s`', $x[0]), $keys)), implode(',', array_map(static fn (array $x) => $x[1], $keys)));
+		return $set ? implode(',', array_map(static fn(array $x) => sprintf('`%s` = %s', $x[0], $x[1]), $keys)) : sprintf('%s (%s) VALUES (%s)', self::table($table), implode(',', array_map(static fn(array $x) => sprintf('`%s`', $x[0]), $keys)), implode(',', array_map(static fn(array $x) => $x[1], $keys)));
 	}
 
 	final public static function orderLimit(array $orderLimit): string
