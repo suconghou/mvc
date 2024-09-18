@@ -345,7 +345,7 @@ class request
 	}
 	public static function verify(array $rule, array|bool $post = true, bool|callable $callback = false)
 	{
-		$data = $post === true ? $_POST : (is_array($post) ? $post : $_REQUEST);
+		$data = $post === true ? ($_POST ?: self::input()) : (is_array($post) ? $post : $_REQUEST);
 		return validate::verify($rule, $data, $callback);
 	}
 	public static function getVar(array &$origin, array|string $var = '', $default = null, string $clean = '')
