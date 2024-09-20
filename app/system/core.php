@@ -496,15 +496,15 @@ class db
 		return self::exec($sql, $params, '');
 	}
 
-	final public static function insert(array $data, string $table = '', bool $ignore = false, bool $replace = false)
+	final public static function insert(array $data, string $table = '', bool $replace_or_ignore = null)
 	{
-		$sql = sprintf('%s %sINTO %s', $replace ? 'REPLACE' : 'INSERT', $ignore ? 'IGNORE ' : '', self::values($data, false, $table));
+		$sql = sprintf('%s %sINTO %s', $replace_or_ignore ? 'REPLACE' : 'INSERT', $replace_or_ignore === false ? 'IGNORE ' : '', self::values($data, false, $table));
 		return self::exec($sql, $data);
 	}
 
 	final public static function replace(array $data, string $table = '')
 	{
-		return self::insert($data, $table, false, true);
+		return self::insert($data, $table, true);
 	}
 
 	final public static function delete(array $where = [], string $table = '')
