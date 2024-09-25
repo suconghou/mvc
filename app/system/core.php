@@ -5,7 +5,7 @@ declare(strict_types=1);
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.2.6
+ * @version 1.2.7
  */
 
 
@@ -17,7 +17,7 @@ class app
 	{
 		$err = null;
 		self::$global = $config;
-		error_reporting(self::get('debug') ? E_ALL : E_ALL & ~E_NOTICE);
+		error_reporting(E_ALL);
 		$cli = PHP_SAPI === 'cli';
 		try {
 			if (!$cli && isset($_SERVER['HTTP_IF_NONE_MATCH']) && (count($param = explode('-', ltrim($_SERVER['HTTP_IF_NONE_MATCH'], 'W/'))) === 2)) {
@@ -87,7 +87,7 @@ class app
 				$errline = $err->getLine();
 				$errno = $err->getCode();
 				$errormsg = sprintf('ERROR(%d) %s%s%s', $errno, $err->getMessage(), $errfile ? " in {$errfile}" : '', $errline ? " on line {$errline}" : '');
-				$errno === 404 ? self::log($errormsg, 'DEBUG', strval($errno)) : self::log($errormsg, 'ERROR');
+				$errno === 404 ? self::log($errormsg, 'INFO', strval($errno)) : self::log($errormsg, 'ERROR');
 			}
 		}
 	}
@@ -120,11 +120,11 @@ class app
 		}
 	}
 
-	public static function log($msg, string $type = 'DEBUG', string $file = '')
+	public static function log($msg, string $type = 'INFO', string $file = '')
 	{
-		if (($l = (self::$global['var_path'] ?? (__DIR__ . DIRECTORY_SEPARATOR)) . 'log' . DIRECTORY_SEPARATOR) && is_writable($l) && (self::get('debug') || (($type = strtoupper($type)) === 'ERROR'))) {
+		if (($l = (self::$global['var_path'] ?? (__DIR__ . DIRECTORY_SEPARATOR)) . 'log' . DIRECTORY_SEPARATOR) && is_writable($l) && ((($type = strtoupper($type)) === 'ERROR') || (self::$global['debug'] ?? 0))) {
 			$path = $l . ($file ?: date('Y-m-d')) . '.log';
-			$msg = $type . '-' . date('Y-m-d H:i:s') . ' ==> ' . (is_scalar($msg) ? $msg : PHP_EOL . print_r($msg, true)) . PHP_EOL;
+			$msg = date('Y-m-d H:i:s') . str_pad($type, 6, ' ', STR_PAD_LEFT) . ' ==> ' . (is_scalar($msg) ? $msg : PHP_EOL . print_r($msg, true)) . PHP_EOL;
 			return error_log($msg, 3, $path);
 		}
 	}
@@ -476,24 +476,40 @@ class db
 		return ++$id;
 	}
 
-	final public static function getVar(string $sql, array $params = [])
+	final public static function insertOrUpdate(string $table, array $insert, array $update): bool
 	{
-		return self::exec($sql, $params, 'fetchColumn');
+		$sql = sprintf('INSERT INTO %s ON DUPLICATE KEY UPDATE %s', self::values($insert, false, $table), self::values($update, true));
+		return self::exec($sql, $insert + $update);
+	}
+	// 返回受影响的行数
+	final public static function insertOnceMany(string $table, array $column, array $data, array $duplicateKeyUpdate = []): int
+	{
+		$values = array_merge(...$data);
+		$holders = substr(str_repeat('(?' . str_repeat(',?', count(reset($data)) - 1) . '),', count($data)), 0, -1);
+		$sql = sprintf('INSERT INTO %s (%s) VALUES %s', self::table($table), implode(',', array_map(static fn(string $k) => "`$k`", $column)), $holders);
+		if ($duplicateKeyUpdate) {
+			$sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', array_map(static fn(string $v) => "`$v`=VALUES($v)", $duplicateKeyUpdate));
+		}
+		return self::exec($sql, $values, 'rowCount');
 	}
 
-	final public static function getLine(string $sql, array $params = [])
+	final public static function insertMany(string $table, array $column, array $data): bool
 	{
-		return self::exec($sql, $params, 'fetch');
-	}
-
-	final public static function getData(string $sql, array $params = [])
-	{
-		return self::exec($sql, $params, 'fetchAll');
-	}
-
-	final public static function runSql(string $sql, array $params = [])
-	{
-		return self::exec($sql, $params, '');
+		$pdo = self::ready();
+		if (!$pdo->beginTransaction()) {
+			return false;
+		}
+		try {
+			$column = array_combine($column, $column);
+			$sql = sprintf('INSERT INTO %s', self::values($column, false, $table));
+			$stm = $pdo->prepare($sql);
+			$key_names = array_keys($column);
+			array_map(fn($row) => $stm->execute(array_combine($key_names, $row)), $data);
+			return $pdo->commit();
+		} catch (Throwable $e) {
+			$pdo->rollBack();
+			throw $e;
+		}
 	}
 
 	final public static function insert(array $data, string $table = '', bool $replace_or_ignore = null)
