@@ -113,11 +113,11 @@ if (!function_exists('str_contains'))
 
 ## DEBUG 
 
-配置文件`debug`字段用于开启debug模式,其值可为`0/1` 或者 `false/true`
+配置文件`debug`字段用于控制日志记录,其值可为`0/1` 或者 `false/true`
 
-框架判断其布尔值,`debug`模式下,记录debug级别log,捕获所有错误
+框架判断其布尔值,非`debug`模式仅记录`ERROR`级别日志，忽略`INFO`,`WARN`
 
-无论是否debug,对于大于notice的错误，只要日志目录可写，都会记录相应的错误。
+无论是否debug,只要日志目录可写，都会记录相应的错误。
 
 
 
@@ -394,8 +394,8 @@ ATTR_STRINGIFY_FETCHES => false
 ### 增加
 
 ```php
-orm::insert(array $data,string $table='',bool $ignore=false,bool $replace=false)
-orm::replace(array $data,string $table='')
+db::insert(array $data,string $table='',bool $ignore=false,bool $replace=false)
+db::replace(array $data,string $table='')
 ```
 
 `replace`也是通过`insert`方法,只是参数不同.
@@ -411,7 +411,7 @@ orm::replace(array $data,string $table='')
 ### 删除
 
 ```php
-orm::delete(array $where=[],string $table='')
+db::delete(array $where=[],string $table='')
 ```
 
 将`$where`设置为空数组即可删除全表数据
@@ -421,10 +421,10 @@ orm::delete(array $where=[],string $table='')
 ### 查询
 
 ```php
-orm::find(array $where=[],string $table='',string $col='*',array $orderLimit=[],$fetch='fetchAll')
-orm::findOne(array $where=[],string $table='',string $col='*',array $orderLimit=[1],$fetch='fetch')
-orm::findVar(array $where=[],string $table='',string $col='COUNT(1)',array $orderLimit=[1])
-orm::findPage(array $where=[],string $table='',string $col='*',int $page=1,int $limit=20,array $order=[])
+db::find(array $where=[],string $table='',string $col='*',array $orderLimit=[],$fetch='fetchAll')
+db::findOne(array $where=[],string $table='',string $col='*',array $orderLimit=[1],$fetch='fetch')
+db::findVar(array $where=[],string $table='',string $col='COUNT(1)',array $orderLimit=[1])
+db::findPage(array $where=[],string $table='',string $col='*',int $page=1,int $limit=20,array $order=[])
 ```
 
 `findOne`,`findVar`,`findPage`均是借助于`find`方法,只不过传递参数不同.
@@ -487,7 +487,7 @@ $where=['!id IN'=>'(SELECT `id` FROM `user` WHERE fid=1)','age >'=>18];
 ### 更新
 
 ```php
-orm::update(array $where,array $data,string $table='')
+db::update(array $where,array $data,string $table='')
 ```
 
 `$where`的具体形式见*WHERE 构造器*
@@ -497,7 +497,7 @@ orm::update(array $where,array $data,string $table='')
 ### WHERE 构造器
 
 ```php
-orm::condition(array &$where,string $prefix='WHERE')
+db::condition(array &$where,string $prefix='WHERE')
 ```
 
 在查询和删除,更新等场景下,传入一个数组作为条件
@@ -566,42 +566,65 @@ orm::condition(array &$where,string $prefix='WHERE')
 
 都是合法的.
 
-**EXISTS**
+**EXISTS** 与 **FIND_IN_SET**
 
-参考下面的FIND_IN_SET，当且仅当`WHERE`条件已有两条约束时，可以使用where数组构造;或更通用的`db::condition`函数处理
-
-性能比较：当子查询的表比较大时，使用`EXISTS`可能比使用`IN`性能更好
-
-**FIND_IN_SET**
-
-例如：查找ids字段中包含3的数据
-
-当且仅当`WHERE`条件已有两条约束时，我们可以使用where数组构造
+封装一个函数使用原始值模式对`where`规则添加额外的条件
 
 ```php
-$where = ['enable' => 1, 'id >' => 0, "AND FIND_IN_SET('3',ids) AND"];
-var_dump(db::find($where, 'iplog'));
-```
-构造出
-```sql
-SELECT * FROM iplog WHERE (`enable` = :enable_1 AND FIND_IN_SET('3',ids) AND `id` > :id_2)
-```
-数组的第三个元素是作为连接符连接多个条件的
-
-或者更通用的，我们可以单独写个函数处理
-
-```php
-final public static function findInSet(array $where = [], string $table = '', string $col = '*', array $orderLimit = [], $fetch = 'fetchAll')
+final public static function extra(array $cond, array $where = [], string $filed = null): array
 {
-	$sql = sprintf('SELECT %s FROM %s%s%s', $col, static::table($table), self::condition($where, "WHERE FIND_IN_SET('3',ids) AND"), $orderLimit ? self::orderLimit($orderLimit) : '');
-	return self::exec($sql, $where, $fetch);
+	foreach ($cond as $k => &$v) {
+		if (!is_int($k)) {
+			$v = sprintf("FIND_IN_SET('{$v}',%s)", (str_contains($k, '.') || str_contains($k, '`')) ? $k : "`{$k}`");
+			if (ctype_alnum(str_replace('_', '', $k))) {
+				$filed ??= $k;
+			}
+		}
+	}
+	if ($cond) {
+		$where["! $filed IS NOT NULL AND"] = '(' . implode(' AND ', $cond) . ')';
+	}
+	return $where;
 }
 ```
+
+> 对`$cond`添加键值对，键代表字段，值代表此字段对应`FIND_IN_SET`需要包含的值
+>
+> 当没有键（键是数字），此时值为普通SQL语句，可以为`EXISTS`或其他子查询等
+>
+> 如果`$cond`没有合适的字段key，则需要指定`$filed`的值
+
+
+```php
+self::find(self::extra(['type' => 3], ['id >' => 1]), 'messages')
+```
 构造出
 ```sql
-SELECT * FROM iplog WHERE FIND_IN_SET('3',ids) AND (`enable` = :enable_1)
+SELECT * FROM `messages` WHERE (`id` > :id_1 AND `type` IS NOT NULL AND (FIND_IN_SET('3',`type`)))
+```
+如果你需要`FIND_IN_SET`使用常量参数，或参数一为字段，需要用拼接模式
+```php
+self::find(self::extra(["FIND_IN_SET(id,'1,2,3')"], ['id >' => 1], 'id'), 'messages');
+```
+此时FIND_IN_SET就相当于查询ID是IN(1,2,3),构造出
+```sql
+SELECT * FROM `messages` WHERE (`id` > :id_1 AND `id` IS NOT NULL AND (FIND_IN_SET(id,'1,2,3')))
 ```
 
+性能比较：当子查询的表比较大时，使用`EXISTS`可能比使用`IN`性能更好，
+`IN`首先完成内层查询，然后在外层查询的过程中一一过滤；`EXISTS`需要先完成外层查询，然后对所有记录一一执行`EXISTS`子句进行过滤
+
+```php
+self::find(self::extra(["EXISTS(SELECT 1 FROM `contacts` WHERE contacts.`id`=messages.`cid` AND `name` <> 'group1' )"], ['id >' => 1], 'id'), 'messages');
+self::find(self::extra(["messages.`cid` IN (SELECT `id` FROM `contacts` WHERE `name` <> 'group1')"], ['id >' => 1], 'id'), 'messages')
+```
+
+```sql
+SELECT * FROM `messages` WHERE (`id` > :id_1 AND `id` IS NOT NULL AND (EXISTS(SELECT 1 FROM `contacts` WHERE contacts.`id`=messages.`cid` AND `name` <> 'group1' )))
+SELECT * FROM `messages` WHERE (`id` > :id_1 AND `id` IS NOT NULL AND (messages.`cid` IN (SELECT `id` FROM `contacts` WHERE `name` <> 'group1')))
+```
+
+> `NOT EXISTS`配合`INSERT INTO ... SELECT ...`还可以实现满足条件时插入
 
 
 **HAVING**
@@ -616,12 +639,11 @@ final public static function findHaving(array $where = [], string $table = '', s
 }
 ```
 
-> _构造器一次不能生成包含`AND`和`OR`相互嵌套的复杂条件,若想使用,见下面说明_
 
 ### SET 构造器
 
 ```php
-orm::values(array &$data,bool $set=false,string $table='')
+db::values(array &$data,bool $set=false,string $table='')
 ```
 
 `$data`使用关联数组表示,默认生成`VALUES()`语句用于`INSERT`,将`$set`设置为`true`生成用于`update`的语句
@@ -651,7 +673,7 @@ orm::values(array &$data,bool $set=false,string $table='')
 ### ORDERLIMIT 构造器
 
 ```php
-orm::orderLimit(array $orderLimit)
+db::orderLimit(array $orderLimit)
 ```
 
 `$orderLimit`使用关联数组,键为数据库字段,键值为排序规则,`ASC`或`DESC`,也可以使用布尔值代替,`true`为`ASC`,`false`为`DESC`
@@ -675,13 +697,8 @@ orm::orderLimit(array $orderLimit)
 
 ### 使用 ON DUPLICATE KEY UPDATE
 
-```php
-final public static function insert_or_update(string $table, array $insert, array $update)
-{
-	$sql = sprintf('INSERT INTO %s ON DUPLICATE KEY UPDATE %s', self::values($insert, false, $table), self::values($update, true));
-	return self::exec($sql, $insert + $update);
-}
-```
+`db::insertOrUpdate(string $table, array $insert, array $update): bool`实现了插入或者更新
+
 自己拼接的话
 ```php
 $sql = sprintf('INSERT INTO %s ON DUPLICATE KEY UPDATE id=:id,name=:name', self::values($insert, false, static::table));
@@ -704,8 +721,10 @@ $sql=sprintf('INSERT DELAYED IGNORE INTO %s',self::values($data,false,static::ta
 
 ### 使用`CASE WHEN`
 
-> 请自己拼接SQL,然后预处理执行
-...
+> `CASE WHEN` 可以实现单条SQL语句将多个记录更新为不同的值
+
+> `CASE WHEN` 可以实现对查询的数据对值分组转换等
+
 
 ### 批量插入
 
@@ -731,34 +750,7 @@ $data = [
 ];
 ```
 
-```php
-
-class test extends db
-{
-
-	final public static function insert_many(string $table, array $column, array $data): bool
-	{
-		$column = array_combine($column, $column);
-		$pdo = self::ready();
-		$pdo->beginTransaction();
-		try {
-			$sql = sprintf('INSERT INTO %s', self::values($column, false, $table));
-			$stm = $pdo->prepare($sql);
-			$key_names = array_keys($column);
-			foreach ($data as $row) {
-				foreach ($row as $i => $value) {
-					$stm->bindValue(":{$key_names[$i]}", $value);
-				}
-				$stm->execute();
-			}
-			return $pdo->commit();
-		} catch (Throwable $e) {
-			$pdo->rollBack();
-			throw $e;
-		}
-	}
-}
-```
+`db::insertMany(string $table, array $column, array $data): bool`实现了事务批量插入
 
 
 ### 更快的批量插入
@@ -768,46 +760,7 @@ class test extends db
 数据源和参数同上
 
 
-```php
-
-class test extends db
-{
-
-	final public static function insert_many(string $table, array $column, array $data): bool
-	{
-		$column = array_combine($column, $column);
-		$pdo = self::ready();
-		$pdo->beginTransaction();
-		try {
-			$sql = sprintf('INSERT INTO %s', self::values($column, false, $table));
-			$stm = $pdo->prepare($sql);
-			$key_names = array_keys($column);
-			foreach ($data as $row) {
-				foreach ($row as $i => $value) {
-					$stm->bindValue(":{$key_names[$i]}", $value);
-				}
-				$stm->execute();
-			}
-			return $pdo->commit();
-		} catch (Throwable $e) {
-			$pdo->rollBack();
-			throw $e;
-		}
-	}
-
-	// 返回受影响的行数
-	final public static function insert_once_many(string $table, array $column, array $data, array $duplicateKeyUpdate = []): int
-	{
-		$values = array_merge(...$data);
-		$holders = substr(str_repeat('(?' . str_repeat(',?', count(reset($data)) - 1) . '),', count($data)), 0, -1);
-		$sql = sprintf('INSERT INTO %s (%s) VALUES %s', self::table($table), implode(',', array_map(static fn (string $k) => "`$k`", $column)), $holders);
-		if ($duplicateKeyUpdate) {
-			$sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', array_map(static fn (string $v) => "`$v`=VALUES($v)", $duplicateKeyUpdate));
-		}
-		return self::exec($sql, $values, 'rowCount');
-	}
-}
-```
+`db::insertOnceMany(string $table, array $column, array $data, array $duplicateKeyUpdate = []): int` 实现了单条SQL批量插入，并且可以指定重复键的更新策略
 
 
 _批量插入中使用`ON DUPLICATE KEY UPDATE`仅需配置第四个参数_ ， `$duplicateKeyUpdate`格式同`$column`，需要是其子集
@@ -835,17 +788,12 @@ SELECT * FROM users WHERE ((`age` > :age_1 AND `sex` = :sex_2) OR (`id` > :id_3 
 
 ### 高级查询
 
-```php
-$where=['age >'=>1];
-$sql=sprintf('SELECT id FROM `%s` m%s',static::table,self::condition($where,'LEFT JOIN `user` u ON u.id=m.id WHERE'));
-return self::exec($sql,$where,'fetchAll');
-```
 
 如果你需要非常复杂的 SQL 查询,可能不能一次就利用方法完成,需要多次操作
 
 或者自己进行`prepare`并绑定.
 
-使用`orm::query`可以一次完成多个 SQL 操作,它是`orm::exec`的批处理.
+使用`db::query`可以一次完成多个 SQL 操作,它是`db::exec`的批处理.
 
 ```php
 $sql1="SELECT 1";
@@ -859,7 +807,7 @@ $data1=$data2=$data3=[];
 
 数组内部,第一个元素要批处理的$sql 语句,第二个参数绑定的参数,第三个参数获取方式.
 
-所有的 SQL 执行最终都会指向`orm::exec($sql,array $params=[],$fetch='')`
+所有的 SQL 执行最终都会指向`db::exec($sql,array $params=[],$fetch='')`
 
 
 第三个参数`fetch`
@@ -879,34 +827,8 @@ $data1=$data2=$data3=[];
 > stm->execute() 返回的是一个布尔值,代表是否操作成功,
 > 使用 stm->rowCount() 才能取到执行DELETE、 INSERT、或 UPDATE 语句受影响的行数。
 >
-> 如果你关心受影响的行数,需要自己实现这一细节.
+> 如果你关心受影响的行数,在调用`db::exec`时需注意.
 
-```php
-
-class testdb extends db
-{
-
-	final public static function getUpdate(array $where, array $data, string $table = ''): int
-	{
-		$sql = sprintf('UPDATE %s SET %s%s', static::table($table), self::values($data, true), self::condition($where));
-		$params = $data + $where;
-		if (empty($params)) {
-			return self::exec($sql);
-		}
-		return self::exec($sql, $params, 'rowCount');
-	}
-
-	final public static function getDelete(array $where = [], string $table = ''): int
-	{
-		$sql = sprintf('DELETE FROM %s%s', static::table($table), self::condition($where));
-		if (empty($where)) {
-			return self::exec($sql);
-		}
-		return self::exec($sql, $where, 'rowCount');
-	}
-}
-
-```
 ### SQLITE 差异
 
 insert ignore 和 replace 与MySQL的语法存在差异
@@ -917,9 +839,9 @@ insert or ignore：如果不存在就插入，存在就忽略
 insert函数可以新增如下对SQLITE的改写版
 
 ```php
-final public static function sqliteInsert(array $data, string $table = '', bool $ignore = false, bool $replace = false)
+final public static function sqliteInsert(array $data, string $table = '', bool $replace_or_ignore = null)
 {
-	$sql = sprintf('%s %sINTO %s', $replace ? 'INSERT OR REPLACE' : 'INSERT', $ignore ? 'OR IGNORE ' : '', self::values($data, false, $table));
+	$sql = sprintf('%s %sINTO %s', $replace_or_ignore ? 'INSERT OR REPLACE' : 'INSERT', $replace_or_ignore === false ? 'OR IGNORE ' : '', self::values($data, false, $table));
 	return self::exec($sql, $data);
 }
 ```

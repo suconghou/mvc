@@ -255,7 +255,6 @@ class route
 			return false;
 		});
 	}
-	// 调用此方法,上层需try
 	public static function run(string $uri, string $m)
 	{
 		$r = array_values(array_filter(explode('/', $uri, 9), 'strlen'));
@@ -481,7 +480,7 @@ class db
 		$sql = sprintf('INSERT INTO %s ON DUPLICATE KEY UPDATE %s', self::values($insert, false, $table), self::values($update, true));
 		return self::exec($sql, $insert + $update);
 	}
-	// 返回受影响的行数
+	/** 返回受影响的行数 */
 	final public static function insertOnceMany(string $table, array $column, array $data, array $duplicateKeyUpdate = []): int
 	{
 		$values = array_merge(...$data);
@@ -523,10 +522,10 @@ class db
 		return self::insert($data, $table, true);
 	}
 
-	final public static function delete(array $where = [], string $table = '')
+	final public static function delete(array $where = [], string $table = ''): int
 	{
 		$sql = sprintf('DELETE FROM %s%s', static::table($table), self::condition($where));
-		return self::exec($sql, $where);
+		return self::exec($sql, $where, $where ? 'rowCount' : '');
 	}
 
 	final public static function find(array $where = [], string $table = '', string $col = '*', array $orderLimit = [], string $fetch = 'fetchAll')
@@ -553,10 +552,11 @@ class db
 		return ['list' => $list, 'pages' => $pages, 'total' => $total, 'current' => $page, 'prev' => min($pages, max(1, $page - 1)), 'next' => min($pages, $page + 1)];
 	}
 
-	final public static function update(array $where, array $data, string $table = '')
+	final public static function update(array $where, array $data, string $table = ''): int
 	{
 		$sql = sprintf('UPDATE %s SET %s%s', static::table($table), self::values($data, true), self::condition($where));
-		return self::exec($sql, $data + $where);
+		$params = $data + $where;
+		return self::exec($sql, $params, $params ? 'rowCount' : '');
 	}
 
 	final public static function query(array ...$v)
