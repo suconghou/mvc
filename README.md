@@ -579,12 +579,12 @@ final public static function extra(array $cond, array $where = [], string $filed
 			$v = sprintf('%s IN (%s)', (str_contains($k, '.') || str_contains($k, '`')) ? $k : "`{$k}`", implode(',', $v));
 		} else if (is_null($v)) {
 			$v = sprintf('%s IS NULL', (str_contains($k, '.') || str_contains($k, '`')) ? $k : "`{$k}`");
-		} else if (!is_int($k)) {
+		} else if (is_string($k)) {
 			$v = sprintf("FIND_IN_SET('%s',%s)", trim($v, " \n\r\t\v\0\"'"), (str_contains($k, '.') || str_contains($k, '`')) ? $k : "`{$k}`");
 			if (ctype_alnum(str_replace('_', '', $k))) {
 				$filed ??= $k;
 			}
-		} else if (!is_string($v)) {
+		} else if (is_bool($v) || is_int($v) || is_float($v)) {
 			$j = $v ? 'AND' : 'OR';
 			unset($cond[$k]);
 		}

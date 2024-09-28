@@ -389,8 +389,8 @@ class validate
 								array_is_list($msg) ? (in_array($data[$k], $msg, true) or throw new InvalidArgumentException($type, -22)) : (is_array($data[$k]) ? self::verify($msg, $data[$k], $callback) : throw new InvalidArgumentException($type, -23));
 							} else if (is_int($type) && is_string($msg)) {
 								$rename[$k] = $msg;
-							} else if (is_scalar($msg)) {
-								(is_string($type) && self::check($data[$k], $type)) or throw new InvalidArgumentException(strval($msg), -24);
+							} else if (is_scalar($msg) || is_null($msg)) {
+								self::check($data[$k], is_string($type) ? $type : sprintf('r::_%d', is_int($msg) ? $msg : $type)) or throw new InvalidArgumentException((is_string($msg) ? $msg : (is_string($type) ? $type : strval(is_int($msg) ? $msg : $type))), -24);
 							} else if (is_callable($msg)) {
 								$data[$k] = $msg($data[$k], $type, $k);
 							}
