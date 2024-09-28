@@ -573,16 +573,24 @@ db::condition(array &$where,string $prefix='WHERE')
 ```php
 final public static function extra(array $cond, array $where = [], string $filed = null): array
 {
+	$j = 'AND';
 	foreach ($cond as $k => &$v) {
-		if (!is_int($k)) {
-			$v = sprintf("FIND_IN_SET('{$v}',%s)", (str_contains($k, '.') || str_contains($k, '`')) ? $k : "`{$k}`");
+		if (is_array($v)) {
+			$v = sprintf('%s IN (%s)', (str_contains($k, '.') || str_contains($k, '`')) ? $k : "`{$k}`", implode(',', $v));
+		} else if (is_null($v)) {
+			$v = sprintf('%s IS NULL', (str_contains($k, '.') || str_contains($k, '`')) ? $k : "`{$k}`");
+		} else if (!is_int($k)) {
+			$v = sprintf("FIND_IN_SET('%s',%s)", trim($v, " \n\r\t\v\0\"'"), (str_contains($k, '.') || str_contains($k, '`')) ? $k : "`{$k}`");
 			if (ctype_alnum(str_replace('_', '', $k))) {
 				$filed ??= $k;
 			}
+		} else if (!is_string($v)) {
+			$j = $v ? 'AND' : 'OR';
+			unset($cond[$k]);
 		}
 	}
 	if ($cond) {
-		$where["! $filed IS NOT NULL AND"] = '(' . implode(' AND ', $cond) . ')';
+		$where["! $filed IS NOT NULL AND"] = '(' . implode(" $j ", $cond) . ')';
 	}
 	return $where;
 }
@@ -604,11 +612,11 @@ SELECT * FROM `messages` WHERE (`id` > :id_1 AND `type` IS NOT NULL AND (FIND_IN
 ```
 如果你需要`FIND_IN_SET`使用常量参数，或参数一为字段，需要用拼接模式
 ```php
-self::find(self::extra(["FIND_IN_SET(id,'1,2,3')"], ['id >' => 1], 'id'), 'messages');
+self::find(self::extra(["FIND_IN_SET(`id`,'1,2,3')"], ['id >' => 1], 'id'), 'messages');
 ```
 此时FIND_IN_SET就相当于查询ID是IN(1,2,3),构造出
 ```sql
-SELECT * FROM `messages` WHERE (`id` > :id_1 AND `id` IS NOT NULL AND (FIND_IN_SET(id,'1,2,3')))
+SELECT * FROM `messages` WHERE (`id` > :id_1 AND `id` IS NOT NULL AND (FIND_IN_SET(`id`,'1,2,3')))
 ```
 
 性能比较：当子查询的表比较大时，使用`EXISTS`可能比使用`IN`性能更好，
