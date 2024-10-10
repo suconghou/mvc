@@ -458,7 +458,7 @@ class validate
 			'default' => true,
 			'required' => $item,
 			'require' => $item === 0.0 || $item === 0 || $item === '0' || $item,
-			'phone' => (is_string($item) || is_int($item)) && preg_match("/^1\d{10}$/", $item),
+			'phone' => (is_string($item) || is_int($item)) && preg_match("/^1\d{10}$/", strval($item)),
 			'username' => is_numeric($item) ? false : (is_string($item) && preg_match('/^[\w\x{4e00}-\x{9fa5}]{3,20}$/u', $item)), //字母数字汉字,不能全是数字
 			'password' => is_string($item) && preg_match('/^(?=^.{8,}$)(?=.*\d)(?=.*\W+)(?=.*[A-Z])(?=.*[a-z])(?!.*\n).*$/', $item), //数字/大写字母/小写字母/标点符号组成，四种都必有，8位以上
 			'json' => is_string($item) && in_array(trim($item)[0] ?? '', ['[', '{'], true) && !is_null(json_decode($item)), //字符串是合法的JSON数组或对象
