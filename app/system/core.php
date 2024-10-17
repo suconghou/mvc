@@ -485,7 +485,7 @@ class db
 	{
 		$values = array_merge(...$data);
 		$holders = substr(str_repeat('(?' . str_repeat(',?', count(reset($data)) - 1) . '),', count($data)), 0, -1);
-		$sql = sprintf('INSERT INTO %s (%s) VALUES %s', self::table($table), implode(',', array_map(static fn(string $k) => "`$k`", $column)), $holders);
+		$sql = sprintf('INSERT INTO %s (%s) VALUES %s', static::table($table), implode(',', array_map(static fn(string $k) => "`$k`", $column)), $holders);
 		if ($duplicateKeyUpdate) {
 			$sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', array_map(static fn(string $v) => "`$v`=VALUES($v)", $duplicateKeyUpdate));
 		}
@@ -685,7 +685,7 @@ class db
 			}
 			unset($data[$item]);
 		}
-		return $set ? implode(',', array_map(static fn(array $x) => sprintf('`%s` = %s', $x[0], $x[1]), $keys)) : sprintf('%s (%s) VALUES (%s)', self::table($table), implode(',', array_map(static fn(array $x) => sprintf('`%s`', $x[0]), $keys)), implode(',', array_map(static fn(array $x) => $x[1], $keys)));
+		return $set ? implode(',', array_map(static fn(array $x) => sprintf('`%s` = %s', $x[0], $x[1]), $keys)) : sprintf('%s (%s) VALUES (%s)', static::table($table), implode(',', array_map(static fn(array $x) => sprintf('`%s`', $x[0]), $keys)), implode(',', array_map(static fn(array $x) => $x[1], $keys)));
 	}
 
 	final public static function orderLimit(array $orderLimit): string
