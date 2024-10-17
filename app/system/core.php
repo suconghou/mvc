@@ -72,7 +72,7 @@ class app
 				}
 			};
 			try {
-				headers_sent() || header('Error-At:' . preg_replace('/\s+/', ' ', substr($err->getMessage(), 0, 200)), true, in_array($errno, [400, 401, 403, 404, 405, 500, 502, 503, 504], true) ? $errno : 500);
+				headers_sent() || header('Error-At: ' . preg_replace('/\s+/', ' ', substr($err->getMessage(), 0, 200)), true, in_array($errno, [400, 401, 403, 404, 405, 500, 502, 503, 504], true) ? $errno : 500);
 				if ($errno === 404) {
 					return (self::get('notfound') ?? $errfound ?? $errHandler)($e, $cli);
 				}
@@ -202,11 +202,11 @@ class route
 	public static function to(string $url, int $s = 302)
 	{
 		if (in_array($s, [301, 302, 303, 307, 308], true)) {
-			header("Location:{$url}", true, $s);
+			header("Location: {$url}", true, $s);
 		} else {
-			header("Refresh:{$s};url={$url}", true, 302);
+			header("Refresh: {$s};url={$url}", true, 302);
 		}
-		exit(header('Cache-Control:no-cache, no-store, max-age=0, must-revalidate'));
+		exit(header('Cache-Control: no-cache, no-store, max-age=0, must-revalidate'));
 	}
 	public static function get(string $regex, array|string|callable $fn)
 	{
