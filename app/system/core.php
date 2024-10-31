@@ -86,7 +86,7 @@ class app
 				$errfile = $err->getFile();
 				$errline = $err->getLine();
 				$errno = $err->getCode();
-				$errormsg = sprintf('ERROR(%d) %s%s%s', $errno, $err->getMessage(), $errfile ? " in {$errfile}" : '', $errline ? " on line {$errline}" : '');
+				$errormsg = sprintf('%s(%d) %s%s', $err::class, $errno, $err->getMessage(), " in {$errfile}:{$errline}");
 				$errno === 404 ? self::log($errormsg, 'INFO', strval($errno)) : self::log($errormsg, 'ERROR');
 			}
 		}
