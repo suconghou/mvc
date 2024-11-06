@@ -65,10 +65,8 @@ class app
 				if ($cli) {
 					echo $e, PHP_EOL;
 				} else {
-					$err = $e->getTraceAsString();
-					$errMsg = $e->getMessage();
-					$errCode = $e->getCode();
-					echo "<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;font:italic 14px/20px Georgia,Times New Roman;word-wrap:break-word;'><p>ERROR({$errCode}) {$errMsg}</p><p style='white-space: pre-wrap;line-height: 2.2;'>{$err}</p></div>";
+					$t = sprintf('%s(%d) %s%s', $e::class, $e->getCode(), $e->getMessage(), " in {$e->getFile()}:{$e->getLine()}");
+					echo "<div style='margin:2% auto;width:80%;box-shadow:0 0 5px #f00;padding:1%;font:italic 14px/20px Georgia,Times New Roman;word-wrap:break-word;'><p>{$t}</p><p style='white-space: pre-wrap;line-height: 2.2;'>{$e->getTraceAsString()}</p></div>";
 				}
 			};
 			try {
@@ -83,10 +81,8 @@ class app
 			}
 		} finally {
 			if ($err) {
-				$errfile = $err->getFile();
-				$errline = $err->getLine();
 				$errno = $err->getCode();
-				$errormsg = sprintf('%s(%d) %s%s', $err::class, $errno, $err->getMessage(), " in {$errfile}:{$errline}");
+				$errormsg = sprintf('%s(%d) %s%s', $err::class, $errno, $err->getMessage(), " in {$err->getFile()}:{$err->getLine()}");
 				$errno === 404 ? self::log($errormsg, 'INFO', strval($errno)) : self::log($errormsg, 'ERROR');
 			}
 		}
