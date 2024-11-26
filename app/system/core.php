@@ -333,7 +333,7 @@ class request
 	{
 		return isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) !== 'off');
 	}
-	public static function is(string $m = '', callable $callback = null)
+	public static function is(string $m = '', callable|null $callback = null)
 	{
 		$t = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 		return $m ? (($t === strtoupper($m)) ? ($callback ? $callback() : true) : false) : $t;
@@ -507,7 +507,7 @@ class db
 		}
 	}
 
-	final public static function insert(array $data, string $table = '', bool $replace_or_ignore = null)
+	final public static function insert(array $data, string $table = '', bool|null $replace_or_ignore = null)
 	{
 		$sql = sprintf('%s %sINTO %s', $replace_or_ignore ? 'REPLACE' : 'INSERT', $replace_or_ignore === false ? 'IGNORE ' : '', self::values($data, false, $table));
 		return self::exec($sql, $data);
