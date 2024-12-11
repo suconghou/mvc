@@ -127,7 +127,7 @@ class app
 
 	public static function file(string $r = "", string $ext = "html"): array
 	{
-		$m = md5(strtolower($r));
+		$m = md5($r);
 		return [sprintf('%s%s%s%s.%s', (self::$global['var_path'] ?? (__DIR__ . DIRECTORY_SEPARATOR)), $ext, DIRECTORY_SEPARATOR, $m, $ext), $m];
 	}
 	public static function cache(int $s = 0)
