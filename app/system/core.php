@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 class app
 {
-	private static $global;
+	private static array $global;
 
 	public static function start(array $config)
 	{
@@ -180,8 +180,8 @@ class app
 
 class route
 {
-	private static $routes = [];
-	private static $notfound;
+	private static array $routes = [];
+	private static closure $notfound;
 	public static function u(string $path = '', array|string $query = '', bool|string $host = ''): string
 	{
 		$prefix = '';
@@ -540,7 +540,7 @@ class db
 		return self::find($where, $table, $col, $orderLimit, 'fetchColumn');
 	}
 
-	final public static function findPage(array $where = [], string $table = '', string $col = '*', int $page = 1, int $limit = 20, array $order = [])
+	final public static function findPage(array $where = [], string $table = '', string $col = '*', int $page = 1, int $limit = 20, array $order = []): array
 	{
 		$total = intval(self::findVar($where, $table));
 		$pages = ceil($total / $limit);
