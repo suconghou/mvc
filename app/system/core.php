@@ -21,10 +21,10 @@ class app
 		$cli = PHP_SAPI === 'cli';
 		try {
 			if (!$cli && isset($_SERVER['HTTP_IF_NONE_MATCH']) && (count($param = explode('-', ltrim($_SERVER['HTTP_IF_NONE_MATCH'], 'W/'))) === 2)) {
-				[$expire, $t] = $param;
-				if ($expire > $_SERVER['REQUEST_TIME'] || (strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE'] ?? '') + intval($t) > $_SERVER['REQUEST_TIME'])) {
+				[$expire, $t] = array_map('intval', $param);
+				if ($expire > $_SERVER['REQUEST_TIME'] || (strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE'] ?? '') + $t > $_SERVER['REQUEST_TIME'])) {
 					header('Cache-Control: public, max-age=' . ($expire - $_SERVER['REQUEST_TIME']));
-					return header('Expires: ' . gmdate('D, d M Y H:i:s', intval($expire)) . ' GMT', true, 304);
+					return header('Expires: ' . gmdate('D, d M Y H:i:s', $expire) . ' GMT', true, 304);
 				}
 			}
 			if ($cli) {
