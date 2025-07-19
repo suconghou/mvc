@@ -465,16 +465,17 @@ while($row=$stm->fetch())
 
 即使循环获取,数据也是从 MySQL 服务器发送到了 PHP 进程中保存,若数据实在太大,可以设置数据任然保存在 MySQL 服务器,循环的过程中现场取
 
-在查询之前,给 PDO 实例设置
-
 ```php
-self::setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY,false);
+static function pull(string $sql, array $params = [])
+{
+	$stmt = self::ready()->prepare($sql, [PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => false]);
+	$stmt->execute($params);
+	while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+		yield $row;
+	}
+	$stmt->closeCursor();
+}
 ```
-
-然后再循环获取,内存使用会显著下降
-
-> _因 PDO 使用长连接,该设置会影响一定时段内的所有 SQL 查询,你也可以查询完设置回`true`避免影响其他查询_ 
-> _自 PHP5.5 起,可以使用 yield,大数据量下可以显著帮你节省内存_
 
 #### 子查询
 
