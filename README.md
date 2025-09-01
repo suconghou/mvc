@@ -191,7 +191,49 @@ route::get('/hi/index','admin\form::index')
 ```php
 route::get('/hello/hi',['admin\form','hi'])
 ```
-二级，三级，文件夹同类
+二级，三级，文件夹同理
+除了通过路由配置调度到子文件夹，还可以自己手动调度
+
+例如`api.php`，访问`/api/user/`下的路由被调度到`api`文件夹，`user`同名文件类，后续路径参数继续派发
+```php
+<?php
+
+class api
+{
+    function __invoke($e)
+    {
+        throw $e;
+    }
+
+    function user()
+    {
+        $params = [__CLASS__ . "\\" . __FUNCTION__, ...func_get_args()];
+        $res = app::run($params);
+        return json(is_array($res) ? $res : [$res]);
+    }
+}
+```
+`api/user.php`
+```php
+<?php
+
+namespace api;
+
+class user
+{
+    function __invoke($e)
+    {
+        throw $e;
+    }
+
+    function hello($a)
+    {
+        return ["hello " . $a];
+    }
+}
+```
+访问`/api/user/hello/world`命中`api/user.php`中的`hello()`方法，这样返回值上层统一处理，简化逻辑。
+
 
 
 闭包模式
