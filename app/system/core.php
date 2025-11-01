@@ -481,9 +481,9 @@ class db
 	{
 		$values = array_merge(...$data);
 		$holders = substr(str_repeat('(?' . str_repeat(',?', count(reset($data)) - 1) . '),', count($data)), 0, -1);
-		$sql = sprintf('INSERT INTO %s (%s) VALUES %s', static::table($table), implode(',', array_map(static fn(string $k) => "`$k`", $column)), $holders);
+		$sql = sprintf('INSERT INTO %s (%s) VALUES %s', static::table($table), implode(',', array_map(static fn(string $k): string => "`$k`", $column)), $holders);
 		if ($duplicateKeyUpdate) {
-			$sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', array_map(static fn(string $v) => "`$v`=VALUES($v)", $duplicateKeyUpdate));
+			$sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', array_map(static fn(string $v): string => "`$v`=VALUES($v)", $duplicateKeyUpdate));
 		}
 		return self::exec($sql, $values, 'rowCount');
 	}
@@ -687,7 +687,7 @@ class db
 	final public static function orderLimit(array $orderLimit): string
 	{
 		$limit = '';
-		$orderLimit = array_filter($orderLimit, static function ($x, $k) use (&$limit) {
+		$orderLimit = array_filter($orderLimit, static function ($x, $k) use (&$limit): bool {
 			if ((is_int($x) || ctype_digit(strval($x))) && (is_int($k) || ctype_digit(strval($k)))) {
 				$limit = "$k,$x";
 				return false;
