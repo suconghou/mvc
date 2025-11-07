@@ -244,11 +244,10 @@ class route
 				if (is_file($file = "{$dir}{$name}.php")) {
 					require_once $file;
 					if (class_exists($name, false)) {
-						return true;
+						return;
 					}
 				}
 			}
-			return false;
 		});
 	}
 	public static function run(string $uri, string $m)
