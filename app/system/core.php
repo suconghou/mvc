@@ -498,7 +498,7 @@ class db
 			$sql = sprintf('INSERT INTO %s', self::values($column, false, $table));
 			$stm = $pdo->prepare($sql);
 			$key_names = array_keys($column);
-			array_map(fn($row) => $stm->execute(array_combine($key_names, $row)), $data);
+			array_map(static fn($row) => $stm->execute(array_combine($key_names, $row)), $data);
 			return $pdo->commit();
 		} catch (Throwable $e) {
 			$pdo->rollBack();
