@@ -116,7 +116,7 @@ class app
 		}
 	}
 
-	public static function log($msg, string $type = 'INFO', string $file = '')
+	public static function log(array|object|string|int|float|bool|null $msg, string $type = 'INFO', string $file = '')
 	{
 		if (($l = (self::$global['var_path'] ?? (__DIR__ . DIRECTORY_SEPARATOR)) . 'log' . DIRECTORY_SEPARATOR) && is_writable($l) && ((($type = strtoupper($type)) === 'ERROR') || (self::$global['debug'] ?? 0))) {
 			$path = $l . ($file ?: date('Y-m-d')) . '.log';
@@ -141,7 +141,7 @@ class app
 	{
 		return self::$global[$key] ?? $default;
 	}
-	public static function set(string $key, $value)
+	public static function set(string $key, mixed $value)
 	{
 		self::$global[$key] = $value;
 		return self::$global;
@@ -356,7 +356,7 @@ class request
 		}
 		return $origin;
 	}
-	public static function clean($val, string $type = '')
+	public static function clean(array|object|string|int|float|bool|null $val, string $type = '')
 	{
 		return match ($type) {
 			'int', 'float', 'str', 'bool' => "{$type}val"($val),
@@ -416,7 +416,7 @@ class validate
 		}
 		return $data;
 	}
-	public static function check($item, string $type)
+	public static function check(array|object|string|int|float|bool|null $item, string $type)
 	{
 		if (($a = explode('=', $type)) && (count($a) === 2) && ([$key, $val] = $a)) {
 			switch ($key) {
