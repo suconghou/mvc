@@ -419,25 +419,20 @@ class validate
 	public static function check(array|object|string|int|float|bool|null $item, string $type)
 	{
 		if (($a = explode('=', $type)) && (count($a) === 2) && ([$key, $val] = $a)) {
-			switch ($key) {
-				case 'minlength':
-					return is_string($item) && is_numeric($val) && strlen($item) >= intval($val);
-				case 'maxlength':
-					return is_string($item) && is_numeric($val) && strlen($item) <= intval($val);
-				case 'length':
-					return is_string($item) && ([$l, $a] = [strlen($item), explode(',', $val, 2)]) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $l >= intval($a[0]) && $l <= intval($a[1])) : ($l === intval($a[0])));
-				case 'int':
-					return is_int($item) && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $item >= intval($a[0]) && $item <= intval($a[1])) : ($item >= intval($a[0])));
-				case 'number':
-					return filter_var($item, FILTER_VALIDATE_INT) !== false && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $item >= intval($a[0]) && $item <= intval($a[1])) : ($item >= intval($a[0])));
-				case 'numeric':
-					return is_numeric($item) && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $item >= floatval($a[0]) && $item <= floatval($a[1])) : ($item >= floatval($a[0])));
-				case 'eq':
-					return is_string($item) && $item === $val;
-				case 'eqs':
-					return is_string($item) && strtolower($item) === strtolower($val);
-				case 'set':
-					return in_array($item, explode(',', $val), true);
+			$r = match ($key) {
+				'minlength' => is_string($item) && is_numeric($val) && strlen($item) >= intval($val),
+				'maxlength' => is_string($item) && is_numeric($val) && strlen($item) <= intval($val),
+				'length' => is_string($item) && ([$l, $a] = [strlen($item), explode(',', $val, 2)]) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $l >= intval($a[0]) && $l <= intval($a[1])) : ($l === intval($a[0]))),
+				'int' => is_int($item) && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $item >= intval($a[0]) && $item <= intval($a[1])) : ($item >= intval($a[0]))),
+				'number' => filter_var($item, FILTER_VALIDATE_INT) !== false && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $item >= intval($a[0]) && $item <= intval($a[1])) : ($item >= intval($a[0]))),
+				'numeric' => is_numeric($item) && ($a = explode(',', $val, 2)) && is_numeric($a[0]) && (count($a) === 2 ? (is_numeric($a[1]) && $item >= floatval($a[0]) && $item <= floatval($a[1])) : ($item >= floatval($a[0]))),
+				'eq' => is_string($item) && $item === $val,
+				'eqs' => is_string($item) && strtolower($item) === strtolower($val),
+				'set' => in_array($item, explode(',', $val), true),
+				default => null,
+			};
+			if ($r !== null) {
+				return $r;
 			}
 		}
 		if (($a = explode('::', $type)) && (count($a) >= 2) && is_callable("$a[0]::$a[1]", false, $type)) {
