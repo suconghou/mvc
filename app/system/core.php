@@ -202,7 +202,8 @@ class route
 		} else {
 			header("Refresh: {$s};url={$url}", true, 302);
 		}
-		exit(header('Cache-Control: no-cache, no-store, max-age=0, must-revalidate'));
+		header('Cache-Control: no-cache, no-store, max-age=0, must-revalidate');
+		exit(0);
 	}
 	public static function get(string $regex, array|string|callable $fn)
 	{
@@ -232,7 +233,7 @@ class route
 	{
 		self::$routes[$method][] = [$regex, $fn];
 	}
-	public static function notfound(array|string|callable $fn)
+	public static function notfound(closure $fn)
 	{
 		self::$notfound = $fn;
 	}
@@ -493,7 +494,7 @@ class db
 			$sql = sprintf('INSERT INTO %s', self::values($column, false, $table));
 			$stm = $pdo->prepare($sql);
 			$key_names = array_keys($column);
-			array_map(static fn($row) => $stm->execute(array_combine($key_names, $row)), $data);
+			array_walk($data, static fn($row) => $stm->execute(array_combine($key_names, $row)));
 			return $pdo->commit();
 		} catch (Throwable $e) {
 			$pdo->rollBack();
