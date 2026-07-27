@@ -322,7 +322,10 @@ HTTP 缓存使用 `app::cache(int $second)`开启
 
 `request::verify(array $rule, array|bool $post = true, bool|callable $callback = false)`
 
-`$post`为要验证的数据,若非数组，则true代表$_POST,false代表$_REQUEST
+`$post`为要验证的数据:
+> 传入数组时,直接校验该数组
+> `true`(默认) 使用`$_POST`,若为空则回落到`php://input`(JSON等)
+> 其他非数组值(如`false`) 使用`$_REQUEST`
 
 `$rule`
 
@@ -342,8 +345,8 @@ $r =
 	];
 
 ```
-注意 `maxResults` 的配置项为一个数组,元素可为闭包和其他规则,
-如果直接写一个闭包而不是数组,代表使用闭包的返回值,而不是对输入值校验.
+注意字段规则一般为数组,元素可为校验规则、闭包等。
+如果直接写标量或闭包而不是数组,代表使用该值/闭包返回值作为字段结果,而不是对输入值校验(如上例`part`)。
 
 
 內建的验证类型有
@@ -371,13 +374,15 @@ ctype类型
 
 > numeric可以既接受float型也接受字符串格式的小数,也可以既接受int型也接受字符串格式的整数
 
-> int,number,numeric,length 可以使用区间限定,使用`,`连接两个区间,`int=1,50`表示int型1和50之间,`length=10,20`表示string类型长度在10至20
+> int,number,numeric,length 可以使用区间限定,使用`,`连接两个端点,`int=1,50`表示int型在1和50之间,`length=10,20`表示string长度在10至20
 
-> 无`,`时,表示需大于等于此起始值,`number=1` 表示int或字符串整数，值大于等于1,即除0外的正整数
+> int,number,numeric 无`,`时,表示需大于等于此起始值,`number=1` 表示int或字符串整数，值大于等于1,即除0外的正整数
+
+> length 无`,`时表示长度必须等于该值,`length=3` 表示string长度正好为3;有`,`时为区间
 
 > `minlength=8` 表示string长度最小8
 
-> set 规则只能针对值是string类型的值做判断,值为int类型的,一律判断不通过
+> set 使用强类型比较,集合项来自逗号拆分后的字符串;因此通常仅string能通过,int等其他类型一律不通过
 
 > 直接使用数组语法来判断更加复杂的是否在集合中, 此比较方法是强类型的比较
 
@@ -389,9 +394,9 @@ ctype类型
 
 > false 抛出异常,此为默认
 
-> 闭包函数, 异常将传递给此闭包函数处理
+> 闭包函数,先将数据改写为`['code'=>错误码,'msg'=>错误信息]`,再以`($e, $data)`调用该闭包
 
-> true 立即响应json并中断
+> true 立即响应json并中断(内部`exit`)
 
 
 

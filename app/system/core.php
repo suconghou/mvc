@@ -372,44 +372,48 @@ class validate
 	public static function verify(array $rule, array &$data, bool|callable $callback = false)
 	{
 		try {
-			$data = array_intersect_key($data, $rule) + array_fill_keys(array_keys($rule), null);
-			$rename = [];
-			foreach ($rule as $k => $item) {
-				if (isset($data[$k])) {
-					if (is_array($item)) {
-						foreach ($item as $type => $msg) {
-							if ($type === 'default') continue;
-							if ($msg instanceof closure) {
-								$data[$k] = $msg($data[$k], $type, $k);
-							} else if (is_array($msg)) {
-								array_is_list($msg) ? (in_array($data[$k], $msg, true) or throw new InvalidArgumentException($type, -22)) : (is_array($data[$k]) ? self::verify($msg, $data[$k], $callback) : throw new InvalidArgumentException($type, -23));
-							} else if (is_int($type) && is_string($msg)) {
-								$rename[$k] = $msg;
-							} else if (is_scalar($msg) || is_null($msg)) {
-								self::check($data[$k], is_string($type) ? $type : sprintf('r::_%d', is_int($msg) ? $msg : $type)) or throw new InvalidArgumentException((is_string($msg) ? $msg : (is_string($type) ? $type : strval(is_int($msg) ? $msg : $type))), -24);
-							} else if (is_callable($msg)) {
-								$data[$k] = $msg($data[$k], $type, $k);
-							}
-						}
-					} else {
-						$data[$k] = $item instanceof closure ? $item() : $item;
-					}
-				} else if ($item instanceof closure) {
-					$data[$k] = $item();
-				} else if (!is_array($item)) {
-					$data[$k] = $item;
-				} else if (!empty($item['require']) || !empty($item['required'])) {
-					throw new InvalidArgumentException($item['require'] ?? $item['required'], -20);
-				} else if (array_key_exists('default', $item)) {
-					$data[$k] = $item['default'] instanceof closure ? $item['default']() : $item['default'];
-				} // else 其他情况：有规则，但是不存在值，规则$item是数组，应该按照校验规则解析，但是没要求必填，没配置默认值，则忽略校验
-			}
+			return self::data($rule, $data);
 		} catch (Throwable $e) {
 			if ($callback === false) {
 				throw $e;
 			}
 			$data = ['code' => $e->getCode(), 'msg' => $e->getMessage()];
 			return is_callable($callback) ? $callback($e, $data) : json($data);
+		}
+	}
+	private static function data(array $rule, array &$data): array
+	{
+		$data = array_intersect_key($data, $rule) + array_fill_keys(array_keys($rule), null);
+		$rename = [];
+		foreach ($rule as $k => $item) {
+			if (isset($data[$k])) {
+				if (is_array($item)) {
+					foreach ($item as $type => $msg) {
+						if ($type === 'default') continue;
+						if ($msg instanceof closure) {
+							$data[$k] = $msg($data[$k], $type, $k);
+						} else if (is_array($msg)) {
+							array_is_list($msg) ? (in_array($data[$k], $msg, true) or throw new InvalidArgumentException($type, -22)) : (is_array($data[$k]) ? self::data($msg, $data[$k]) : throw new InvalidArgumentException($type, -23));
+						} else if (is_int($type) && is_string($msg)) {
+							$rename[$k] = $msg;
+						} else if (is_scalar($msg) || is_null($msg)) {
+							self::check($data[$k], is_string($type) ? $type : sprintf('r::_%d', is_int($msg) ? $msg : $type)) or throw new InvalidArgumentException((is_string($msg) ? $msg : (is_string($type) ? $type : strval(is_int($msg) ? $msg : $type))), -24);
+						} else if (is_callable($msg)) {
+							$data[$k] = $msg($data[$k], $type, $k);
+						}
+					}
+				} else {
+					$data[$k] = $item instanceof closure ? $item() : $item;
+				}
+			} else if ($item instanceof closure) {
+				$data[$k] = $item();
+			} else if (!is_array($item)) {
+				$data[$k] = $item;
+			} else if (!empty($item['require']) || !empty($item['required'])) {
+				throw new InvalidArgumentException($item['require'] ?? $item['required'], -20);
+			} else if (array_key_exists('default', $item)) {
+				$data[$k] = $item['default'] instanceof closure ? $item['default']() : $item['default'];
+			} // else 其他情况：有规则，但是不存在值，规则$item是数组，应该按照校验规则解析，但是没要求必填，没配置默认值，则忽略校验
 		}
 		foreach ($rename as $from => $to) {
 			$data[$to] = $data[$from];
