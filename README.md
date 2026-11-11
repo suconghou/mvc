@@ -315,7 +315,7 @@ HTTP 缓存使用 `app::cache(int $second)`开启
 
 命中时释放缓存,缓存失效时删除缓存
 
-配置`$callback`为1，则返回模板渲染的数据而不是直接输出，配置为闭包可以获取渲染结果，手动处理后续逻辑
+配置`$callback`为1，则返回模板渲染的数据而不是直接输出，配置为callable回调（闭包、函数名、[对象,方法]）可以获取渲染结果，手动处理后续逻辑
 
 
 ## 验证器
@@ -441,13 +441,13 @@ ATTR_STRINGIFY_FETCHES => false
 ### 增加
 
 ```php
-db::insert(array $data,string $table='',bool $ignore=false,bool $replace=false)
+db::insert(array $data,string $table='',bool|null $replace_or_ignore=null)
 db::replace(array $data,string $table='')
 ```
 
 `replace`也是通过`insert`方法,只是参数不同.
 
-`$ignore`设置为`true`可以使用`INSERT IGNORE`模式
+`$replace_or_ignore`不传或为`null`是普通`INSERT`，设为`false`使用`INSERT IGNORE`，设为`true`使用`REPLACE`
 
 > _`insert`方法没有完成`ON DUPLICATE KEY UPDATE`,若想使用,见下面说明_
 

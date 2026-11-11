@@ -5,7 +5,7 @@ declare(strict_types=1);
  * @author suconghou
  * @blog http://blog.suconghou.cn
  * @link https://github.com/suconghou/mvc
- * @version 1.2.7
+ * @version 1.2.8
  */
 
 
@@ -240,9 +240,8 @@ class route
 	public static function register(string ...$dirs)
 	{
 		spl_autoload_register(static function ($name) use ($dirs) {
-			$name = str_replace('\\', DIRECTORY_SEPARATOR, $name);
 			foreach ($dirs as $dir) {
-				if (is_file($file = "{$dir}{$name}.php")) {
+				if (is_file($file = $dir . str_replace('\\', DIRECTORY_SEPARATOR, $name) . '.php')) {
 					require_once $file;
 					if (class_exists($name, false)) {
 						return;
@@ -478,6 +477,7 @@ class db
 	/** 返回受影响的行数 */
 	final public static function insertOnceMany(string $table, array $column, array $data, array $duplicateKeyUpdate = []): int
 	{
+		if (!$data) return 0;
 		$values = array_merge(...$data);
 		$holders = substr(str_repeat('(?' . str_repeat(',?', count(reset($data)) - 1) . '),', count($data)), 0, -1);
 		$sql = sprintf('INSERT INTO %s (%s) VALUES %s', static::table($table), implode(',', array_map(static fn(string $k): string => "`$k`", $column)), $holders);
@@ -541,6 +541,7 @@ class db
 
 	final public static function findPage(array $where = [], string $table = '', string $col = '*', int $page = 1, int $limit = 20, array $order = []): array
 	{
+		$limit = max(1, $limit);
 		$total = intval(self::findVar($where, $table));
 		$pages = ceil($total / $limit);
 		$list = self::find($where, $table, $col, [($page - 1) * $limit => intval($limit)] + $order);
@@ -720,7 +721,7 @@ function template(string $v, array $data = [], callable|int $callback = 0, strin
 			if ($__render__props__['callback']) {
 				ob_start() && include $__render__props__['v'];
 				$contents = ob_get_contents();
-				return (ob_end_clean() && ($__render__props__['callback'] instanceof closure)) ? $__render__props__['callback']($contents) : $contents;
+				return (ob_end_clean() && is_callable($__render__props__['callback'])) ? call_user_func($__render__props__['callback'], $contents) : $contents;
 			}
 			return include $__render__props__['v'];
 		};
